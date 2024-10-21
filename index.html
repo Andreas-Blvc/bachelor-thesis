@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Weekly Presentations</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        #overview {
+            padding: 20px;
+            background-color: #fff;
+            max-width: 800px;
+            margin: 20px auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        #overview h1 {
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .presentation-list a {
+            display: block;
+            padding: 12px;
+            margin-bottom: 10px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .presentation-list a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="overview">
+        <h1>Weekly Presentations</h1>
+        <p>Select a presentation to view:</p>
+        <div class="presentation-list" id="presentation-list">
+            <!-- List of presentations will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Load the dynamically generated presentations array -->
+    <script src="presentations/presentations.js"></script>
+
+    <script>
+        // Function to populate the presentation list
+        function populatePresentationList() {
+            const presentationList = document.getElementById('presentation-list');
+            presentations.forEach(presentation => {
+                const link = document.createElement('a');
+                link.href = `presentation.html?week=${presentation}`;
+                link.textContent = presentation.charAt(0).toUpperCase() + presentation.slice(1); // Capitalize the first letter
+                presentationList.appendChild(link);
+            });
+        }
+
+        // Populate the presentation list on page load
+        window.onload = function() {
+            populatePresentationList();
+        };
+    </script>
+
+</body>
+
+</html>
