@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Weekly Presentations</title>
+    <title>BA</title>
 
     <style>
         body {
@@ -50,8 +50,8 @@
 <body>
 
     <div id="overview">
-        <h1>Weekly Presentations</h1>
-        <p>Select a presentation to view:</p>
+        <h1>Wöchentliche Präsentationen</h1>
+        <p>Wähle eine Präsentation aus:</p>
         <div class="presentation-list" id="presentation-list">
             <!-- List of presentations will be dynamically inserted here -->
         </div>
@@ -64,10 +64,10 @@
         // Function to populate the presentation list
         function populatePresentationList() {
             const presentationList = document.getElementById('presentation-list');
-            presentations.forEach(presentation => {
+            presentations.forEach((presentation, index) => {
                 const link = document.createElement('a');
                 link.href = `presentation.html?week=${presentation}`;
-                link.textContent = presentation.charAt(0).toUpperCase() + presentation.slice(1); // Capitalize the first letter
+                link.textContent = `Woche ${index + 1}`; // Capitalize the first letter
                 presentationList.appendChild(link);
             });
         }
