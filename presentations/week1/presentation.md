@@ -4,9 +4,7 @@
 
 ## Rückblick: Was habe ich letzte Woche gemacht?
 
-- **Modelle**
-  - Kinematic Bicycle Model
-  - Dynamic Bicycle Model
+- **Modelle**: Kinematic/Dynamic Bicycle Model
 - **Terminologie & Hierarchie**
 - **Ansätze zur Pfadplanung**: Graph Search, Incremental Search, Variational Methods
 - **Formulierung des Pfadplanungsproblems**
