@@ -7,10 +7,10 @@ Finalize the literature research on realistic constraints for double-integrator 
 Begin sketching out ideas for the derivation of convex constraints.							:a6, after a5, 7d
 
 section Derivation of Constraints
-Formally derive the convex constraints for the double-integrator model.						:b1, after a6, 7d
-Start drafting the motivation for the constraints (mathematical and real-world behavior)	:b2, after a6, 7d
-Review your derivation to ensure the correctness of the constraints.						:b3, after b2, 7d
-Start analyzing how these constraints compare to those for kinematic-single-track models.	:b4, after b2, 7d
+Formally derive the convex constraints for the double-integrator model.						:b1, after a6, 14d
+Start drafting the motivation for the constraints (mathematical and real-world behavior)	:b2, after a6, 14d
+Review your derivation to ensure the correctness of the constraints.						:b3, after b2, 14d
+Start analyzing how these constraints compare to those for kinematic-single-track models.	:b4, after b2, 14d
 Identify methods for determining if the constraints are under- or over-approximate.			:b5, after b4, 7d
 Prepare a first draft of the derivation and analysis of constraints.						:b6, after b5, 7d
 
@@ -25,6 +25,6 @@ Implement in Gurobi/cvxpy																	:c4, after b6, 28d
 
 section Completion and Documentation
 Document the theoretical foundations 														:d1, after a6, 28d
-Describe results and implementation 														:d2, after b6, 28d
+Describe results and implementation 														:d2, after b4, 42d
 Revision and final edits 																	:d3, after d2, 15.03.2025
 Submission of Bachelor Thesis																:milestone, 15.03.2025
