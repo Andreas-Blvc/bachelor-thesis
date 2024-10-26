@@ -3,31 +3,30 @@ import numpy as np
 from models.vehicle_model import VehicleModel
 
 class PathPlanner:
-    def __init__(self, goal_state, model: VehicleModel, dt, time_horizon):
+    def __init__(self, model: VehicleModel, dt, time_horizon):
         self.dt = dt
         self.model = model
-        self.goal_state = goal_state
         N = int(time_horizon / dt)
 
         # Define control and state variables for the entire time horizon
-        self.u = cp.Variable((N, 2))  # Control inputs matrix: (N, 2)
-        self.x = cp.Variable((N + 1, 4))  # State variables matrix: (N + 1, 4)
+        self.u = cp.Variable((N, model.get_dim_control_input()))  # Control inputs matrix: (N, 2)
+        self.x = cp.Variable((N + 1, model.get_dim_state()))  # State variables matrix: (N + 1, 4)
 
         # Initialize constraints list
         constraints = []
 
         # Initial state constraint
         initial_state = model.get_initial_state().flatten()
+        goal_state = model.get_goal_state().flatten()
         constraints.append(self.x[0, :] == initial_state)
 
         # Goal state constraint (only position constraints at the final state)
-        constraints.append(self.x[N, :] == goal_state[:])
+        constraints.append(self.x[N, :] == goal_state)
 
         # Dynamics constraints vectorized over time horizon
-        current_state = initial_state
         for j in range(N):
             # State transition: x_{k+1} = x_k + (A * x_k + B * u_k) * dt
-            current_state, model_constraints = model.update(current_state, self.u[j, :])
+            current_state, model_constraints = model.update(self.x[j, :], self.u[j, :])
             constraints += model_constraints
             constraints.append(self.x[j + 1, :] == current_state)
 

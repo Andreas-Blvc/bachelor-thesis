@@ -5,17 +5,39 @@ import time
 
 if __name__ == '__main__':
 	start_state = [0, 0, 0, 0]
-	goal_state = [10, 10, 0, 0]
-	dt = 0.1
-	model = DoubleIntegrator(start_state, 10, dt)
-	planner = PathPlanner(goal_state, model, dt, 30)
+	goal_state = [7, 5, 0, 0]
+	dt = 1/30
+	time_horizon = 3
+	# Create Path Planning Instance
+	model = DoubleIntegrator(start_state, goal_state, 10, dt)
+	planner = PathPlanner(model, dt, time_horizon)
 	visualizer = MotionVisualizer()
 
-	car_path, control_inputs = planner.get_optimized_trajectory()
-	car_path = [(car_path[i][0], car_path[i][1]) for i in range(len(car_path))]
-	for i, position in enumerate(car_path):
+	# Get Start and Goal, Car Shape
+	start_pos, start_orientation = model.get_position_orientation(model.get_initial_state())
+	goal_pos, goal_orientation = model.get_position_orientation(model.get_goal_state())
+	car_shape = model.get_shape()
+
+	# Get Car Path
+	car_states, control_inputs = planner.get_optimized_trajectory()
+	car_path = []
+
+	print(model.get_initial_state())
+	for i, state in enumerate(car_states):
+		pos, orientation = model.get_position_orientation(state)
+		car_path.append(pos)
 		control_input = control_inputs[i] if i < len(control_inputs) else [0, 0]
-		print(f"Step {i + 1}: Position = ({position[0]:.2f}, {position[1]:.2f}), Control Inputs = [{control_input[0]:.5f}, {control_input[1]:.5f}]")
-		visualizer.draw(start_state[:2], goal_state[:2], position, car_path, [])
+		print(f"Step {i + 1}: Position = ({pos[0]:.2f}, {pos[1]:.2f}), Control Inputs = [{control_input[0]:.5f}, {control_input[1]:.5f}]")
+		visualizer.draw(
+			start_pos,
+			start_orientation,
+			goal_pos,
+			goal_orientation,
+			pos,
+			orientation,
+			car_shape,
+			car_path,
+			[]
+		)
 		time.sleep(dt)  # Add delay to simulate motion
 	input('END')

@@ -3,11 +3,13 @@ import cvxpy as cp
 from models.vehicle_model import VehicleModel
 
 class DoubleIntegrator(VehicleModel):
-    def __init__(self, initial_state, a_max: float, dt: float):
+    def __init__(self, initial_state, goal_state, a_max: float, dt: float):
+        self.dim_state = 4
+        self.dim_control_input = 2
         self.dt = dt
         self.a_max = a_max
-        # Initial state: concatenate initial position with zero velocity
         self.initial_state = np.reshape(initial_state, (4, 1))
+        self.goal_state = np.reshape(goal_state, (4, 1))
 
         # Define the A matrix (state transition matrix)
         self.A = np.zeros((4, 4))
@@ -34,3 +36,26 @@ class DoubleIntegrator(VehicleModel):
 
     def get_initial_state(self):
         return self.initial_state
+
+    def get_goal_state(self):
+        return self.goal_state
+
+    import numpy as np
+
+    def get_position_orientation(self, state):
+        if isinstance(state, list):
+            state = np.array(state)
+
+        if state.shape == (4, 1):
+            return state[:2, 0], 0
+        else:
+            return state[:2], 0
+
+    def get_shape(self):
+        return []
+
+    def get_dim_state(self):
+        return self.dim_state
+
+    def get_dim_control_input(self):
+        return self.dim_control_input
