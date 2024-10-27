@@ -1,5 +1,4 @@
 import cvxpy as cp
-import numpy as np
 from models.vehicle_model import VehicleModel
 
 class PathPlanner:
@@ -15,9 +14,10 @@ class PathPlanner:
         # Initialize constraints list
         constraints = []
 
-        # Initial state constraint
         initial_state = model.get_initial_state().flatten()
         goal_state = model.get_goal_state().flatten()
+
+        # Initial state constraint
         constraints.append(self.x[0, :] == initial_state)
 
         # Goal state constraint (only position constraints at the final state)
@@ -36,8 +36,8 @@ class PathPlanner:
         # Define the optimization problem
         self.prob = cp.Problem(objective, constraints)
 
-
     def get_optimized_trajectory(self):
+        self.prob.solve(solver=cp.CLARABEL)
         # Return optimized state and control trajectories
-        self.prob.solve()
         return self.x.value, self.u.value
+
