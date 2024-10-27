@@ -46,141 +46,135 @@ class SingleTrackModel(VehicleModel):
         self.goal_state = np.reshape(goal_state, (self.dim_state, 1))
 
     def acceleration_ub(self, v):
-        acc_ub = cp.Variable()
-        constraints = [
-            acc_ub == self.a_max # * (self.v_s / cp.maximum(v, self.v_s))
-        ]
+        if self.solver_type == 'casadi':
+            # Use CasADi expressions directly
+            acc_ub = self.a_max * (self.v_s / ca.fmax(v, self.v_s))
+            constraints = []
+        else:
+            # Use CVXPY variables and constraints
+            acc_ub = cp.Variable()
+            constraints = [
+                acc_ub == self.a_max # * (self.v_s / cp.maximum(v, self.v_s))
+            ]
         return acc_ub, constraints
 
     def steer(self, steering_angle, steering_velocity):
-        steering_output = cp.Variable()
+        if self.solver_type == 'casadi':
+            # Implement logic using CasADi expressions
+            # Conditions:
+            # if (steering_angle <= steering_angle_lb and steering_velocity <= 0) or
+            #    (steering_angle >= steering_angle_ub and steering_velocity >= 0):
+            #     steering_output = 0
+            # else:
+            #     steering_output = steering_velocity (clipped to bounds)
+            cond1 = ca.logic_or(
+                ca.logic_and(steering_angle <= self.steering_angle_lb, steering_velocity <= 0),
+                ca.logic_and(steering_angle >= self.steering_angle_ub, steering_velocity >= 0)
+            )
+            steering_output = ca.if_else(
+                cond1,
+                0,
+                ca.fmin(ca.fmax(steering_velocity, self.steering_velocity_lb), self.steering_velocity_ub)
+            )
+            constraints = []
+        else:
+            # Use CVXPY variables and constraints
+            steering_output = cp.Variable()
+            # Define approximate Boolean variables
+            z = cp.Variable()
+            b1 = cp.Variable()
+            b2 = cp.Variable()
+            b3 = cp.Variable()
+            c1 = cp.Variable()
+            c2 = cp.Variable()
 
-        # Approximate Boolean Variables
-        z = cp.Variable()
-        b1 = cp.Variable()
-        b2 = cp.Variable()
-        b3 = cp.Variable()
-        c1 = cp.Variable()
-        c2 = cp.Variable()
-
-        constraints = [
-            0 <= z,
-            z <= 1,
-            0 <= b1,
-            b1 <= 1,
-            0 <= b2,
-            b2 <= 1,
-            0 <= b3,
-            b3 <= 1,
-            0 <= c1,
-            c1 <= 1,
-            0 <= c2,
-            c2 <= 1,
-        ]
-
-        # if (steering_angle <= self.steering_angle_lb and steering_velocity <= 0) or (
-        #         steering_angle >= self.steering_angle_ub and steering_velocity >= 0):
-        #     return 0
-        constraints += [
-          self.steering_velocity_lb - steering_angle <= BIG_M * b1,
-          # if self.steering_velocity_lb > steering_angle, then b1=1
-          self.steering_velocity_lb - steering_angle >= -BIG_M * (1 - b1),
-          # if self.steering_velocity_lb < steering_angle, then b1=0
-        ] + [
-          steering_angle - self.steering_angle_ub <= BIG_M * b2,
-          # if steering_angle > self.steering_angle_ub, then b2=1
-          steering_angle - self.steering_angle_ub >= -BIG_M * (1 - b2),
-          # if steering_angle < self.steering_angle_ub, then b2=0
-        ] + [
-          steering_velocity >= -BIG_M * b3,  # if steering_velocity < 0, then b3=1
-          steering_velocity <= BIG_M * (1 - b3),  # if steering_velocity > 0 then b3=0
-        ] + [
-          b1 + b3 <= 1 + c1,  # if b1 and b3, then c1=1
-          b1 + b3 >= 2 * c1,  # if not b1 or not b3, then c1=0
-        ] + [
-          b1 + (1 - b3) <= 1 + c2,  # if b1 and not b3, then c2=1
-          b1 + (1 - b3) >= 2 * c2,  # if not b1 or b3, then c2=0
-        ] + [
-          c1 + c2 >= z,  # if c1 + c2 = 0, then z=0
-          c1 + c2 <= 2 * z,  # if c1 + c2 > 0, then z=1
-        ] + [
-          steering_output <= BIG_M * (1 - z),
-          steering_output >= -BIG_M * (1 - z),
-        ]
-
-        # elif steering_velocity <= self.steering_velocity_lb:
-        #     return self.steering_velocity_lb
-        # elif steering_velocity >= self.steering_velocity_ub:
-        #     return self.steering_velocity_ub
-        constraints += [
-            steering_output <= self.steering_velocity_ub,
-            steering_output >= self.steering_velocity_lb,
-        ]
-
+            constraints = [
+              0 <= z, z <= 1,
+              0 <= b1, b1 <= 1,
+              0 <= b2, b2 <= 1,
+              0 <= b3, b3 <= 1,
+              0 <= c1, c1 <= 1,
+              0 <= c2, c2 <= 1,
+            ] + [
+              self.steering_angle_lb - steering_angle <= BIG_M * b1,
+              self.steering_angle_lb - steering_angle >= -BIG_M * (1 - b1),
+              steering_angle - self.steering_angle_ub <= BIG_M * b2,
+              steering_angle - self.steering_angle_ub >= -BIG_M * (1 - b2),
+              steering_velocity >= -BIG_M * b3,
+              steering_velocity <= BIG_M * (1 - b3),
+              b1 + b3 <= 1 + c1,
+              b1 + b3 >= 2 * c1,
+              b1 + (1 - b3) <= 1 + c2,
+              b1 + (1 - b3) >= 2 * c2,
+              c1 + c2 >= z,
+              c1 + c2 <= 2 * z,
+              steering_output <= BIG_M * (1 - z),
+              steering_output >= -BIG_M * (1 - z),
+              steering_output <= self.steering_velocity_ub,
+              steering_output >= self.steering_velocity_lb,
+            ]
         return steering_output, constraints
 
     def acc(self, velocity, acceleration):
-        acc_output = cp.Variable()
+        if self.solver_type == 'casadi':
+            # Implement logic using CasADi expressions
+            # Conditions:
+            # if (velocity <= velocity_lb and acceleration <= 0) or
+            #    (velocity >= velocity_ub and acceleration >= 0):
+            #     acc_output = 0
+            # else:
+            #     acc_output = acceleration (clipped to bounds)
+            cond1 = ca.logic_or(
+                ca.logic_and(velocity <= self.velocity_lb, acceleration <= 0),
+                ca.logic_and(velocity >= self.velocity_ub, acceleration >= 0)
+            )
+            acc_ub, _ = self.acceleration_ub(velocity)
+            acc_output = ca.if_else(
+                cond1,
+                0,
+                ca.fmin(ca.fmax(acceleration, self.acceleration_lb), acc_ub)
+            )
+            constraints = []
+        else:
+            # Use CVXPY variables and constraints
+            acc_output = cp.Variable()
+            # Define approximate Boolean variables
+            z = cp.Variable()
+            b1 = cp.Variable()
+            b2 = cp.Variable()
+            b3 = cp.Variable()
+            c1 = cp.Variable()
+            c2 = cp.Variable()
 
-        # Approximate Boolean Variables
-        z = cp.Variable()
-        b1 = cp.Variable()
-        b2 = cp.Variable()
-        b3 = cp.Variable()
-        c1 = cp.Variable()
-        c2 = cp.Variable()
-
-        constraints = [
-            0 <= z,
-            z <= 1,
-            0 <= b1,
-            b1 <= 1,
-            0 <= b2,
-            b2 <= 1,
-            0 <= b3,
-            b3 <= 1,
-            0 <= c1,
-            c1 <= 1,
-            0 <= c2,
-            c2 <= 1,
-        ]
-        # if (velocity <= self.velocity_lb and acceleration <= 0) or (velocity >= self.velocity_ub and acceleration >= 0):
-        #   return 0
-        constraints += [
-          self.velocity_lb - velocity <= BIG_M * b1,  # if self.velocity_lb > velocity, then b1=1
-          self.velocity_lb - velocity >= -BIG_M * (1 - b1),  # if self.velocity_lb < velocity, then b1=0
-        ] + [
-          velocity - self.velocity_ub <= BIG_M * b2,  # if velocity > self.velocity_ub, then b2=1
-          velocity - self.velocity_ub >= -BIG_M * (1 - b2),  # if velocity < self.velocity_ub, then b2=0
-        ] + [
-          acceleration >= -BIG_M * b3,  # if acceleration < 0, then b3=1
-          acceleration <= BIG_M * (1 - b3),  # if acceleration > 0 then b3=0
-        ] + [
-          b1 + b3 <= 1 + c1,  # if b1 and b3, then c1=1
-          b1 + b3 >= 2 * c1,  # if not b1 or not b3, then c1=0
-        ] + [
-          b1 + (1 - b3) <= 1 + c2,  # if b1 and not b3, then c2=1
-          b1 + (1 - b3) >= 2 * c2,  # if not b1 or b3, then c2=0
-        ] + [
-          c1 + c2 >= z,  # if c1 + c2 = 0, then z=0
-          c1 + c2 <= 2 * z,  # if c1 + c2 > 0, then z=1
-        ] + [
-          acc_output <= BIG_M * (1 - z),
-          acc_output >= -BIG_M * (1 - z),
-        ]
-
-        acc_ub, acc_constraints = self.acceleration_ub(velocity)
-        # elif acceleration <= self.acceleration_lb:
-        #     return self.acceleration_lb
-        # elif acceleration >= self.acceleration_ub(velocity):
-        #     return self.acceleration_ub(velocity)
-
-        constraints += [
-            acc_output >= self.acceleration_lb,
-            acc_output <= acc_ub,
-        ]
-
-        return acc_output, constraints + acc_constraints
+            constraints = [
+              0 <= z, z <= 1,
+              0 <= b1, b1 <= 1,
+              0 <= b2, b2 <= 1,
+              0 <= b3, b3 <= 1,
+              0 <= c1, c1 <= 1,
+              0 <= c2, c2 <= 1,
+            ] + [
+              self.velocity_lb - velocity <= BIG_M * b1,
+              self.velocity_lb - velocity >= -BIG_M * (1 - b1),
+              velocity - self.velocity_ub <= BIG_M * b2,
+              velocity - self.velocity_ub >= -BIG_M * (1 - b2),
+              acceleration >= -BIG_M * b3,
+              acceleration <= BIG_M * (1 - b3),
+              b1 + b3 <= 1 + c1,
+              b1 + b3 >= 2 * c1,
+              b1 + (1 - b3) <= 1 + c2,
+              b1 + (1 - b3) >= 2 * c2,
+              c1 + c2 >= z,
+              c1 + c2 <= 2 * z,
+              acc_output <= BIG_M * (1 - z),
+              acc_output >= -BIG_M * (1 - z),
+            ]
+            acc_ub, acc_constraints = self.acceleration_ub(velocity)
+            constraints += [
+                               acc_output >= self.acceleration_lb,
+                               acc_output <= acc_ub,
+                           ] + acc_constraints
+        return acc_output, constraints
 
     def update(self, current_state, control_inputs):
         """Update state based on current state and control inputs."""
@@ -287,3 +281,6 @@ class SingleTrackModel(VehicleModel):
 
     def get_dim_control_input(self):
         return self.dim_control_input
+
+    def get_a_max(self):
+        return self.a_max

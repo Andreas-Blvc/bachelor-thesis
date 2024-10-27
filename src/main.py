@@ -12,12 +12,12 @@ if __name__ == '__main__':
 	# Create Path Planning Instance
 	model = SingleTrackModel(
 		initial_state=[-5, 0, 0, 0, 0],
-		goal_state=[5, -5, (0/180)*pi, 0, 0],
+		goal_state=[5, 0, (0/180)*pi, 0, 0],
 		a_max=20,
 		l_wb=1.8,
 		v_s=30,
 		steering_velocity_range=[-1, 1],
-		steering_angle_range=[(-30/180)*pi, (30/180)*pi],
+		steering_angle_range=[(-10/180)*pi, (10/180)*pi],
 		velocity_range=[0, 40],
 		acceleration_range=[-20, 20],
 		dt=dt,

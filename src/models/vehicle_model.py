@@ -13,3 +13,6 @@ class VehicleModel:
 		raise "get_dim_state not implemented"
 	def get_dim_control_input(self):
 		raise "get_dim_control_input not implemented"
+	def get_a_max(self):
+		raise "get_a_max not implemented"
+
