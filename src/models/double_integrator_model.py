@@ -7,9 +7,11 @@ class DoubleIntegrator(VehicleModel):
         self.dim_state = 4
         self.dim_control_input = 2
         self.dt = dt
+
         self.a_max = a_max
-        self.initial_state = np.reshape(initial_state, (4, 1))
-        self.goal_state = np.reshape(goal_state, (4, 1))
+
+        self.initial_state = np.reshape(initial_state, ( self.dim_state, 1))
+        self.goal_state = np.reshape(goal_state, ( self.dim_state, 1))
 
         # Define the A matrix (state transition matrix)
         self.A = np.zeros((4, 4))
@@ -22,9 +24,6 @@ class DoubleIntegrator(VehicleModel):
         self.B[3, 1] = 1
 
     def update(self, current_state, acceleration_inputs):
-        """
-        Compute the next state as a CVXPY expression without updating the internal state.
-        """
         # Compute the next state based on the input acceleration
         next_state = current_state + (self.A @ current_state + self.B @ acceleration_inputs) * self.dt
 
@@ -39,8 +38,6 @@ class DoubleIntegrator(VehicleModel):
 
     def get_goal_state(self):
         return self.goal_state
-
-    import numpy as np
 
     def get_position_orientation(self, state):
         if isinstance(state, list):

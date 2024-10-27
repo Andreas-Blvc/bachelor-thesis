@@ -1,15 +1,27 @@
 from models.double_integrator_model import DoubleIntegrator
+from models.single_track_model import SingleTrackModel
 from path_planner.optimization import PathPlanner
 from visualizer.motion_visualization import MotionVisualizer
 import time
+from math import pi
 
 if __name__ == '__main__':
-	start_state = [0, 0, 0, 0]
-	goal_state = [7, 5, 0, 0]
 	dt = 1/30
 	time_horizon = 3
 	# Create Path Planning Instance
-	model = DoubleIntegrator(start_state, goal_state, 10, dt)
+	# model = DoubleIntegrator( [0, 0, 0, 0], [7, 5, 0, 0], 10, dt)
+	model = SingleTrackModel(
+		initial_state=[0, 0, 0, 0, 0],
+		goal_state=[3, 8, 0, 0, 0],
+		a_max=20,
+		l_wb=1.8,
+		v_s=30,
+		steering_velocity_range=[-5, 5],
+		steering_angle_range=[(-15/180)*pi, (15/180)*pi],
+		velocity_range=[0, 40],
+		acceleration_range=[-20, 20],
+		dt=dt
+	)
 	planner = PathPlanner(model, dt, time_horizon)
 	visualizer = MotionVisualizer()
 
