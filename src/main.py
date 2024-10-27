@@ -1,6 +1,6 @@
 from models.double_integrator_model import DoubleIntegrator
 from models.single_track_model import SingleTrackModel
-from path_planner.cvxpy_optimizer import PathPlanner
+from path_planner.cvxpy_optimizer import ConvexPathPlanner
 from path_planner.casadi_optimizer import NonConvexPathPlanner
 from visualizer.motion_visualization import MotionVisualizer
 import time
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 		solver_type='casadi',
 	)
 	# model = DoubleIntegrator([0, 0, 0, 0], [7, 5, 0, 0], 10, dt)
-	# planner = PathPlanner(model, dt, time_horizon)
+	# planner = ConvexPathPlanner(model, dt, time_horizon)
 	planner = NonConvexPathPlanner(model, dt, time_horizon)
 	visualizer = MotionVisualizer()
 

@@ -1,7 +1,7 @@
 import cvxpy as cp
 from models.vehicle_model import VehicleModel
 
-class PathPlanner:
+class ConvexPathPlanner:
     def __init__(self, model: VehicleModel, dt, time_horizon):
         self.dt = dt
         self.model = model
