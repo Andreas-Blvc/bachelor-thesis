@@ -3,11 +3,11 @@ import numpy as np
 from models.vehicle_model import VehicleModel
 
 class NonConvexPathPlanner:
-    def __init__(self, model: VehicleModel, dt, time_horizon, amax):
+    def __init__(self, model: VehicleModel, dt, time_horizon):
         self.dt = dt
         self.model = model
         self.N = int(time_horizon / dt)
-        self.amax = amax  # Maximum allowable acceleration
+        self.amax = model.get_a_max()  # Maximum allowable acceleration
 
         x_dim = model.get_dim_state()
         u_dim = model.get_dim_control_input()
@@ -48,7 +48,7 @@ class NonConvexPathPlanner:
             self.constraints_eq.extend(model_constraints)
 
             # Dynamics constraint: x[j + 1, :] - next_state == 0
-            self.constraints_eq.append(x[j + 1, :] - next_state)
+            self.constraints_eq.append(x[j + 1, :] - next_state.T)
 
             # Objective: minimize the sum of squared control inputs over the horizon
             self.objective += ca.sumsqr(u[j, :])
@@ -102,7 +102,7 @@ class NonConvexPathPlanner:
         self.lbg = lbg
         self.ubg = ubg
 
-    def get_optimized_trajectory(self, initial_guess=None):
+    def get_optimized_trajectory(self):
         # Define the number of states and controls
         N = self.N
         x_dim = self.model.get_dim_state()
@@ -112,18 +112,13 @@ class NonConvexPathPlanner:
         initial_state = self.model.get_initial_state().flatten()
         goal_state = self.model.get_goal_state().flatten()
 
-        if initial_guess is None:
-            # Create an initial guess for x by interpolating between initial_state and goal_state
-            x_init = np.zeros((N + 1, x_dim))
-            for i in range(x_dim):
-                x_init[:, i] = np.linspace(initial_state[i], goal_state[i], N + 1)
+        # Create an initial guess for x by interpolating between initial_state and goal_state
+        x_init = np.zeros((N + 1, x_dim))
+        for i in range(x_dim):
+            x_init[:, i] = np.linspace(initial_state[i], goal_state[i], N + 1)
 
-            # Provide an initial guess for u (e.g., zeros or nominal control inputs)
-            u_init = np.zeros((N, u_dim))
-        else:
-            # Use the provided initial guess
-            x_init = initial_guess[: (N + 1) * x_dim].reshape((N + 1, x_dim))
-            u_init = initial_guess[(N + 1) * x_dim:].reshape((N, u_dim))
+        # Provide an initial guess for u (e.g., zeros or nominal control inputs)
+        u_init = np.zeros((N, u_dim))
 
         # Flatten x_init and u_init to create initial_guess
         initial_guess = np.concatenate([x_init.flatten(), u_init.flatten()])
