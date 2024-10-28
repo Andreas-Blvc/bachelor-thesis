@@ -406,7 +406,7 @@ class SingleTrackModel(VehicleModel):
             raise ValueError(f"state must have shape ({self.dim_state},), got {state.shape}")
         return state[:2], float(state[2])
 
-    def get_shape(self, state: Union[List[float], np.ndarray]) -> List[Tuple[float, float]]:
+    def get_vehicle_polygon(self, state: Union[List[float], np.ndarray]) -> List[Tuple[float, float]]:
         _, orientation = self.get_position_orientation(state)
         front_wheel_front = self._add_tuple(self._rotate((0.5, 0), orientation), (1, 0))
         front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), orientation), (1, 0))

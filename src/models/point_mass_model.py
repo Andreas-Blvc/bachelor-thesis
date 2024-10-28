@@ -72,7 +72,7 @@ class PointMassModel(VehicleModel):
         else:
             raise ValueError(f"state must have shape ({self.dim_state},) or ({self.dim_state},), got {state.shape}")
 
-    def get_shape(self, state: np.ndarray):
+    def get_vehicle_polygon(self, state: np.ndarray):
         return [(0.0, 0.0)]  # Representing a point
 
     def get_dim_state(self):

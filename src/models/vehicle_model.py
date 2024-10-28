@@ -10,8 +10,8 @@ class VehicleModel:
 		raise "get_goal_state not implemented"
 	def get_position_orientation(self, state) -> Tuple[np.ndarray, float]:
 		raise "get_position_orientation not implemented"
-	def get_shape(self, state) -> List[Tuple[float, float]]:
-		raise "get_shape not implemented"
+	def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
+		raise "get_vehicle_polygon not implemented"
 	def get_dim_state(self) -> int:
 		raise "get_dim_state not implemented"
 	def get_dim_control_input(self) -> int:

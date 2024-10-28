@@ -15,6 +15,7 @@ class MatPlotVisualizer:
         plt.ion()
         self.fig, self.ax = plt.subplots()
         self.setup_plot()
+        self.car_path = []
 
     def setup_plot(self):
         """
@@ -59,8 +60,8 @@ class MatPlotVisualizer:
 
         return transformed_points
 
-    def draw(self, start_pos, start_orientation, goal_pos, goal_orientation, car_position, car_orientation, car_shape,
-             car_path, obstacles):
+    def draw(self, start_pos, start_orientation, start_shape, goal_pos, goal_orientation, goal_shape, car_position,
+             car_orientation, car_shape, obstacles):
         """
         Draws the car's path, start and goal positions as car shapes, and obstacles.
 
@@ -77,17 +78,18 @@ class MatPlotVisualizer:
         """
         # Clear the previous drawing
         self.clear()
+        self.car_path.append(car_position)
 
         # Only draw start and goal shapes if car_shape is not empty
         if car_shape:
             # Draw the car shape at the start position
-            start_shape = self.transform_points(car_shape, start_pos, start_orientation)
+            start_shape = self.transform_points(start_shape, start_pos, start_orientation)
             start_polygon = patches.Polygon(start_shape, closed=True, facecolor='lightgreen', edgecolor='green',
                                             label='Start')
             self.ax.add_patch(start_polygon)
 
             # Draw the car shape at the goal position
-            goal_shape = self.transform_points(car_shape, goal_pos, goal_orientation)
+            goal_shape = self.transform_points(goal_shape, goal_pos, goal_orientation)
             goal_polygon = patches.Polygon(goal_shape, closed=True, facecolor='lightcoral', edgecolor='red',
                                            label='Goal')
             self.ax.add_patch(goal_polygon)
@@ -100,9 +102,8 @@ class MatPlotVisualizer:
             self.ax.add_patch(car_polygon)
 
         # Plot the car's path as a trail of markers
-        if car_path:
-            car_path = np.array(car_path)
-            self.ax.plot(car_path[:, 0], car_path[:, 1], 'b-', label='Planned Path', linewidth=2)
+        path = np.array(self.car_path)
+        self.ax.plot(path[:, 0], path[:, 1], 'b-', label='Planned Path', linewidth=2)
 
         # Highlight start/end position
         self.ax.plot(start_pos[0], start_pos[1], 'go', label='Start', markersize=4)
@@ -126,45 +127,3 @@ class MatPlotVisualizer:
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
-
-# Example usage of the dynamic visualizer
-if __name__ == "__main__":
-    # Create a MotionVisualizer instance
-    visualizer = MatPlotVisualizer()
-
-    # Define start, goal, path, car position, and obstacles
-
-    # Start and goal positions
-    start_pos = (0, 0)
-    goal_pos = (8, 8)
-
-    # A simple path as a list of (x, y) tuples
-    car_path = [(0, 0), (2, 2), (4, 3), (6, 5), (8, 8)]
-
-    # Initial car position (this will change dynamically)
-    car_position = (0, 0)
-    car_orientation = 0.0  # Initial orientation in radians
-
-    # Define the car shape as a list of points (e.g., triangle or arbitrary polygon)
-    car_shape = [(-0.5, -0.25), (0.5, -0.25), (0, 0.5)]  # Simple triangle shape
-
-    # Define obstacles as a list of dictionaries
-    obstacles = [
-        {'position': (4, 4), 'size': (2, 2)},
-        {'position': (6, 6), 'size': (1.5, 1.5)}
-    ]
-
-    # Draw the initial scene with the car's position and path
-    visualizer.draw(start_pos, goal_pos, car_position, car_orientation, car_shape, car_path, obstacles)
-
-    # Simulate some updates to the car's position and orientation
-    import time
-
-    for t in range(11):
-        # Update the car's position and orientation dynamically
-        car_position = (t * 0.8, t * 0.8)
-        car_orientation = t * 0.1  # Rotate a bit each time
-        visualizer.draw(start_pos, goal_pos, car_position, car_orientation, car_shape, car_path, obstacles)
-        time.sleep(0.5)  # Pause for half a second before redrawing
-
-    input()
