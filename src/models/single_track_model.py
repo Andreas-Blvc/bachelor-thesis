@@ -22,7 +22,6 @@ class SingleTrackModel(VehicleModel):
         self,
         initial_state: Union[List[float], np.ndarray],
         goal_state: Union[List[float], np.ndarray],
-        a_max: float,
         l_wb: float,
         v_s: float,
         steering_velocity_range: Tuple[float, float],
@@ -56,13 +55,12 @@ class SingleTrackModel(VehicleModel):
         if self.solver_type not in ['cvxpy', 'casadi']:
             raise ValueError("solver_type must be either 'cvxpy' or 'casadi'.")
 
-        self.a_max = a_max
         self.l_wb = l_wb
         self.v_s = v_s
         self.steering_velocity_lb, self.steering_velocity_ub = steering_velocity_range
         self.steering_angle_lb, self.steering_angle_ub = steering_angle_range
         self.velocity_lb, self.velocity_ub = velocity_range
-        self.acceleration_lb, self.acceleration_ub_val = acceleration_range
+        self.acceleration_lb, self.a_max = acceleration_range
 
         if initial_state.shape != (self.dim_state,):
             raise ValueError(f"initial_state must have shape ({self.dim_state},), got {initial_state.shape}")
@@ -394,6 +392,41 @@ class SingleTrackModel(VehicleModel):
             ]
 
         return next_state, [], uneq_constraints
+
+    def accurate_acceleration_ub(self, v):
+        return self.a_max * self.v_s / np.max((v, self.v_s))
+
+    def accurate_steer(self, steering_angle, steering_velocity):
+        if (steering_angle <= self.steering_angle_lb and steering_velocity <= 0) or (steering_angle >= self.steering_angle_ub and steering_velocity >= 0):
+            return 0
+        else:
+            return np.min((np.max((steering_velocity, self.steering_velocity_lb)), self.steering_velocity_ub))
+
+    def accurate_acc(self, velocity, acc_input):
+        print(velocity, acc_input, self.velocity_lb, self.velocity_ub)
+        if (velocity <= self.velocity_lb and acc_input <= 0) or (velocity >= self.velocity_ub and acc_input >= 0):
+            return 0
+        else:
+            return np.min((np.max((acc_input, self.acceleration_lb)), self.accurate_acceleration_ub(velocity)))
+
+    def accurate_update(
+            self,
+            current_state: np.ndarray,
+            control_inputs: np.ndarray
+    ):
+        _, _, x3, x4, x5 = current_state.flatten()
+        u1, u2 = control_inputs.flatten()
+        print(self.accurate_acc(x4, u2))
+        dx_dt = np.reshape([
+            x4 * np.cos(x5),
+            x4 * np.sin(x5),
+            self.accurate_steer(x3, u1),
+            self.accurate_acc(x4, u2),
+            (x4/self.l_wb) * np.tan(x3)
+        ], (self.dim_state,))
+
+        return current_state + dx_dt * self.dt
+
 
     def get_initial_state(self) -> np.ndarray:
         return self.initial_state

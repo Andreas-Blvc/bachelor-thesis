@@ -45,11 +45,10 @@ def scenario_0():
 
 def scenario_1():
 	dt = 1 / 30
-	time_horizon = 2
+	time_horizon = 10
 	model = SingleTrackModel(
 		initial_state=np.reshape([-6, -2, 0, 0, 0], (5,)),
-		goal_state=np.reshape([6, -2, (0 / 180) * pi, 0, 0], (5,)),
-		a_max=200,
+		goal_state=np.reshape([6, -1, (0 / 180) * pi, 0, 0], (5,)),
 		l_wb=1.8,
 		v_s=30,
 		steering_velocity_range=(-1, 1),
@@ -62,7 +61,12 @@ def scenario_1():
 	planner = ConvexPathPlanner(model, dt, time_horizon)
 
 	car_states, control_inputs = planner.get_optimized_trajectory()
-	print(control_inputs)
+
+	actual_car_states = [model.get_initial_state()]
+	for u in control_inputs:
+		print(u)
+		actual_car_states.append(model.accurate_update(actual_car_states[-1], u))
+	print(actual_car_states)
 	return Scenario(dt, model, car_states, control_inputs)
 
 
