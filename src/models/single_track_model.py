@@ -1,6 +1,5 @@
-from xmlrpc.client import Binary
-
 import numpy as np
+from math import pi
 import casadi as ca
 import cvxpy as cp
 from math import cos, sin, tan
@@ -296,6 +295,7 @@ class SingleTrackModel(VehicleModel):
             # Steering and acceleration outputs
             steering_output, steering_constraints = self.steer(x3, u1)
             acceleration_output, acceleration_constraints = self.acc(x4, u2)
+            acc_ub, _ = self.acceleration_ub(velocity)
 
             dx_dt = [
                 x4 * ca.cos(x5),
@@ -311,7 +311,11 @@ class SingleTrackModel(VehicleModel):
             ])
 
             constraints = steering_constraints + acceleration_constraints + [
-                u2**2 + (x4*dx_dt[4])**2 <= self.a_max**2
+                u2**2 + (x4*dx_dt[4])**2 <= self.a_max**2,
+                self.steering_angle_lb <= steering_angle, steering_angle <= self.steering_angle_ub,
+                self.velocity_lb <= velocity, velocity <= self.velocity_ub,
+                self.steering_velocity_lb <= steering_velocity, steering_velocity <= self.steering_velocity_ub,
+                self.acceleration_lb <= acc_input, acc_input <= acc_ub
             ]
 
         else:
@@ -399,7 +403,6 @@ class SingleTrackModel(VehicleModel):
             return np.min((np.max((steering_velocity, self.steering_velocity_lb)), self.steering_velocity_ub))
 
     def accurate_acc(self, velocity, acc_input):
-        print(velocity, acc_input, self.velocity_lb, self.velocity_ub)
         if (velocity <= self.velocity_lb and acc_input <= 0) or (velocity >= self.velocity_ub and acc_input >= 0):
             return 0
         else:
@@ -412,7 +415,6 @@ class SingleTrackModel(VehicleModel):
     ):
         _, _, x3, x4, x5 = current_state.flatten()
         u1, u2 = control_inputs.flatten()
-        print(self.accurate_acc(x4, u2))
         dx_dt = np.reshape([
             x4 * np.cos(x5),
             x4 * np.sin(x5),
@@ -433,12 +435,11 @@ class SingleTrackModel(VehicleModel):
     def get_position_orientation(self, state: np.ndarray) -> Tuple[np.ndarray, float]:
         if state.shape != (self.dim_state,):
             raise ValueError(f"state must have shape ({self.dim_state},), got {state.shape}")
-        return state[:2], float(state[2])
+        return state[:2], float(state[4])
 
-    def get_vehicle_polygon(self, state: Union[List[float], np.ndarray]) -> List[Tuple[float, float]]:
-        _, orientation = self.get_position_orientation(state)
-        front_wheel_front = self._add_tuple(self._rotate((0.5, 0), orientation), (1, 0))
-        front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), orientation), (1, 0))
+    def get_vehicle_polygon(self, state: np.ndarray) -> List[Tuple[float, float]]:
+        front_wheel_front = self._add_tuple(self._rotate((0.5, 0), state[2]), (1, 0))
+        front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), state[2]), (1, 0))
         return [
             (-1, 0.5), (1, 0.5),
                                 (1, 0),
@@ -456,6 +457,20 @@ class SingleTrackModel(VehicleModel):
 
     def get_a_max(self) -> float:
         return self.a_max
+
+    def to_string(self, state, control):
+        _, _, steering_angle, velocity, orientation = state
+        steering_velocity, acc_input = control
+
+        orientation_deg = orientation * 180 / pi  # Convert radians to degrees
+        steering_angle_deg = steering_angle * 180 / pi  # Convert radians to degrees
+        return (
+            f"Orientation = {orientation_deg:.2f}°, "
+            f"Steering Angle = {steering_angle_deg:.2f}°, "
+            f"Velocity = {velocity:.2f}m/s, "
+            f"Control Inputs = [Steering Velocity: {steering_velocity:.5f}, "
+            f"Acceleration Input: {acc_input:.5f}]"
+        )
 
     @staticmethod
     def _add_tuple(a: Tuple[float, float], b: Tuple[float, float]) -> Tuple[float, float]:

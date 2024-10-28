@@ -2,7 +2,6 @@ import casadi as ca
 import numpy as np
 from models.vehicle_model import VehicleModel
 
-
 class NonConvexPathPlanner:
     def __init__(self, model: VehicleModel, dt, time_horizon):
         # Initialize the Opti object
@@ -29,11 +28,15 @@ class NonConvexPathPlanner:
         # Initial state constraint (equality)
         self.opti.subject_to(self.x[0, :] == initial_state)
 
-        # Goal state constraint (equality)
+        # Goal state constraint (equality) at final time step
         self.opti.subject_to(self.x[self.N, :] == goal_state)
 
-        # Initialize the objective: minimize the sum of squared control inputs
+        # Initialize the objective: prioritize reaching the goal quickly and staying there
         self.objective = 0
+
+        # Define weights: higher weights for earlier time steps
+        # This encourages minimizing the distance to the goal early on
+        weights = np.linspace(1.0, 0.1, self.N)  # Adjust the range as needed
 
         for j in range(self.N):
             # Current state and control input
@@ -45,23 +48,30 @@ class NonConvexPathPlanner:
 
             # Add model-specific equality constraints
             if constraints:
-                # Assuming eq_constraints is a list of CasADi expressions
+                # Assuming constraints is a list of CasADi expressions
                 for constr in constraints:
                     self.opti.subject_to(constr)
 
             # Dynamics constraint: x[j + 1, :] == next_state
             self.opti.subject_to(self.x[j + 1, :] == next_state.T)
 
-            # Accumulate the objective
+            # Weighted penalty for being away from the goal
+            distance_to_goal = ca.sumsqr(self.x[j, :] - goal_state)
+            self.objective += weights[j] * distance_to_goal
+
+            # Accumulate the control effort
             self.objective += ca.sumsqr(self.u[j, :])
 
+        # Optionally, add a small penalty on the final state deviation to ensure precision
+        final_distance = ca.sumsqr(self.x[self.N, :] - goal_state)
+        self.objective += 1e3 * final_distance  # Large weight to enforce final state
 
         # Set the objective in the Opti problem
         self.opti.minimize(self.objective)
 
         # Optionally, you can set solver options here
         p_opts = {"expand": True}
-        s_opts = {"max_iter": 1000}
+        s_opts = {"max_iter": 20000}
         self.opti.solver('ipopt', p_opts, s_opts)
 
     def get_optimized_trajectory(self, initial_guess=None):

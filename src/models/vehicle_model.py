@@ -18,4 +18,6 @@ class VehicleModel:
 		raise "get_dim_control_input not implemented"
 	def get_a_max(self) -> float:
 		raise "get_a_max not implemented"
+	def to_string(self):
+		raise "print_state_control not implemented"
 

@@ -66,7 +66,7 @@ class PointMassModel(VehicleModel):
 
     def get_position_orientation(self, state):
         if state.shape == (self.dim_state,):
-            position = state[:2, 0]
+            position = state[:2]
             orientation = 0.0  # Assuming fixed orientation for simplicity
             return position, orientation
         else:
@@ -83,3 +83,11 @@ class PointMassModel(VehicleModel):
 
     def get_a_max(self):
         return self.a_max
+
+    def to_string(self, state, control):
+        a_x, a_y = control
+
+        return (
+            f"a_x = {a_x:.5f}, "
+            f"a_y = {a_y:.5f}"
+        )
