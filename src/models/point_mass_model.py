@@ -52,11 +52,11 @@ class PointMassModel(VehicleModel):
         next_state = current_state + (self.A @ current_state + self.B @ control_inputs) * self.dt
 
         # Define the constraint for acceleration within limits
-        uneq_constraints = [
+        constraints = [
             cp.norm(control_inputs, "inf") <= self.a_max  # Constrain acceleration inputs
         ]
 
-        return next_state, [], uneq_constraints
+        return next_state, constraints
 
     def get_initial_state(self):
         return self.initial_state

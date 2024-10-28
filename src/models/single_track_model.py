@@ -117,14 +117,14 @@ class SingleTrackModel(VehicleModel):
             # Use CVXPY variables and constraints
             steering_output = cp.Variable()
             # Define approximate Boolean variables
-            z = cp.Variable()
-            b1 = cp.Variable()
-            b2 = cp.Variable()
-            b3 = cp.Variable()
-            c1 = cp.Variable()
-            c2 = cp.Variable()
+            z = cp.Variable(boolean=True)
+            b1 = cp.Variable(boolean=True)
+            b2 = cp.Variable(boolean=True)
+            b3 = cp.Variable(boolean=True)
+            c1 = cp.Variable(boolean=True)
+            c2 = cp.Variable(boolean=True)
 
-            d1, d2, d3, d4 = [cp.Variable() for _ in range(4)]
+            d1, d2, d3, d4 = [cp.Variable(boolean=True) for _ in range(4)]
 
             constraints = [
               0 <= z, z <= 1,
@@ -203,14 +203,14 @@ class SingleTrackModel(VehicleModel):
             # Use CVXPY variables and constraints
             acc_output = cp.Variable()
             # Define approximate Boolean variables
-            z = cp.Variable()
-            b1 = cp.Variable()
-            b2 = cp.Variable()
-            b3 = cp.Variable()
-            c1 = cp.Variable()
-            c2 = cp.Variable()
+            z = cp.Variable(boolean=True)
+            b1 = cp.Variable(boolean=True)
+            b2 = cp.Variable(boolean=True)
+            b3 = cp.Variable(boolean=True)
+            c1 = cp.Variable(boolean=True)
+            c2 = cp.Variable(boolean=True)
 
-            d1, d2, d3, d4 = [cp.Variable() for _ in range(4)]
+            d1, d2, d3, d4 = [cp.Variable(boolean=True) for _ in range(4)]
 
             constraints = [
               0 <= z, z <= 1,
@@ -270,40 +270,39 @@ class SingleTrackModel(VehicleModel):
         :return: Tuple containing the next state and list of constraints.
         :raises ValueError: If input shapes are incorrect.
         """
-        if current_state.shape != (self.dim_state,):
+        if current_state.shape != (self.dim_state,) and current_state.shape != (self.dim_state, 1):
             raise ValueError(f"current_state must have shape ({self.dim_state},), got {current_state.shape}")
-        if control_inputs.shape != (self.dim_control_input,):
+        if control_inputs.shape != (self.dim_control_input,) and control_inputs.shape != (self.dim_control_input, 1):
             raise ValueError(f"control_inputs must have shape ({self.dim_control_input},), got {control_inputs.shape}")
 
         # Extract state variables
-        x_position, y_position, steering_angle, velocity, orientation = current_state.T
+        if current_state.shape == (self.dim_state,):
+            x_position, y_position, steering_angle, velocity, orientation = current_state
+        else:
+            x_position, y_position, steering_angle, velocity, orientation = [current_state[i, 0] for i in range(self.dim_state)]
 
         # Extract control inputs
-        steering_velocity, acc_input = control_inputs
+        if control_inputs.shape == (self.dim_control_input,):
+            steering_velocity, acc_input = control_inputs
+        else:
+            steering_velocity, acc_input = [control_inputs[i, 0] for i in range(self.dim_control_input)]
+
+        x1, x2, x3, x4, x5 = x_position, y_position, steering_angle, velocity, orientation
+        u1, u2 = steering_velocity, acc_input
 
         if self.solver_type == 'casadi':
             # Use CasADi expressions
-            steering_angle_cas = ca.MX.sym('steering_angle')
-            # y_pos_cas = ca.MX.sym('y_pos')
-            velocity_cas = ca.MX.sym('velocity')
-            # acceleration_cas = ca.MX.sym('acceleration')
-            orientation_cas = ca.MX.sym('orientation')
 
             # Steering and acceleration outputs
-            steering_output, steering_constraints = self.steer(steering_angle_cas, steering_velocity)
-            acceleration_output, acceleration_constraints = self.acc(velocity_cas, acc_input)
-
-            # Dynamics equations
-            cos_theta = ca.cos(orientation_cas)
-            sin_theta = ca.sin(orientation_cas)
-            tan_theta = ca.tan(steering_angle_cas)
+            steering_output, steering_constraints = self.steer(x3, u1)
+            acceleration_output, acceleration_constraints = self.acc(x4, u2)
 
             dx_dt = [
-                velocity_cas * cos_theta,
-                velocity_cas * sin_theta,
+                x4 * ca.cos(x5),
+                x4 * ca.sin(x5),
                 steering_output,
                 acceleration_output,
-                (velocity_cas / self.l_wb) * tan_theta
+                (x4 / self.l_wb) * ca.tan(x3)
             ]
 
             # Next state
@@ -311,16 +310,13 @@ class SingleTrackModel(VehicleModel):
                 current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)
             ])
 
-            uneq_constraints = steering_constraints + acceleration_constraints
+            constraints = steering_constraints + acceleration_constraints + [
+                u2**2 + (x4*dx_dt[4])**2 <= self.a_max**2
+            ]
 
         else:
             # Use CVXPY expressions
             # For CVXPY, linearize both bilinear terms
-            x3 = steering_angle
-            x4 = velocity
-            x5 = orientation
-            u1 = steering_velocity
-            u2 = acc_input
 
             # Set nominal operating points
             x3_0 = 0.0  # e.g., 0.0 radians
@@ -371,7 +367,7 @@ class SingleTrackModel(VehicleModel):
             ]).flatten()
 
             next_state = current_state + dx_dt * self.dt
-            uneq_constraints = steering_constraints + acceleration_constraints
+            constraints = steering_constraints + acceleration_constraints
 
             # Nominal operating point
             x40 = 1.0  # Example nominal value for x4
@@ -383,7 +379,7 @@ class SingleTrackModel(VehicleModel):
             # Linear approximation of z = x4 * x4_tan_theta
             z_linear = z0 + dz_dx4 * (x4 - x40) + dz_dx4_tan_theta * (x4_tan_theta - x4_tan_theta0)
 
-            uneq_constraints += [
+            constraints += [
                 self.steering_velocity_lb <= u1, u1 <= self.steering_velocity_ub,
                 self.acceleration_lb <= u2, u2 <= self.acceleration_ub(x4)[0],
                 self.steering_angle_lb <= x3, x3 <= self.steering_angle_ub,
@@ -391,7 +387,7 @@ class SingleTrackModel(VehicleModel):
                 u2**2 + z_linear**2 <= self.a_max
             ]
 
-        return next_state, [], uneq_constraints
+        return next_state, constraints
 
     def accurate_acceleration_ub(self, v):
         return self.a_max * self.v_s / np.max((v, self.v_s))

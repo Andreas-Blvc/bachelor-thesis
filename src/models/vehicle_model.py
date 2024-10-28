@@ -2,7 +2,7 @@ import numpy as np
 from typing import Tuple, Any, List
 
 class VehicleModel:
-	def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any], List[Any]]:
+	def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
 		raise 'update not implemented'
 	def get_initial_state(self) -> np.ndarray:
 		raise "get_initial_state not implemented"
