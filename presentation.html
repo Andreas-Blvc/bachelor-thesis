@@ -103,6 +103,7 @@ gantt
 				mermaid.init(undefined, ganttContainer); // Initialize Mermaid to render
 				mermaid.ganttConfig = {
 					leftPadding: 200,
+					useMaxWidth: true,
 				};
 			} catch (error) {
 				console.error('Error loading Gantt data:', error);
