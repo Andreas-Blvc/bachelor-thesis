@@ -11,7 +11,6 @@
 - **Variational Methods** im Detail:
   - Projektion in den **endlich-dimensionalen Vektorraum**
   - Konvertierung in **Standardform** oder Relaxation zu **unbeschränkten Methoden** (Penalitäts- oder Barriereansätze)
-  - **Direkte** vs. **Indirekte Methoden**
 
 ---
 
