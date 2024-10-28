@@ -34,7 +34,7 @@ class ConvexPathPlanner:
             constraints.append(self.x[j + 1, :].T == next_state)
 
         # Objective function: minimize the sum of squared control inputs over the horizon
-        objective = cp.Minimize(cp.sum_squares(cp.vstack([self.x[j, 3] for j in range(N + 1)])))
+        objective = cp.Minimize(cp.sum_squares(self.u))
 
         # Define the optimization problem
         self.prob = cp.Problem(objective, constraints)
