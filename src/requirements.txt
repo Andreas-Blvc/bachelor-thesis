@@ -16,3 +16,4 @@ qdldl==0.1.7.post4
 scipy==1.14.1
 scs==3.2.7
 six==1.16.0
+casadi~=3.6.7

@@ -6,7 +6,7 @@ import numpy as np
 use("TkAgg")
 
 
-class MotionVisualizer:
+class MatPlotVisualizer:
     def __init__(self):
         """
         Initializes the visualizer with a figure and axis.
@@ -130,7 +130,7 @@ class MotionVisualizer:
 # Example usage of the dynamic visualizer
 if __name__ == "__main__":
     # Create a MotionVisualizer instance
-    visualizer = MotionVisualizer()
+    visualizer = MatPlotVisualizer()
 
     # Define start, goal, path, car position, and obstacles
 

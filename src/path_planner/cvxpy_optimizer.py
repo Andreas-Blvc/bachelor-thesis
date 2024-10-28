@@ -14,8 +14,8 @@ class ConvexPathPlanner:
         # Initialize constraints list
         constraints = []
 
-        initial_state = model.get_initial_state().flatten()
-        goal_state = model.get_goal_state().flatten()
+        initial_state = model.get_initial_state()
+        goal_state = model.get_goal_state()
 
         # Initial state constraint
         constraints.append(self.x[0, :] == initial_state)
@@ -26,9 +26,14 @@ class ConvexPathPlanner:
         # Dynamics constraints vectorized over time horizon
         for j in range(N):
             # State transition: x_{k+1} = x_k + (A * x_k + B * u_k) * dt
-            current_state, model_constraints = model.update(self.x[j, :], self.u[j, :])
-            constraints += model_constraints
-            constraints.append(self.x[j + 1, :] == current_state)
+            next_state, eq_constraints, uneq_constraints = model.update(
+                current_state=self.x[j, :].T,
+                control_inputs=self.u[j, :].T,
+            )
+            constraints += eq_constraints + uneq_constraints
+            constraints.append(self.x[j + 1, 1] <= 10)
+            constraints.append(self.x[j + 1, 1] >= -10)
+            constraints.append(self.x[j + 1, :].T == next_state)
 
         # Objective function: minimize the sum of squared control inputs over the horizon
         objective = cp.Minimize(cp.sum_squares(self.u))
@@ -37,7 +42,7 @@ class ConvexPathPlanner:
         self.prob = cp.Problem(objective, constraints)
 
     def get_optimized_trajectory(self):
-        self.prob.solve(solver=cp.CLARABEL)
+        self.prob.solve(solver=cp.CLARABEL, verbose=True)
         # Return optimized state and control trajectories
         return self.x.value, self.u.value
 
