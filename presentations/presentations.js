@@ -1,1 +1,1 @@
-const presentations = ['week1','week2'];
+const presentations = ['week1','week2','week3'];
