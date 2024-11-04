@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import cvxpy as cp
 from models.vehicle_model import VehicleModel
@@ -43,10 +45,10 @@ class PointMassModel(VehicleModel):
         self.B[3, 1] = 1  # dvy/dt = ay
 
     def update(self, current_state: np.ndarray, control_inputs: np.ndarray):
-        if current_state.shape != (self.dim_state,):
-            raise ValueError(f"current_state must have shape ({self.dim_state},), got {current_state.shape}")
-        if control_inputs.shape != (self.dim_control_input,):
-            raise ValueError(f"acceleration_inputs must have shape ({self.dim_control_input},), got {control_inputs.shape}")
+        if current_state.shape != (self.dim_state,) and current_state.shape != (self.dim_state, 1):
+            raise ValueError(f"current_state must have shape ({self.dim_state},) or ({self.dim_state}, 1), got {current_state.shape}")
+        if control_inputs.shape != (self.dim_control_input,) and control_inputs.shape != (self.dim_control_input, 1):
+            raise ValueError(f"control_inputs must have shape ({self.dim_control_input},)  or ({self.dim_control_input}, 1), got {control_inputs.shape}")
 
         # Compute the next state based on the input acceleration
         next_state = current_state + (self.A @ current_state + self.B @ control_inputs) * self.dt
@@ -91,3 +93,6 @@ class PointMassModel(VehicleModel):
             f"a_x = {a_x:.5f}, "
             f"a_y = {a_y:.5f}"
         )
+
+    def get_control_input_labels(self) -> List[str]:
+        return ['Longitude Acceleration', 'Latitude Acceleration']

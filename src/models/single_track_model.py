@@ -2,7 +2,7 @@ import numpy as np
 from math import pi
 import casadi as ca
 import cvxpy as cp
-from math import cos, sin, tan
+from math import cos, sin
 from typing import Tuple, Any, List, Union
 
 from models.vehicle_model import VehicleModel
@@ -35,7 +35,6 @@ class SingleTrackModel(VehicleModel):
 
         :param initial_state: Initial state vector [x_position, y_position, steering_angle, velocity, orientation].
         :param goal_state: Goal state vector [x_position, y_position, steering_angle, velocity, orientation].
-        :param a_max: Maximum allowable acceleration.
         :param l_wb: Wheelbase length of the vehicle.
         :param v_s: Scaling velocity.
         :param steering_velocity_range: Tuple representing the lower and upper bounds of steering velocity.
@@ -260,7 +259,7 @@ class SingleTrackModel(VehicleModel):
         self,
         current_state: np.ndarray,
         control_inputs: np.ndarray
-    ) -> Tuple[np.ndarray, List[Any], List[Any]]:
+    ) -> Tuple[np.ndarray, List[Any]]:
         """
         Update the vehicle's state based on current state and control inputs.
 
@@ -270,9 +269,9 @@ class SingleTrackModel(VehicleModel):
         :raises ValueError: If input shapes are incorrect.
         """
         if current_state.shape != (self.dim_state,) and current_state.shape != (self.dim_state, 1):
-            raise ValueError(f"current_state must have shape ({self.dim_state},), got {current_state.shape}")
+            raise ValueError(f"current_state must have shape ({self.dim_state},) or ({self.dim_state}, 1), got {current_state.shape}")
         if control_inputs.shape != (self.dim_control_input,) and control_inputs.shape != (self.dim_control_input, 1):
-            raise ValueError(f"control_inputs must have shape ({self.dim_control_input},), got {control_inputs.shape}")
+            raise ValueError(f"control_inputs must have shape ({self.dim_control_input},)  or ({self.dim_control_input}, 1), got {control_inputs.shape}")
 
         # Extract state variables
         if current_state.shape == (self.dim_state,):
@@ -438,8 +437,8 @@ class SingleTrackModel(VehicleModel):
         return state[:2], float(state[4])
 
     def get_vehicle_polygon(self, state: np.ndarray) -> List[Tuple[float, float]]:
-        front_wheel_front = self._add_tuple(self._rotate((0.5, 0), state[2]), (1, 0))
-        front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), state[2]), (1, 0))
+        front_wheel_front = self._add_tuple(self._rotate((0.5, 0), float(state[2])), (1, 0))
+        front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), float(state[2])), (1, 0))
         return [
             (-1, 0.5), (1, 0.5),
                                 (1, 0),
@@ -486,3 +485,6 @@ class SingleTrackModel(VehicleModel):
             x * cos(theta) - y * sin(theta),
             y * cos(theta) + x * sin(theta),
         )
+
+    def get_control_input_labels(self):
+        return ['Steering Velocity', 'Acceleration Input']

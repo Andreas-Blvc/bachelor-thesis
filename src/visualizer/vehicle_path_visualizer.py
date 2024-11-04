@@ -2,11 +2,38 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import use
 import numpy as np
+from obstacles.obstacle import Obstacle
+from typing import List
 
 use("TkAgg")
 
 
-class MatPlotVisualizer:
+def transform_points(points, position, orientation):
+    """
+    Transforms a list of points based on the car's position and orientation.
+
+    Parameters:
+    - points (list of tuples): List of (x, y) points defining the shape of the car.
+    - position (tuple): (x, y) position of the car.
+    - orientation (float): Orientation of the car in radians.
+
+    Returns:
+    - List of transformed (x, y) points.
+    """
+    transformed_points = []
+    cos_theta = np.cos(orientation)
+    sin_theta = np.sin(orientation)
+
+    for point in points:
+        # Rotate and translate the points
+        x_new = position[0] + point[0] * cos_theta - point[1] * sin_theta
+        y_new = position[1] + point[0] * sin_theta + point[1] * cos_theta
+        transformed_points.append((x_new, y_new))
+
+    return transformed_points
+
+
+class VehiclePathVisualizer:
     def __init__(self):
         """
         Initializes the visualizer with a figure and axis.
@@ -36,32 +63,8 @@ class MatPlotVisualizer:
         self.ax.clear()
         self.setup_plot()
 
-    def transform_points(self, points, position, orientation):
-        """
-        Transforms a list of points based on the car's position and orientation.
-
-        Parameters:
-        - points (list of tuples): List of (x, y) points defining the shape of the car.
-        - position (tuple): (x, y) position of the car.
-        - orientation (float): Orientation of the car in radians.
-
-        Returns:
-        - List of transformed (x, y) points.
-        """
-        transformed_points = []
-        cos_theta = np.cos(orientation)
-        sin_theta = np.sin(orientation)
-
-        for point in points:
-            # Rotate and translate the points
-            x_new = position[0] + point[0] * cos_theta - point[1] * sin_theta
-            y_new = position[1] + point[0] * sin_theta + point[1] * cos_theta
-            transformed_points.append((x_new, y_new))
-
-        return transformed_points
-
     def draw(self, start_pos, start_orientation, start_shape, goal_pos, goal_orientation, goal_shape, car_position,
-             car_orientation, car_shape, obstacles):
+             car_orientation, car_shape, obstacles: List[Obstacle]):
         """
         Draws the car's path, start and goal positions as car shapes, and obstacles.
 
@@ -72,30 +75,34 @@ class MatPlotVisualizer:
         - car_orientation (float): Orientation of the car in radians
         - car_shape (list of tuples): List of (x, y) points defining the car's shape
         - car_path (list of tuples): A list of (x, y) points representing the car's planned path
-        - obstacles (list of dict): Each obstacle is a dictionary with:
-            * 'position' (tuple): Center of the obstacle (x, y)
-            * 'size' (tuple): Width and height of the rectangular obstacle (w, h)
+        - obstacles (list of obstacle)
         """
         # Clear the previous drawing
         self.clear()
         self.car_path.append(car_position)
 
+        # Plot obstacles
+        for obstacle in obstacles:
+            shape, color = obstacle.get_polygon_and_color()
+            polygon = patches.Polygon(shape, closed=True, facecolor=color, edgecolor='black')
+            self.ax.add_patch(polygon)
+
         # Only draw start and goal shapes if car_shape is not empty
         if car_shape:
             # Draw the car shape at the start position
-            start_shape = self.transform_points(start_shape, start_pos, start_orientation)
+            start_shape = transform_points(start_shape, start_pos, start_orientation)
             start_polygon = patches.Polygon(start_shape, closed=True, facecolor='lightgreen', edgecolor='green',
                                             label='Start')
             self.ax.add_patch(start_polygon)
 
             # Draw the car shape at the goal position
-            goal_shape = self.transform_points(goal_shape, goal_pos, goal_orientation)
+            goal_shape = transform_points(goal_shape, goal_pos, goal_orientation)
             goal_polygon = patches.Polygon(goal_shape, closed=True, facecolor='lightcoral', edgecolor='red',
                                            label='Goal')
             self.ax.add_patch(goal_polygon)
 
             # Transform current car shape points
-            transformed_car_shape = self.transform_points(car_shape, car_position, car_orientation)
+            transformed_car_shape = transform_points(car_shape, car_position, car_orientation)
             # Draw the current car position as a filled polygon
             car_polygon = patches.Polygon(transformed_car_shape, closed=True, facecolor='cyan', edgecolor='blue',
                                           label='Car')
@@ -111,17 +118,6 @@ class MatPlotVisualizer:
 
         # Highlight car's current position
         self.ax.plot(car_position[0], car_position[1], 'bo', markersize=4)
-
-        # Plot obstacles
-        for obstacle in obstacles:
-            obs_pos = obstacle['position']
-            obs_size = obstacle['size']
-            rect = patches.Rectangle(
-                (obs_pos[0] - obs_size[0] / 2, obs_pos[1] - obs_size[1] / 2),
-                obs_size[0], obs_size[1],
-                linewidth=1, edgecolor='r', facecolor='gray', label='Obstacle'
-            )
-            self.ax.add_patch(rect)
 
         # Redraw the updated plot
         self.fig.canvas.draw()
