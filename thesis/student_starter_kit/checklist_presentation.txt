@@ -1,0 +1,33 @@
+Organization:
+- design your presentation according to your audience
+- motivate your topic in the first slides
+- guide the audience verbally through the sections (i.e. make smooth transitions)
+- do not include an overview/table of content for short presentations (<30min)
+- practise your talk several times, so that you can talk freely and adhere to the time limit
+
+Content:
+- only present the main points of your work and exclude the others
+- clearly introduce your problem statement
+- avoid equations and math symbols as much as possible
+- provide figures as illustrative support
+- show the most interesting results of your numerical experiments, if applicable
+- have at most as many slides as minutes your presentation should be long
+- summarize your main points on the last side and highlight what the approach is good for
+- do not write "thank you" on the last slide
+
+Delivery (presence and verbal skills):
+- do not look at the projection screen or your laptop, but into the audience!
+- speak clear, slowly, and loud enough
+
+Design of slides:
+- put only few text on each slide
+- do not just read the text from your slides, but explain them (verbally)
+- use (many) informative figures
+- in figures, label all objects (including axis)
+- use large enough font size
+
+Discussion:
+- ask yourself, which questions could arise after my presentation, and prepare answers for those
+
+Citations:
+- put references on the same slide where they occur (and not all together on the last slide); as an example, see the template

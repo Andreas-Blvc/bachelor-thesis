@@ -1,0 +1,40 @@
+\RequirePackage[l2tabu,orthodox]{nag} % for package advice
+
+% TODO: decide if one-sided/two-sided
+%\documentclass[headsepline,footsepline,footinclude=false,fontsize=11pt,paper=a4,listof=totoc,bibliography=totoc,BCOR=12mm,DIV=12]{scrbook} % two-sided
+\documentclass[headsepline,footsepline,footinclude=false,oneside,fontsize=11pt,paper=a4,listof=totoc,bibliography=totoc]{scrbook} % one-sided
+
+\input{settings/packages}
+\input{settings/settings}
+% \input{pages/glossary} % TODO: uncomment if glossary needed
+% \input{pages/acronyms} % TODO: uncomment if list of abbreviations needed
+
+
+\begin{document}
+\input{settings/cover}
+
+\frontmatter{}
+\input{settings/title}
+\input{settings/disclaimer}
+\input{settings/acknowledgements}
+\input{settings/abstract}
+\microtypesetup{protrusion=false}
+\tableofcontents{}
+\microtypesetup{protrusion=true}
+
+\mainmatter{}
+\input{content/Introduction}
+\input{content/Format}
+\input{content/Style}
+\input{content/Latex}
+\input{content/Lit_review}
+
+\appendix{}
+%\microtypesetup{protrusion=false}
+% \glsaddall{} % add all defined terms to glossary, even if not referenced in text
+% \printglossaries{} % TODO: uncomment if glossary needed
+\listoffigures{}
+\listoftables{}
+\printbibliography{}
+
+\end{document}
