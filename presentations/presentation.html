@@ -65,11 +65,11 @@
 	</div>
 
 	<!-- Reveal.js dependencies -->
-	<!--* <script src="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/reveal.js@4/plugin/markdown/markdown.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/reveal.js@4/plugin/highlight/highlight.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/reveal.js-mermaid-plugin@2.3.0/plugin/mermaid/mermaid.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/mermaid@9.2.2/dist/mermaid.min.js"></script> *-->
+	<script src="https://cdn.jsdelivr.net/npm/mermaid@9.2.2/dist/mermaid.min.js"></script>
 
 	<script>
 		// Function to get the week from the URL
@@ -81,7 +81,7 @@
 		// Function to load Gantt data from the external MD file
 		async function loadGanttData(week) {
 			try {
-				const response = await fetch(`presentations/${week}/gantt.md`);
+				const response = await fetch(`${week}/gantt.md`);
 				const data = await response.text();
 				const weekNumber = week.replace('week', '');
 
@@ -90,7 +90,7 @@
 
 				const ganttContainer = document.getElementById('gantt-container');
 				ganttContainer.textContent = `
-%%{init: {'gantt': {'leftPadding': 100}}}%%
+%%{init: {'gantt': {'leftPadding': 100, 'rightPadding': 20}}}%%
 gantt
 	title Woche ${weekNumber} Project Timeline
 	dateFormat  DD.MM.YYYY
@@ -98,12 +98,13 @@ gantt
 	` + data.replaceAll('\n', '\n	');
 
 				// Render the Gantt chart using Mermaid
-				//* mermaid.initialize({ startOnLoad: false });
-				//* mermaid.contentLoaded();
-				//* mermaid.init(undefined, ganttContainer); // Initialize Mermaid to render
-				//* mermaid.ganttConfig = {
-				//* 	leftPadding: 200,
-				//* };
+				mermaid.initialize({ startOnLoad: false });
+				mermaid.contentLoaded();
+				mermaid.init(undefined, ganttContainer); // Initialize Mermaid to render
+				mermaid.ganttConfig = {
+					leftPadding: 200,
+					useMaxWidth: true,
+				};
 			} catch (error) {
 				console.error('Error loading Gantt data:', error);
 			}
@@ -115,18 +116,19 @@ gantt
 			if (week) {
 				// Load the Markdown presentation for the week
 				const markdownSection = document.querySelector('section[data-markdown]');
-				markdownSection.setAttribute('data-markdown', `presentations/${week}/presentation.md`);
+				markdownSection.setAttribute('data-markdown', `${week}/presentation.md`);
 
 				// Load Gantt data for the specific week
 				await loadGanttData(week);
 			}
 
 			// Initialize Reveal.js with the Mermaid plugin
-			//* Reveal.initialize({
-			//* 	plugins: [RevealMarkdown, RevealHighlight, RevealMermaid],
-			//* 	width: '100%',
-			//* 	margin: 0,
-			//* });
+			Reveal.initialize({
+				plugins: [RevealMarkdown, RevealHighlight, RevealMermaid],
+				width: '100%',
+				margin: 0,
+				disableLayout: false,
+			});
 		};
 	</script>
 

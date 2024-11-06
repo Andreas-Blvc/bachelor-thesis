@@ -4,10 +4,10 @@
 presentations_dir="/var/www/html/bachelor-thesis/presentations"
 
 # Path to the file storing the current week number
-counter_file="$presentations_dir/week_counter.txt"
+counter_file="$presentations_dir/data/week_counter.txt"
 
 # Path to the JavaScript file where the presentations array will be stored
-js_file="/var/www/html/bachelor-thesis/presentations/presentations.js"
+js_file="/var/www/html/bachelor-thesis/presentations/data/presentations.js"
 
 # Check if the counter file exists
 if [ ! -f "$counter_file" ]; then
@@ -26,7 +26,7 @@ touch "$presentations_dir/$new_week/presentation.md"
 
 # Add a default template to the markdown file
 echo "# Woche $week_number" > "$presentations_dir/$new_week/presentation.md"
-cat "$presentations_dir/template.md" >> "$presentations_dir/$new_week/presentation.md"
+cat "$presentations_dir/resources/template.md" >> "$presentations_dir/$new_week/presentation.md"
 last_week=$((week_number - 1))
 cp "$presentations_dir/week$last_week/gantt.md" "$presentations_dir/week$week_number/"
 
