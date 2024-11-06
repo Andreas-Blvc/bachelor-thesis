@@ -1,0 +1,1 @@
+convert Figure_2.png -resize x600 output_Figure_2.png
