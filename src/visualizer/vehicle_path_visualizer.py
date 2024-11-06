@@ -123,3 +123,6 @@ class VehiclePathVisualizer:
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
+    @staticmethod
+    def show():
+        plt.show(block=True)

@@ -1,10 +1,13 @@
-from typing import List, Tuple, Any
+from typing import List, Any
 import numpy as np
 import casadi as ca
+import cvxpy as cp
 from math import atan
 
+from utils.range_bounding import *
 from models.vehicle_model import VehicleModel
 from obstacles.road import Road
+from visualizer.plot_with_bounds import plot_with_bounds
 
 class RoadAlignedModel(VehicleModel):
 
@@ -15,7 +18,7 @@ class RoadAlignedModel(VehicleModel):
                  acc_y_range: Tuple[float, float],
                  yaw_rate_range: Tuple[float, float],
                  yaw_acc_range: Tuple[float, float],
-                 a_max
+                 a_max,
                  ):
         """
         Initialize the RoadAlignedModel.
@@ -25,6 +28,7 @@ class RoadAlignedModel(VehicleModel):
         :param dt: Time step for state updates.
         :raises ValueError: If initial_state or goal_state do not have the correct shape.
         """
+        self.solver_type = None
         self.dim_state = 4
         self.dim_control_input = 2
         self.dt = dt
@@ -40,8 +44,8 @@ class RoadAlignedModel(VehicleModel):
 
         self.c_min = road.get_curvature_min()
         self.c_max = road.get_curvature_max()
-        self.n_min = -road.width
-        self.n_max = road.width
+        self.n_min = -road.width/2
+        self.n_max = road.width/2
         self.v_x_min, self.v_x_max = v_x_range
         self.v_y_min, self.v_y_max = v_y_range
         self.acc_x_min, self.acc_x_max = acc_x_range
@@ -49,8 +53,63 @@ class RoadAlignedModel(VehicleModel):
         self.yaw_rate_min, self.yaw_rate_max = yaw_rate_range
         self.yaw_acc_min, self.yaw_acc_max = yaw_acc_range
         self.a_max = a_max
-        self.last_orientation = 0
 
+        ranges = Ranges(
+            n=(self.n_min, self.n_max),
+            c=(self.c_min, self.c_max),
+            ds=(-0.01, 0.16), # tbd: should not be necessary to set here
+            dn=v_y_range,
+            u_n=None,
+            u_t=None,
+        )
+
+        # self.v_x_min / (1 + self.nc_max) <= ds <=  self.v_x_max / (1 + self.nc_min)
+        new_ranges = v_x_constraint_reduction(
+            v_x_range=v_x_range,
+            c_range=ranges.c,
+            n_range=ranges.n,
+        )
+        ranges.update(new_ranges)
+
+        # self.yaw_rate_min <= C(s) * ds <= self.yaw_rate_max,
+        new_ranges = yaw_rate_constraint_reduction(
+            yaw_rate_range=yaw_rate_range,
+            c_range=ranges.c,
+        )
+        ranges.update(new_ranges)
+
+        # self.yaw_acc_min <= C'(s) * ds**2 + C(s) * u_t <= self.yaw_acc_max,
+        new_ranges = yaw_acceleration_constraint_reduction(
+            yaw_acceleration_range=yaw_acc_range,
+            c_range=ranges.c,
+            ds_range=ranges.ds,
+            dc_ds=road.get_curvature_derivative_at(0.5) # constant for all s
+        )
+        ranges.update(new_ranges)
+
+        # self.acc_x_min <= g[0] <= self.acc_x_max,
+        new_ranges = x_acceleration_constraint_reduction(
+            x_acceleration_range=acc_x_range,
+            c_range=ranges.c,
+            n_range=ranges.n,
+            dn_range=ranges.dn,
+            ds_range=ranges.ds,
+            dc_ds=road.get_curvature_derivative_at(0.5) # constant for all s
+        )
+        ranges.update(new_ranges)
+
+        # self.acc_y_min <= g[1] <= self.acc_y_max,
+        new_ranges = y_acceleration_constraint_reduction(
+            y_acceleration_range=acc_y_range,
+            c_range=ranges.c,
+            n_range=ranges.n,
+            ds_range=ranges.ds,
+        )
+        ranges.update(new_ranges)
+
+        self.ranges = ranges
+        # helper:
+        self.last_orientation = 0
         self.counter = 0
 
     def _g(self, x_tn, u):
@@ -74,32 +133,62 @@ class RoadAlignedModel(VehicleModel):
             control_inputs[1],
         ])
 
-        # Compute the next state based on the input accelerations
-        next_state = ca.vertcat(*[
-            current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)
-        ])
-
-        # Define the constraint for acceleration within limits
         s, n, ds, dn = [current_state[i] for i in range(self.dim_state)]
         u_t, u_n = [control_inputs[i] for i in range(self.dim_control_input)]
         g = self._g(current_state, control_inputs)
-        constraints = [
-            0 <= s, s <= 1,
-            self.c_min <= self.road.get_curvature_at(s), self.road.get_curvature_at(s) <= self.c_max,
-            self.n_min <= n, n <= self.n_max,
-            self.v_x_min <= ds*(1 + n*self.road.get_curvature_at(s)), ds*(1 + n*self.road.get_curvature_at(s)) <= self.v_x_max,
-            self.v_y_min <= dn, dn <= self.v_y_max,
-            self.yaw_rate_min <= self.road.get_curvature_at(s) * ds,
-            self.road.get_curvature_at(s) * ds <= self.yaw_rate_max,
-            self.yaw_acc_min <= self.road.get_curvature_derivative_at(s) * ds**2 + self.road.get_curvature_at(s) * u_t,
-            self.road.get_curvature_derivative_at(s) * ds ** 2 + self.road.get_curvature_at(s) * u_t <= self.yaw_acc_max,
-            self.acc_x_min <= g[0], g[0] <= self.acc_x_max,
-            self.acc_y_min <= g[1], g[1] <= self.acc_y_max,
-            g[0]**2 + g[1]**2 <= self.a_max,
-        ]
-        print(f'Update #{self.counter}', end='\r' if self.counter % 10 != 0 else '\n')
-        self.counter += 1
+
+        if self.solver_type == 'casadi':
+            # Compute the next state based on the input accelerations
+            next_state = ca.vertcat(*[
+                current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)
+            ])
+
+            # Define the constraint for acceleration within limits
+            constraints = [
+                # 0 <= s, s <= 1,
+                # 0 <= ds,
+                self.c_min <= self.road.get_curvature_at(s), self.road.get_curvature_at(s) <= self.c_max,
+                self.n_min <= n, n <= self.n_max,
+                self.v_x_min <= ds*(1 + n*self.road.get_curvature_at(s)), ds*(1 + n*self.road.get_curvature_at(s)) <= self.v_x_max,
+                self.v_y_min <= dn, dn <= self.v_y_max,
+                self.yaw_rate_min <= self.road.get_curvature_at(s) * ds,
+                self.road.get_curvature_at(s) * ds <= self.yaw_rate_max,
+                self.yaw_acc_min <= self.road.get_curvature_derivative_at(s) * ds**2 + self.road.get_curvature_at(s) * u_t,
+                self.road.get_curvature_derivative_at(s) * ds ** 2 + self.road.get_curvature_at(s) * u_t <= self.yaw_acc_max,
+                self.acc_x_min <= g[0], g[0] <= self.acc_x_max,
+                self.acc_y_min <= g[1], g[1] <= self.acc_y_max,
+                g[0]**2 + g[1]**2 <= self.a_max,
+            ]
+        elif self.solver_type == 'cvxpy':
+            next_state = cp.vstack([current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)]).flatten()
+            constraints = [
+                0 <= s, s <= 1,
+                self.ranges.c[0] <= self.road.get_curvature_at(s), self.road.get_curvature_at(s) <= self.ranges.c[1],
+                self.ranges.n[0] <= n, n <= self.ranges.n[1],
+                self.ranges.ds[0] <= ds, ds <= self.ranges.ds[1],
+                self.ranges.dn[0] <= dn, dn <= self.ranges.dn[1],
+                self.ranges.u_t[0] <= u_t, u_t <= self.ranges.u_t[1],
+                self.ranges.u_n[0] <= u_n, u_n <= self.ranges.u_n[1],
+            ]
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+
         return next_state, constraints
+
+    def visualize_constraints(self, current_states, control_inputs):
+        current_states_s = [x[0] for x in current_states]
+        current_states_n = [x[1] for x in current_states]
+        current_states_ds = [x[2] for x in current_states]
+        current_states_dn = [x[3] for x in current_states]
+
+        v_x_s = [ds*(1 + n*self.road.get_curvature_at(s)) for s, ds, n in zip(current_states_s, current_states_ds, current_states_n)]
+        plot_with_bounds(
+            y_values=v_x_s,
+            lower_bound=self.v_x_min,
+            upper_bound=self.v_x_max,
+            y_label='C(s)'
+        )
+
 
     def get_initial_state(self) -> np.ndarray:
         return self.initial_state

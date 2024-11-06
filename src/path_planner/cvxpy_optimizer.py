@@ -1,8 +1,12 @@
 import cvxpy as cp
+
 from models.vehicle_model import VehicleModel
 
+
 class ConvexPathPlanner:
-    def __init__(self, model: VehicleModel, dt, time_horizon):
+    def __init__(self, model: VehicleModel, dt, time_horizon, verbose=False):
+        model.solver_type = 'cvxpy'
+        self.verbose = verbose
         self.dt = dt
         self.model = model
         N = int(time_horizon / dt)
@@ -40,7 +44,8 @@ class ConvexPathPlanner:
         self.prob = cp.Problem(objective, constraints)
 
     def get_optimized_trajectory(self):
-        self.prob.solve(verbose=True)
+        self.prob.solve(solver='CLARABEL', verbose=self.verbose)
+        print("Solve time:", f"{self.prob.solver_stats.solve_time:.3f}s")
         # Return optimized state and control trajectories
         return self.x.value, self.u.value
 

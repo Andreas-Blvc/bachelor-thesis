@@ -4,6 +4,7 @@ from models.vehicle_model import VehicleModel
 
 class NonConvexPathPlanner:
     def __init__(self, model: VehicleModel, dt, time_horizon):
+        model.solver_type = 'casadi'
         # Initialize the Opti object
         self.opti = ca.Opti()
 
