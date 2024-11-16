@@ -24,26 +24,41 @@ def affine_range_bounding(slope_range, intercept_range, lower_bound, upper_bound
     """
     slope_min, slope_max = slope_range
     intercept_min, intercept_max = intercept_range
-    largest_abs_slope = slope_min if abs(slope_min) > abs(slope_max) else slope_max
-    if largest_abs_slope < 0:
+    if slope_min > slope_max or intercept_min > intercept_max:
+        raise ValueError(f"invalid range: slope_min, slope_max = {slope_min, slope_max}; intercept_min, intercept_max = {intercept_min, intercept_max} ")
+    if slope_min == 0 or slope_max == 0:
+        raise NotImplementedError('unhandled case')
+
+    if slope_min < 0 < slope_max:
         X = (
-            (lower_bound - intercept_max) / -largest_abs_slope,
-            (upper_bound - intercept_min) / -largest_abs_slope,
+            max(
+                min(0, (lower_bound - intercept_min) / slope_max), min(0, (upper_bound - intercept_max) / slope_min)
+            ),
+            min(
+                max(0, (upper_bound - intercept_max) / slope_max), max(0, (lower_bound - intercept_min) / slope_min)
+            )
+
         )
-    else:
+    elif slope_max < 0:
         X = (
-            (lower_bound - intercept_min) / largest_abs_slope,
-            (upper_bound - intercept_max) / largest_abs_slope,
+            min(0, (upper_bound - intercept_max) / slope_min),
+            max(0, (lower_bound - intercept_min) /slope_min)
         )
-    # print(
-    #     "------------------\n"
-    #     f"Slope: {slope_range[0]:.3f}, {slope_range[1]:.3f}\n"
-    #     f"Intercept: {intercept_range[0]:.3f}, {intercept_range[1]:.3f}\n"
-    #     f"Lower: {lower_bound}\n"
-    #     f"Upper: {upper_bound}\n"
-    #     f"X: {X[0]:.3f}, {X[1]:.3f}\n"
-    #     "------------------"
-    # )
+    else: # slope_min > 0
+        X = (
+            min(0, (lower_bound - intercept_min) / slope_max),
+            max(0, (upper_bound - intercept_max) / slope_max)
+        )
+
+    print(
+        "------------------\n"
+        f"Slope: {slope_range[0]:.3f}, {slope_range[1]:.3f}\n"
+        f"Intercept: {intercept_range[0]:.3f}, {intercept_range[1]:.3f}\n"
+        f"Lower: {lower_bound}\n"
+        f"Upper: {upper_bound}\n"
+        f"X: {X[0]:.3f}, {X[1]:.3f}\n"
+        "------------------"
+    )
     return X
 
 def calculate_product_range(*ranges: Tuple[float, float]) -> Tuple[float, float]:
@@ -78,8 +93,8 @@ def v_x_constraint_reduction(v_x_range, c_range, n_range):
     nc_min, nc_max = calculate_product_range(c_range, n_range)
 
     slope_range = (
-        1 + nc_min,
-        1 + nc_max,
+        1 - nc_max,
+        1 - nc_min,
     )
     return Ranges(
         ds=affine_range_bounding(

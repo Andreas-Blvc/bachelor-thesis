@@ -74,11 +74,8 @@ class SingleTrackModel(VehicleModel):
             acc_ub = self.a_max * (self.v_s / ca.fmax(v, self.v_s))
             constraints = []
         else:
-            # Use CVXPY variables and constraints
-            acc_ub = cp.Variable()
-            constraints = [
-                acc_ub == self.a_max # * (self.v_s / cp.maximum(v, self.v_s))
-            ]
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+
         return acc_ub, constraints
 
     def steer(
@@ -112,58 +109,8 @@ class SingleTrackModel(VehicleModel):
             )
             constraints = []
         else:
-            # Use CVXPY variables and constraints
-            steering_output = cp.Variable()
-            # Define approximate Boolean variables
-            z = cp.Variable(boolean=True)
-            b1 = cp.Variable(boolean=True)
-            b2 = cp.Variable(boolean=True)
-            b3 = cp.Variable(boolean=True)
-            c1 = cp.Variable(boolean=True)
-            c2 = cp.Variable(boolean=True)
+            raise ValueError(f"solver_type {self.solver_type} not supported")
 
-            d1, d2, d3, d4 = [cp.Variable(boolean=True) for _ in range(4)]
-
-            constraints = [
-              0 <= z, z <= 1,
-              0 <= b1, b1 <= 1,
-              0 <= b2, b2 <= 1,
-              0 <= b3, b3 <= 1,
-              0 <= c1, c1 <= 1,
-              0 <= c2, c2 <= 1,
-              0 <= d1, d1 <= 1,
-              0 <= d2, d2 <= 1,
-              0 <= d3, d3 <= 1,
-              0 <= d4, d4 <= 1,
-            ] + [
-                self.steering_angle_lb - steering_angle <= BIG_M * b1,
-                self.steering_angle_lb - steering_angle >= -BIG_M * (1 - b1),
-                steering_angle - self.steering_angle_ub <= BIG_M * b2,
-                steering_angle - self.steering_angle_ub >= -BIG_M * (1 - b2),
-                steering_velocity >= -BIG_M * b3,
-                steering_velocity <= BIG_M * (1 - b3),
-                b1 + b3 <= 1 + c1,
-                b1 + b3 >= 2 * c1,
-                b1 + (1 - b3) <= 1 + c2,
-                b1 + (1 - b3) >= 2 * c2,
-                c1 + c2 >= z,
-                c1 + c2 <= 2 * z,
-                steering_output <= BIG_M * (1 - z),
-                steering_output >= -BIG_M * (1 - z),
-                steering_output <= self.steering_velocity_ub,
-                steering_output >= self.steering_velocity_lb,
-
-                d1 + d2 + d3 + d4 == 1,
-
-                steering_output - 0 <= BIG_M * (1 - d1),
-                0 - steering_output <= BIG_M * (1 - d1),
-                steering_output - self.steering_velocity_lb <= BIG_M * (1 - d2),
-                self.steering_velocity_lb - steering_output <= BIG_M * (1 - d2),
-                steering_output - self.steering_velocity_ub <= BIG_M * (1 - d3),
-                self.steering_velocity_ub - steering_output <= BIG_M * (1 - d3),
-                steering_output - steering_velocity <= BIG_M * (1 - d4),
-                steering_velocity - steering_output <= BIG_M * (1 - d4),
-            ]
         return steering_output, constraints
 
     def acc(
@@ -198,61 +145,8 @@ class SingleTrackModel(VehicleModel):
             )
             constraints = []
         else:
-            # Use CVXPY variables and constraints
-            acc_output = cp.Variable()
-            # Define approximate Boolean variables
-            z = cp.Variable(boolean=True)
-            b1 = cp.Variable(boolean=True)
-            b2 = cp.Variable(boolean=True)
-            b3 = cp.Variable(boolean=True)
-            c1 = cp.Variable(boolean=True)
-            c2 = cp.Variable(boolean=True)
+            raise ValueError(f"solver_type {self.solver_type} not supported")
 
-            d1, d2, d3, d4 = [cp.Variable(boolean=True) for _ in range(4)]
-
-            constraints = [
-              0 <= z, z <= 1,
-              0 <= b1, b1 <= 1,
-              0 <= b2, b2 <= 1,
-              0 <= b3, b3 <= 1,
-              0 <= c1, c1 <= 1,
-              0 <= c2, c2 <= 1,
-              0 <= d1, d1 <= 1,
-              0 <= d2, d2 <= 1,
-              0 <= d3, d3 <= 1,
-              0 <= d4, d4 <= 1,
-            ] + [
-              self.velocity_lb - velocity <= BIG_M * b1,
-              self.velocity_lb - velocity >= -BIG_M * (1 - b1),
-              velocity - self.velocity_ub <= BIG_M * b2,
-              velocity - self.velocity_ub >= -BIG_M * (1 - b2),
-              acceleration >= -BIG_M * b3,
-              acceleration <= BIG_M * (1 - b3),
-              b1 + b3 <= 1 + c1,
-              b1 + b3 >= 2 * c1,
-              b1 + (1 - b3) <= 1 + c2,
-              b1 + (1 - b3) >= 2 * c2,
-              c1 + c2 >= z,
-              c1 + c2 <= 2 * z,
-              acc_output <= BIG_M * (1 - z),
-              acc_output >= -BIG_M * (1 - z),
-            ]
-            acc_ub, acc_constraints = self.acceleration_ub(velocity)
-            constraints += [
-                acc_output >= self.acceleration_lb,
-                acc_output <= acc_ub,
-
-                d1 + d2 + d3 + d4 == 1,
-
-                acc_output - 0 <= BIG_M * (1-d1),
-                0 - acc_output <= BIG_M * (1-d1),
-                acc_output - self.acceleration_lb <= BIG_M * (1-d2),
-                self.acceleration_lb - acc_output <= BIG_M * (1-d2),
-                acc_output - acc_ub <= BIG_M * (1-d3),
-                acc_ub - acc_output <= BIG_M * (1-d3),
-                acc_output - acceleration <= BIG_M * (1-d4),
-                acceleration - acc_output <= BIG_M * (1-d4),
-            ] + acc_constraints
         return acc_output, constraints
 
     def update(
@@ -316,79 +210,8 @@ class SingleTrackModel(VehicleModel):
                 self.steering_velocity_lb <= steering_velocity, steering_velocity <= self.steering_velocity_ub,
                 self.acceleration_lb <= acc_input, acc_input <= acc_ub
             ]
-
         else:
-            # Use CVXPY expressions
-            # For CVXPY, linearize both bilinear terms
-
-            # Set nominal operating points
-            x3_0 = 0.0  # e.g., 0.0 radians
-            x4_0 = 0.5  # e.g., 5.0 m/s
-            x5_0 = 0  # e.g., 0.0 radians
-
-            l_wb = self.l_wb  # Wheelbase length, assumed constant
-
-            # Constants for small-angle approximations
-            sin_theta_0 = x5_0  # sin(x5_0) ≈ x5_0
-            cos_theta_0 = 1  # cos(x5_0) ≈ 1
-
-            # Partial derivatives for x4 * sin_theta
-            df_sin_dx4 = sin_theta_0
-            df_sin_dx5 = x4_0 * cos_theta_0
-
-            # Linearized x4 * sin_theta
-            x4_sin_theta = (
-                    x4_0 * sin_theta_0
-                    + df_sin_dx4 * (x4 - x4_0)
-                    + df_sin_dx5 * (x5 - x5_0)
-            )
-
-            # Partial derivatives for (x4 / l_wb) * tan_theta
-            df_tan_dx3 = x4_0 / l_wb
-            df_tan_dx4 = x3_0 / l_wb
-
-            # Linearized (x4 / l_wb) * tan_theta
-            x4_tan_theta = (
-                    (x4_0 * x3_0) / l_wb
-                    + df_tan_dx3 * (x3 - x3_0)
-                    + df_tan_dx4 * (x4 - x4_0)
-            )
-
-            # Update other approximations
-            cos_theta = cos_theta_0  # cos(θ) ≈ 1
-            # x4 * cos_theta remains x4, since cos_theta ≈ 1
-
-            steering_output, steering_constraints = self.steer(x3, u1)
-            acceleration_output, acceleration_constraints = self.acc(x4, u2)
-
-            dx_dt = cp.vstack([
-                x4 * cos_theta,
-                x4_sin_theta,
-                steering_output,
-                acceleration_output,
-                x4_tan_theta
-            ]).flatten()
-
-            next_state = current_state + dx_dt * self.dt
-            constraints = steering_constraints + acceleration_constraints
-
-            # Nominal operating point
-            x40 = 1.0  # Example nominal value for x4
-            x4_tan_theta0 = 1.0  # Example nominal value for x4_tan_theta
-            z0 = x40 * x4_tan_theta0
-            dz_dx4 = x4_tan_theta0
-            dz_dx4_tan_theta = x40
-
-            # Linear approximation of z = x4 * x4_tan_theta
-            z_linear = z0 + dz_dx4 * (x4 - x40) + dz_dx4_tan_theta * (x4_tan_theta - x4_tan_theta0)
-
-            constraints += [
-                self.steering_velocity_lb <= u1, u1 <= self.steering_velocity_ub,
-                self.acceleration_lb <= u2, u2 <= self.acceleration_ub(x4)[0],
-                self.steering_angle_lb <= x3, x3 <= self.steering_angle_ub,
-                self.velocity_lb <= x4, x4 <= self.velocity_ub,
-                u2**2 + z_linear**2 <= self.a_max
-            ]
+            raise ValueError(f"solver_type {self.solver_type} not supported")
 
         return next_state, constraints
 

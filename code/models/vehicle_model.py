@@ -3,6 +3,7 @@ from typing import Tuple, Any, List
 from abc import abstractmethod
 
 class VehicleModel:
+	road = None
 	@abstractmethod
 	def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
 		raise 'update not implemented'

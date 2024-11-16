@@ -6,12 +6,12 @@ from math import atan
 
 from utils.range_bounding import *
 from models.vehicle_model import VehicleModel
-from obstacles.road import Road
+from obstacles.road import AbstractRoad
 from visualizer.plot_with_bounds import plot_with_bounds
 
 class RoadAlignedModel(VehicleModel):
 
-    def __init__(self, initial_state: np.ndarray, goal_state: np.ndarray, dt: float, road: Road,
+    def __init__(self, initial_state: np.ndarray, goal_state: np.ndarray, dt: float, road: AbstractRoad,
                  v_x_range: Tuple[float, float],
                  v_y_range: Tuple[float, float],
                  acc_x_range: Tuple[float, float],
@@ -42,8 +42,8 @@ class RoadAlignedModel(VehicleModel):
         self.initial_state = initial_state
         self.goal_state = goal_state
 
-        self.c_min = road.get_curvature_min()
-        self.c_max = road.get_curvature_max()
+        self.c_min = road.get_curvature_min(float(initial_state[0]), float(goal_state[0]))
+        self.c_max = road.get_curvature_max(float(initial_state[0]), float(goal_state[0]))
         self.n_min = -road.width/2
         self.n_max = road.width/2
         self.v_x_min, self.v_x_max = v_x_range
@@ -108,11 +108,23 @@ class RoadAlignedModel(VehicleModel):
         ranges.update(new_ranges)
 
         self.ranges = ranges
+        print(ranges)
         # helper:
         self.last_orientation = 0
         self.counter = 0
 
-    def _g(self, x_tn, u):
+
+    def to_body_fixed(self, x_tn, u):
+        a_tn = self.g(x_tn, u)
+        s, n, ds, dn = [x_tn[i] for i in range(self.dim_state)]
+        # u_t, u_n = [u[i] for i in range(self.dim_control_input)]
+        C = self.road.get_curvature_at(s)
+        return (
+            a_tn[0] + C*ds*dn,
+            a_tn[1] - C*(ds**2)*(1-n*C),
+        )
+
+    def g(self, x_tn, u):
         s, n, ds, dn = [x_tn[i] for i in range(self.dim_state)]
         u_t, u_n = [u[i] for i in range(self.dim_control_input)]
         return [
@@ -135,7 +147,7 @@ class RoadAlignedModel(VehicleModel):
 
         s, n, ds, dn = [current_state[i] for i in range(self.dim_state)]
         u_t, u_n = [control_inputs[i] for i in range(self.dim_control_input)]
-        g = self._g(current_state, control_inputs)
+        g = self.g(current_state, control_inputs)
 
         if self.solver_type == 'casadi':
             # Compute the next state based on the input accelerations

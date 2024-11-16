@@ -1,140 +1,118 @@
-import numpy as np
-from scipy.special import fresnel
-from scipy.optimize import minimize
+from abc import ABC, abstractmethod
 from typing import List, Tuple
-import matplotlib.pyplot as plt
 
-from obstacles.obstacle import Obstacle
 
-class Road(Obstacle):
+class AbstractRoad(ABC):
     """
-    Represents a street as a B-spline curve with associated normals.
+    Abstract base class for different types of roads.
+    Defines a standard interface for road methods and properties.
     """
-    def __init__(self, s: List[Tuple[float, float]], width: float):
+
+    def __init__(self, width: float):
         self.width = width
-        s_array = np.array(s)
-        diff = np.diff(s_array, axis=0)
-        non_zero = np.any(diff != 0, axis=1)
-        s_array = np.vstack([s_array[0], s_array[1:][non_zero]])
 
-        if len(s_array) < 2:
-            raise ValueError("At least two distinct points are required to define a street.")
+    @abstractmethod
+    def get_curvature_at(self, s_param: float) -> float:
+        """
+        Returns the curvature at a given parameter along the road.
 
-        self.evaluation_points = 500
+        Args:
+            s_param (float): Parameter along the road (typically between 0 and 1).
 
-        self.x = s_array[:, 0]
-        self.y = s_array[:, 1]
+        Returns:
+            float: Curvature at the specified parameter.
+        """
+        pass
 
-        # Fit Euler spiral (clothoid) to data points
-        self.a_opt = self._fit_clothoid()
-        self.t_min, self.t_max = (-3, 3)
-        if not np.isfinite(self.a_opt) or self.a_opt <= 0:
-            raise ValueError(f"Invalid value for a_opt: {self.a_opt}")
+    @abstractmethod
+    def get_curvature_derivative_at(self, s_param: float) -> float:
+        """
+        Returns the derivative of the curvature at a given parameter along the road.
 
+        Args:
+            s_param (float): Parameter along the road (typically between 0 and 1).
 
-    def _clothoid(self, t, a=None):
-        """Generates (x, y) points on a clothoid for parameter t"""
-        a = self.a_opt if a is None else a
-        S, C = fresnel(t / np.sqrt(np.pi * a))
-        x = a * np.sqrt(np.pi) * C
-        y = a * np.sqrt(np.pi) * S
-        return x, y
+        Returns:
+            float: Curvature derivative at the specified parameter.
+        """
+        pass
 
-    def _fit_clothoid(self):
-        """Fit an Euler spiral (clothoid) to the provided data points."""
-
-        def objective(a):
-            t_data = np.linspace(-1, 1, len(self.x)) * a
-            x_fit, y_fit = self._clothoid(t_data, a)
-            return np.sum((x_fit - self.x) ** 2 + (y_fit - self.y) ** 2)
-
-        a0 = np.array(1.0)
-        res = minimize(objective, a0, bounds=[(1e-3, 1e3)])  # Set bounds to prevent extreme values
-        return res.x[0] if res.success else 1.0  # Use 1.0 as a fallback
-
-    def _transform(self, s_param):
-        return (1 - s_param) * self.t_min + s_param * self.t_max
-
-    def get_curvature_at(self, s_param) -> float:
-        t = self._transform(s_param)
-        return t / (self.a_opt ** 2)
-
-    def get_curvature_derivative_at(self, s_param) -> float:
-        return 1 / (self.a_opt ** 2)
-
+    @abstractmethod
     def get_global_position(self, s_param: float, lateral_offset: float) -> Tuple[float, float]:
-        t = self._transform(s_param)
-        x_center, y_center = self._clothoid(t)
+        """
+        Returns the global (x, y) position on the road for a given parameter and lateral offset.
 
-        # Adaptive delta for computing tangent vector
-        delta_t = max(1e-4, 1e-2 * abs(t))
-        x_next, y_next = self._clothoid(t + delta_t)
-        dx, dy = x_next - x_center, y_next - y_center
+        Args:
+            s_param (float): Parameter along the road (typically between 0 and 1).
+            lateral_offset (float): Lateral offset from the road center.
 
-        tangent_norm = np.sqrt(dx ** 2 + dy ** 2)
-        if tangent_norm == 0:
-            raise ValueError("Tangent vector magnitude is zero, cannot compute normal.")
+        Returns:
+            Tuple[float, float]: Global (x, y) coordinates.
+        """
+        pass
 
-        normal_unit = np.array([-dy, dx]) / tangent_norm
-        x_global = x_center + lateral_offset * normal_unit[0]
-        y_global = y_center + lateral_offset * normal_unit[1]
+    @abstractmethod
+    def get_curvature_min(self, start: float, end: float) -> float:
+        """
+        Returns the minimum curvature between two parameters along the road.
 
-        return x_global, y_global
+        Args:
+            start (float): Starting parameter along the road.
+            end (float): Ending parameter along the road.
 
-    def get_curvature_min(self) -> float:
-        curvatures = [self.get_curvature_at(0), self.get_curvature_at(1)]
-        return min(curvatures)
+        Returns:
+            float: Minimum curvature between start and end.
+        """
+        pass
 
-    def get_curvature_max(self) -> float:
-        curvatures = [self.get_curvature_at(0), self.get_curvature_at(1)]
-        return max(curvatures)
+    @abstractmethod
+    def get_curvature_max(self, start: float, end: float) -> float:
+        """
+        Returns the maximum curvature between two parameters along the road.
 
-    # def velocity_limit(self, s_param: float) -> float:
-    #     return 40 if s_param < 10 else 42
+        Args:
+            start (float): Starting parameter along the road.
+            end (float): Ending parameter along the road.
 
-    def get_constraints(self):
-        return []
+        Returns:
+            float: Maximum curvature between start and end.
+        """
+        pass
 
+    @abstractmethod
     def get_polygon_and_color(self) -> Tuple[List[Tuple[float, float]], str]:
-        s_values = np.linspace(0, 1, 500)
-        half_width = self.width / 2.0
+        """
+        Returns the polygon representing the road boundaries and its color for visualization.
 
-        upper_points = []
-        lower_points = []
+        Returns:
+            Tuple[List[Tuple[float, float]], str]: Polygon vertices and color.
+        """
+        pass
 
-        for s in s_values:
-            t = self._transform(s)
-            x_center, y_center = self._clothoid(t)
+    @abstractmethod
+    def get_tangent_angle_at(self, s_param: float) -> float:
+        """
+        Returns the angle of the tangent to the x-axis at a given parameter along the road.
 
-            delta_t = max(1e-4, 1e-2 * abs(t))
-            x_next, y_next = self._clothoid(t + delta_t)
-            dx, dy = x_next - x_center, y_next - y_center
+        Args:
+            s_param (float): Parameter along the road (typically between 0 and 1).
 
-            tangent_norm = np.sqrt(dx ** 2 + dy ** 2)
-            if tangent_norm == 0:
-                raise ValueError("Tangent vector magnitude is zero, cannot compute normal.")
-
-            normal_unit = np.array([-dy, dx]) / tangent_norm
-
-            x_upper = x_center + half_width * normal_unit[0]
-            y_upper = y_center + half_width * normal_unit[1]
-            x_lower = x_center - half_width * normal_unit[0]
-            y_lower = y_center - half_width * normal_unit[1]
-
-            upper_points.append((x_upper, y_upper))
-            lower_points.append((x_lower, y_lower))
-
-        polygon = upper_points + lower_points[::-1]
-        return polygon, 'grey'
+        Returns:
+            float: Angle of the tangent in radians with respect to the x-axis.
+        """
+        pass
 
     def plot_combined_curvature_and_derivative(self):
+        """
+        Plots the curvature and its derivative along the road.
+        """
+        import numpy as np
+        import matplotlib.pyplot as plt
+
         s_samples = np.linspace(0, 1, 500)
 
-        curvatures = [float(self.get_curvature_at(s)) for s in s_samples]
-        curvature_derivatives = [float(self.get_curvature_derivative_at(s)) for s in s_samples]
-
-        curvatures = np.array(curvatures)
-        curvature_derivatives = np.array(curvature_derivatives)
+        curvatures = [self.get_curvature_at(s) for s in s_samples]
+        curvature_derivatives = [self.get_curvature_derivative_at(s) for s in s_samples]
 
         plt.figure(figsize=(12, 10))
 

@@ -1,7 +1,10 @@
+import math
+
 from models.point_mass_model import PointMassModel
 from models.single_track_model import SingleTrackModel
 from models.road_aligned_model import RoadAlignedModel
-from obstacles.road import Road
+from models.oriented_road_following import OrientedRoadFollowingModel
+from obstacles.road_collection import *
 from path_planner.cvxpy_optimizer import ConvexPathPlanner
 from path_planner.casadi_optimizer import NonConvexPathPlanner
 from visualizer.vehicle_path_visualizer import VehiclePathVisualizer
@@ -34,6 +37,7 @@ class Scenario:
 		self.to_string = model.to_string
 		self.control_input_labels = model.get_control_input_labels()
 		self.obstacles = obstacles
+		self.road = model.road if hasattr(model, 'road') else None
 
 
 def scenario_0():
@@ -69,7 +73,6 @@ def scenario_1():
 		solver_type='cvxpy',
 	)
 	planner = ConvexPathPlanner(model, dt, time_horizon)
-
 	car_states, control_inputs = planner.get_optimized_trajectory()
 	# actual_car_states = [model.get_initial_state()]
 	# for u in control_inputs:
@@ -103,26 +106,22 @@ def scenario_2():
 
 
 def scenario_3():
-	dt = 1 / 30
+	dt = 1 / 60
 	time_horizon = 10
 	save_file = "data/scenario_3_data.pkl"
 	persist_path = False
 
-	road = Road(
-		s=[(-8, -8), (1, 1), (5, 5)],
-		width=4
-	)
 	model = RoadAlignedModel(
-		initial_state=np.array([0, -1, 0.01, 0]),
-		goal_state=np.array([1, .1, 0.01, 0]),
+		initial_state=np.array([0, 0, 0.01, 0]),
+		goal_state=np.array([1, 0, 0.01, 0]),
 		dt=dt,
-		road=road,
+		road=right_curved_road,
 		v_x_range=(-5, 40),
 		v_y_range=(-1, 1),
 		acc_x_range=(-2, 2),
 		acc_y_range=(-2, 2),
-		yaw_rate_range=(-3, 3),
-		yaw_acc_range=(-3, 3),
+		yaw_rate_range=(-1, 1),
+		yaw_acc_range=(-0.3, 0.3),
 		a_max=80,
 	)
 
@@ -145,13 +144,52 @@ def scenario_3():
 	# Visualize:
 	# model.visualize_constraints(car_states, control_inputs)
 	# road.plot_combined_curvature_and_derivative()
-	plot_control_inputs(control_inputs, model.get_control_input_labels(), dt)
+	body_fixed_controls = []
+	for j in range(len(control_inputs)):
+		body_fixed_controls.append(
+			(
+				model.to_body_fixed(car_states[j], control_inputs[j])[0],
+				model.road.get_curvature_at(car_states[j][0]) * car_states[j][2]
+			)
+		)
+	plot_control_inputs(body_fixed_controls, ['a_x', 'yaw_rate'], dt)
 
-	return Scenario(dt, model, car_states, control_inputs, [road])
+	return Scenario(dt, model, car_states, control_inputs)
+
+
+def scenario_4():
+	dt = 1 / 60
+	time_horizon = 10
+
+	road = right_curved_road
+	print(road.get_tangent_angle_at(0), road.get_tangent_angle_at(1))
+
+	model = OrientedRoadFollowingModel(
+		initial_state=np.array([0, 0,0, 0, 0]),
+		goal_state=np.array([road.length, 0, 0, 0, 0]),
+		dt=dt,
+		road=road,
+		v_range=(-0.05, 8),
+		acc_range=(-2, 2),
+		steering_angle_range=((-30 / 180) * pi, (30 / 180) * pi),
+		steering_velocity_range=(-3, 3),
+	)
+
+	planner = ConvexPathPlanner(model, dt, time_horizon)
+	car_states, control_inputs = planner.get_optimized_trajectory()
+	plot_control_inputs(control_inputs, model.get_control_input_labels(), dt)
+	plot_control_inputs(car_states, ['s', 'n', 'xi', 'v', 'delta'], dt)
+
+	planner = NonConvexPathPlanner(model, dt, time_horizon)
+	car_states, control_inputs = planner.get_optimized_trajectory(initial_guess=(car_states, control_inputs))
+	plot_control_inputs(control_inputs, model.get_control_input_labels(), dt)
+	plot_control_inputs(car_states, ['s', 'n', 'xi', 'v', 'delta'], dt)
+
+	return Scenario(dt, model, car_states, control_inputs)
 
 if __name__ == '__main__':
 	visualizer = VehiclePathVisualizer()
-	scenario = scenario_3()
+	scenario = scenario_4()
 
 	for i, state in enumerate(scenario.car_states):
 		pos, orientation = scenario.get_position_orientation(state.T)
@@ -174,7 +212,7 @@ if __name__ == '__main__':
 			pos,
 			orientation,
 			shape,
-			scenario.obstacles
+			scenario.road
 		)
 		time.sleep(scenario.dt / 10)  # Add delay to simulate motion
 	visualizer.show()

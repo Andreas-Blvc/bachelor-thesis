@@ -33,5 +33,5 @@ def plot_control_inputs(control_inputs, control_input_labels, dt, delta=1e-5):
         plt.ylabel(control_input_labels[i])
         plt.legend()
 
-    plt.tight_layout(rect=(0.0, 0.0, 1.0, 0.95))
+    # plt.tight_layout(rect=(0.0, 0.0, 1.0, 0.95))
     plt.show()

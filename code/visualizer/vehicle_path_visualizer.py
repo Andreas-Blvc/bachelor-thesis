@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import use
 import numpy as np
-from obstacles.obstacle import Obstacle
+from obstacles.road import AbstractRoad
 from typing import List
 
 use("TkAgg")
@@ -51,8 +51,8 @@ class VehiclePathVisualizer:
         self.ax.set_xlabel('X Position')
         self.ax.set_ylabel('Y Position')
         self.ax.set_title('Car Motion Planning Visualization')
-        self.ax.set_xlim(-10, 10)
-        self.ax.set_ylim(-10, 10)
+        self.ax.set_xlim(-15, 15)
+        self.ax.set_ylim(-12, 12)
         self.ax.grid(True)
         self.ax.set_aspect('equal', adjustable='box')
 
@@ -64,7 +64,7 @@ class VehiclePathVisualizer:
         self.setup_plot()
 
     def draw(self, start_pos, start_orientation, start_shape, goal_pos, goal_orientation, goal_shape, car_position,
-             car_orientation, car_shape, obstacles: List[Obstacle]):
+             car_orientation, car_shape, road: AbstractRoad):
         """
         Draws the car's path, start and goal positions as car shapes, and obstacles.
 
@@ -81,9 +81,9 @@ class VehiclePathVisualizer:
         self.clear()
         self.car_path.append(car_position)
 
-        # Plot obstacles
-        for obstacle in obstacles:
-            shape, color = obstacle.get_polygon_and_color()
+        # Plot Road
+        if road is not None:
+            shape, color = road.get_polygon_and_color()
             polygon = patches.Polygon(shape, closed=True, facecolor=color, edgecolor='black')
             self.ax.add_patch(polygon)
 
