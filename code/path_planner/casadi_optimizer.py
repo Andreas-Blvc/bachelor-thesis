@@ -2,12 +2,15 @@ import casadi as ca
 import numpy as np
 from models.vehicle_model import VehicleModel
 from path_planner.objectives import Objectives
+from utils.state_space import State, ControlInput
 
 
 class NonConvexPathPlanner:
     def __init__(self, model: VehicleModel, dt, time_horizon, get_objective):
+        # Configure others
         model.solver_type = 'casadi'
         Objectives.norm = ca.sumsqr
+        model.configure_state_class()
 
         # Initialize the Opti object
         self.opti = ca.Opti()
@@ -26,15 +29,13 @@ class NonConvexPathPlanner:
         # Controls: N x u_dim
         self.u = self.opti.variable(self.N, u_dim)
 
-        # Retrieve initial and goal states
-        initial_state = np.array(model.get_initial_state()).reshape((1, x_dim))
-        goal_state = np.array(model.get_goal_state()).reshape((1, x_dim))
-
         # Initial state constraint (equality)
+        initial_state = np.array(model.get_initial_state()).reshape((1, x_dim))
         self.opti.subject_to(self.x[0, :] == initial_state)
 
         # Goal state constraint (equality) at final time step
-        if goal_state is not None:
+        if model.get_goal_state() is not None:
+            goal_state = np.array(model.get_goal_state()).reshape((1, x_dim))
             self.opti.subject_to(self.x[self.N, :] == goal_state)
 
         for j in range(self.N):
@@ -56,13 +57,13 @@ class NonConvexPathPlanner:
 
 
         # Set the objective in the Opti problem
-        control_inputs = [self.u[j, :] for j in range(self.N)]
-        states = [self.x[j, :] for j in range(self.N + 1)]
+        states = [State(self.x[j, :]) for j in range(self.N + 1)]
+        control_inputs = [ControlInput(self.u[j, :]) for j in range(self.N)]
         objective, objective_type = get_objective(states, control_inputs)
         if objective_type == Objectives.Type.MINIMIZE:
             self.opti.minimize(objective)
         else:
-            self.opti.maximize(objective)
+            self.opti.minimize(-objective)
 
         # Optionally, you can set solver options here
         p_opts = {"expand": True}

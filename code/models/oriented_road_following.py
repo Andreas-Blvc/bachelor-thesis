@@ -4,8 +4,11 @@ import cvxpy as cp
 import casadi as ca
 from math import sin, cos, tan, pi
 
+from scipy.linalg import solve
+
 from models.vehicle_model import VehicleModel
 from obstacles.road import AbstractRoad
+from utils.state_space import State
 
 BIG_M = 1e6
 
@@ -42,7 +45,7 @@ class OrientedRoadFollowingModel(VehicleModel):
 
         if initial_state.shape != (self.dim_state,):
             raise ValueError(f"initial_state must have shape ({self.dim_state},), got {initial_state.shape}")
-        if goal_state.shape != (self.dim_state,):
+        if goal_state is not None and goal_state.shape != (self.dim_state,):
             raise ValueError(f"goal_state must have shape ({self.dim_state},), got {goal_state.shape}")
 
         self.initial_state = initial_state
@@ -63,7 +66,6 @@ class OrientedRoadFollowingModel(VehicleModel):
         self.xi_abs_bound = 45/180 * pi
         self.artificial_variables = []
 
-
     def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
         if current_state.shape != (self.dim_state,) and current_state.shape != (self.dim_state, 1):
             raise ValueError(f"current_state must have shape ({self.dim_state},) or ({self.dim_state}, 1), got {current_state.shape}")
@@ -72,8 +74,21 @@ class OrientedRoadFollowingModel(VehicleModel):
 
         s, n, xi, v, delta = [current_state[i] for i in range(self.dim_state)]
         a_x_b, v_delta = [control_inputs[i] for i in range(self.dim_control_input)]
-        constraints = []
 
+        if np.isscalar(s):
+            ds = np.cos(xi) * v / (1 - n * self.C(s))
+            d_theta = self.C(s) * ds
+            d_phi = (v / self.L_wb) * np.tan(delta)
+            next_state = np.array([
+                s + ds * self.dt,
+                n + v * np.sin(xi) * self.dt,
+                xi + (d_phi - d_theta) * self.dt,
+                v + a_x_b * self.dt,
+                delta + v_delta * self.dt,
+            ])
+            return next_state, []
+
+        constraints = []
         if self.solver_type == 'casadi':
             ds = ca.cos(xi) * v / (1 - n * self.C(s))
             d_theta = self.C(s) * ds
@@ -182,6 +197,33 @@ class OrientedRoadFollowingModel(VehicleModel):
             (1, -0.5),
             (-1, -0.5),
         ]
+
+    def get_distance_between(self, state_a: State, state_b: State):
+        if self.solver_type == 'casadi':
+            norm = ca.sumsqr
+        elif self.solver_type == 'cvxpy':
+            norm = cp.sum_squares
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+        return norm(state_a.as_vector()[:2] - state_b.as_vector()[:2])
+
+    def get_traveled_distance(self, state: State):
+        return state.as_vector()[0] - self.initial_state[0]
+
+    def get_remaining_distance(self, state: State):
+        return self.road.length - state.as_vector()[0]
+
+    def get_offset_from_reference_path(self, state: State):
+        if self.solver_type == 'casadi':
+            absolute_val = ca.fabs
+        elif self.solver_type == 'cvxpy':
+            absolute_val = cp.abs
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+        return absolute_val(state.as_vector()[1])
+
+    def get_velocity(self, state: State):
+        return state.as_vector()[3]
 
     def get_dim_state(self) -> int:
         return self.dim_state

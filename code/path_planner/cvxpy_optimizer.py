@@ -3,12 +3,15 @@ import numpy as np
 
 from models.vehicle_model import VehicleModel
 from path_planner.objectives import Objectives
+from utils.state_space import State, ControlInput
 
 
 class ConvexPathPlanner:
     def __init__(self, model: VehicleModel, dt, time_horizon, get_objective, verbose=False):
+        # Configure others:
         model.solver_type = 'cvxpy'
         Objectives.norm = cp.sum_squares
+        model.configure_state_class()
 
         self.verbose = verbose
         self.dt = dt
@@ -43,8 +46,8 @@ class ConvexPathPlanner:
             constraints.append(self.x[j + 1, :].T == next_state)
 
         # Define the optimization problem
-        control_inputs = [self.u[j, :] for j in range(N)]
-        states = [self.x[j, :] for j in range(N + 1)]
+        states = [State(self.x[j, :]) for j in range(N + 1)]
+        control_inputs = [ControlInput(self.u[j, :]) for j in range(N)]
         objective, objective_type = get_objective(states, control_inputs)
         if objective_type == Objectives.Type.MINIMIZE:
             self.prob = cp.Problem(cp.Minimize(objective), constraints)
