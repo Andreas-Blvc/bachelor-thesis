@@ -2,18 +2,34 @@ from typing import Tuple, List, Any
 import numpy as np
 import cvxpy as cp
 import casadi as ca
-from math import sin, cos, tan
+from math import sin, cos, tan, pi
 
 from models.vehicle_model import VehicleModel
 from obstacles.road import AbstractRoad
 
+BIG_M = 1e6
+
+
+def mccormick_envelopes(z, x, y, x_L, x_U, y_L, y_U):
+    constraints = [
+        z >= x_L * y + x * y_L - x_L * y_L,
+        z >= x_U * y + x * y_U - x_U * y_U,
+        z <= x_U * y + x * y_L - x_U * y_L,
+        z <= x_L * y + x * y_U - x_L * y_U,
+    ]
+    return constraints
+
 
 class OrientedRoadFollowingModel(VehicleModel):
-    def __init__(self, initial_state: np.ndarray, goal_state: np.ndarray, dt: float, road: AbstractRoad,
+    def __init__(self,
+                 dt: float,
                  v_range: Tuple[float, float],
                  acc_range: Tuple[float, float],
                  steering_angle_range: Tuple[float, float],
                  steering_velocity_range: Tuple[float, float],
+                 road: AbstractRoad,
+                 initial_state: np.ndarray,
+                 goal_state: np.ndarray=None,
                  ):
         self.solver_type = None
         self.dim_state = 5
@@ -39,9 +55,13 @@ class OrientedRoadFollowingModel(VehicleModel):
 
         # First Order Taylor Approximation:
         self.n_0 = 0
-        self.xi_0 = 0
-        self.delta_0 = 0
+        self.xi_0 = 10 / 180 * pi
+        self.delta_0 = self.steering_angle_max / 4
         self.v_0 = self.v_max / 4
+
+        # Artificial Variables Approximation:
+        self.xi_abs_bound = 45/180 * pi
+        self.artificial_variables = []
 
 
     def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
@@ -52,6 +72,8 @@ class OrientedRoadFollowingModel(VehicleModel):
 
         s, n, xi, v, delta = [current_state[i] for i in range(self.dim_state)]
         a_x_b, v_delta = [control_inputs[i] for i in range(self.dim_control_input)]
+        constraints = []
+
         if self.solver_type == 'casadi':
             ds = ca.cos(xi) * v / (1 - n * self.C(s))
             d_theta = self.C(s) * ds
@@ -64,37 +86,23 @@ class OrientedRoadFollowingModel(VehicleModel):
                 delta + v_delta * self.dt,
             ])
         elif self.solver_type == 'cvxpy':
-            ds = (
-                (self.v_0 * cos(self.xi_0)) / (1 - self.C(s) * self.n_0) +
-                cos(self.xi_0) / (1 - self.C(s) * self.n_0) * (v - self.v_0) +
-                -self.v_0 * sin(self.xi_0) / (1 - self.C(s) * self.n_0) * (xi - self.xi_0) +
-                -self.v_0 * cos(self.xi_0) * self.C(s) / (1 - self.C(s) * self.n_0)**2 * (n - self.n_0)
-            )
-            dn = (
-                self.v_0 * sin(self.xi_0) +
-                sin(self.xi_0) * (v - self.v_0) +
-                self.v_0 * cos(self.xi_0) * (xi - self.xi_0)
-            )
-            dxi = (
-                 1/self.L_wb * (
-                    self.v_0 * tan(self.delta_0) +
-                    tan(self.delta_0) * (v - self.v_0) +
-                    self.v_0 / cos(self.delta_0)**2 * (delta -self.delta_0)
-                ) -
-                 self.C(s) * ds
-            )
+            # We have following non-linear terms:
+            # 1. v * cos(xi) / (1 - n * self.C(s)) (ds-term)
+            # 2. v * sin(xi) (dn-term)
+            # 3. v * tan(delta) (dxi-term)
+            ds_term, dn_term, dxi_term = self.artificial_variables_approximation(s, n, xi, v, delta, constraints)
+
             next_state = cp.vstack([
-                s + ds * self.dt,
-                n + dn * self.dt,
-                xi + dxi * self.dt,
+                s + ds_term * self.dt,
+                n + dn_term * self.dt,
+                xi + (1/self.L_wb * dxi_term - self.C(s) * ds_term) * self.dt,
                 v + a_x_b * self.dt,
                 delta + v_delta * self.dt,
             ]).flatten()
-
         else:
             raise ValueError(f"solver_type {self.solver_type} not supported")
 
-        constraints = [
+        constraints += [
             0 <= s, s <= self.road.length,
             self.n_min <= n, n <= self.n_max,
             self.v_min <= v, v <= self.v_max,
@@ -104,6 +112,49 @@ class OrientedRoadFollowingModel(VehicleModel):
         ]
 
         return next_state, constraints
+
+    def taylor_approximation(self, s, n, xi, v, delta):
+        ds_term = (
+                (self.v_0 * cos(self.xi_0)) / (1 - self.C(s) * self.n_0) +
+                cos(self.xi_0) / (1 - self.C(s) * self.n_0) * (v - self.v_0) +
+                -self.v_0 * sin(self.xi_0) / (1 - self.C(s) * self.n_0) * (xi - self.xi_0) +
+                -self.v_0 * cos(self.xi_0) * self.C(s) / (1 - self.C(s) * self.n_0)**2 * (n - self.n_0)
+        )
+        dn_term = (
+                self.v_0 * sin(self.xi_0) +
+                sin(self.xi_0) * (v - self.v_0) +
+                self.v_0 * cos(self.xi_0) * (xi - self.xi_0)
+        )
+        dxi_term = (
+                self.v_0 * tan(self.delta_0) +
+                tan(self.delta_0) * (v - self.v_0) +
+                self.v_0 / cos(self.delta_0) ** 2 * (delta - self.delta_0)
+        )
+        return ds_term, dn_term, dxi_term
+
+    def artificial_variables_approximation(self, s, n, xi, v, delta, constraints):
+        if self.solver_type != 'cvxpy':
+            raise NotImplementedError('artificial_variables_approximation only for cvxpy solver')
+        # ds_term = cp.Variable()
+        dn_term = cp.Variable()
+        dxi_term = cp.Variable()
+        self.artificial_variables += [(dn_term, dxi_term)]
+
+        # Define variable bounds
+        v_min = self.v_min
+        v_max = self.v_max
+        xi_min = -self.xi_abs_bound
+        xi_max = self.xi_abs_bound
+        delta_min = self.steering_angle_min
+        delta_max = self.steering_angle_max
+
+        # McCormick envelopes for dn_term = v * xi
+        constraints += mccormick_envelopes(dn_term, v, xi, v_min, v_max, xi_min, xi_max)
+
+        # McCormick envelopes for dxi_term = v * delta
+        constraints += mccormick_envelopes(dxi_term, v, delta, v_min, v_max, delta_min, delta_max)
+
+        return v, dn_term, dxi_term
 
 
     def get_initial_state(self) -> np.ndarray:

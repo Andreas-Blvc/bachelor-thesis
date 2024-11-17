@@ -1,11 +1,15 @@
 import cvxpy as cp
+import numpy as np
 
 from models.vehicle_model import VehicleModel
+from path_planner.objectives import Objectives
 
 
 class ConvexPathPlanner:
-    def __init__(self, model: VehicleModel, dt, time_horizon, verbose=False):
+    def __init__(self, model: VehicleModel, dt, time_horizon, get_objective, verbose=False):
         model.solver_type = 'cvxpy'
+        Objectives.norm = cp.sum_squares
+
         self.verbose = verbose
         self.dt = dt
         self.model = model
@@ -25,9 +29,8 @@ class ConvexPathPlanner:
         constraints.append(self.x[0, :] == initial_state)
 
         # Goal state constraint (only position constraints at the final state)
-        constraints.append(self.x[N, :] == goal_state)
-
-        self.objective = cp.Constant(0)
+        if goal_state is not None:
+            constraints.append(self.x[N, :] == goal_state)
 
         # Dynamics constraints vectorized over time horizon
         for j in range(N):
@@ -39,13 +42,14 @@ class ConvexPathPlanner:
             constraints += model_constraints
             constraints.append(self.x[j + 1, :].T == next_state)
 
-            self.objective += cp.sum_squares(self.x[j, :] - goal_state)
-
-        # Objective function: minimize the sum of squared control inputs over the horizon
-        self.objective += cp.sum_squares(self.u)
-
         # Define the optimization problem
-        self.prob = cp.Problem(cp.Minimize(self.objective), constraints)
+        control_inputs = [self.u[j, :] for j in range(N)]
+        states = [self.x[j, :] for j in range(N + 1)]
+        objective, objective_type = get_objective(states, control_inputs)
+        if objective_type == Objectives.Type.MINIMIZE:
+            self.prob = cp.Problem(cp.Minimize(objective), constraints)
+        else:
+            self.prob = cp.Problem(cp.Maximize(objective), constraints)
 
     def get_optimized_trajectory(self):
         self.prob.solve(solver='CLARABEL', verbose=self.verbose)

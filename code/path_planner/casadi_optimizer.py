@@ -1,10 +1,14 @@
 import casadi as ca
 import numpy as np
 from models.vehicle_model import VehicleModel
+from path_planner.objectives import Objectives
+
 
 class NonConvexPathPlanner:
-    def __init__(self, model: VehicleModel, dt, time_horizon):
+    def __init__(self, model: VehicleModel, dt, time_horizon, get_objective):
         model.solver_type = 'casadi'
+        Objectives.norm = ca.sumsqr
+
         # Initialize the Opti object
         self.opti = ca.Opti()
 
@@ -30,14 +34,8 @@ class NonConvexPathPlanner:
         self.opti.subject_to(self.x[0, :] == initial_state)
 
         # Goal state constraint (equality) at final time step
-        self.opti.subject_to(self.x[self.N, :] == goal_state)
-
-        # Initialize the objective: prioritize reaching the goal quickly and staying there
-        self.objective = 0
-
-        # Define weights: higher weights for earlier time steps
-        # This encourages minimizing the distance to the goal early on
-        weights = np.linspace(1.0, 0.1, self.N)  # Adjust the range as needed
+        if goal_state is not None:
+            self.opti.subject_to(self.x[self.N, :] == goal_state)
 
         for j in range(self.N):
             # Current state and control input
@@ -56,19 +54,15 @@ class NonConvexPathPlanner:
             # Dynamics constraint: x[j + 1, :] == next_state
             self.opti.subject_to(self.x[j + 1, :] == next_state.T)
 
-            # Weighted penalty for being away from the goal
-            distance_to_goal = ca.sumsqr(self.x[j, :] - goal_state)
-            self.objective += weights[j] * distance_to_goal
-
-            # Accumulate the control effort
-            self.objective += ca.sumsqr(self.u[j, :])
-
-        # Optionally, add a small penalty on the final state deviation to ensure precision
-        final_distance = ca.sumsqr(self.x[self.N, :] - goal_state)
-        self.objective += 1e3 * final_distance  # Large weight to enforce final state
 
         # Set the objective in the Opti problem
-        self.opti.minimize(self.objective)
+        control_inputs = [self.u[j, :] for j in range(self.N)]
+        states = [self.x[j, :] for j in range(self.N + 1)]
+        objective, objective_type = get_objective(states, control_inputs)
+        if objective_type == Objectives.Type.MINIMIZE:
+            self.opti.minimize(objective)
+        else:
+            self.opti.maximize(objective)
 
         # Optionally, you can set solver options here
         p_opts = {"expand": True}

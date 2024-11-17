@@ -7,6 +7,7 @@ class AbstractRoad(ABC):
     Abstract base class for different types of roads.
     Defines a standard interface for road methods and properties.
     """
+    length = 0
 
     def __init__(self, width: float):
         self.width = width
