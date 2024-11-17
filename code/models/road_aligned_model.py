@@ -7,6 +7,7 @@ from math import atan
 from utils.range_bounding import *
 from models.vehicle_model import VehicleModel
 from obstacles.road import AbstractRoad
+from utils.state_space import State
 from visualizer.plot_with_bounds import plot_with_bounds
 
 class RoadAlignedModel(VehicleModel):
@@ -257,3 +258,35 @@ class RoadAlignedModel(VehicleModel):
             'u_n'
         ]
 
+    def get_distance_between(self, state_a: State, state_b: State):
+        if self.solver_type == 'casadi':
+            norm = ca.sumsqr
+        elif self.solver_type == 'cvxpy':
+            norm = cp.sum_squares
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+        return norm(state_a.as_vector()[:2] - state_b.as_vector()[:2])
+
+    def get_traveled_distance(self, state: State):
+        return state.as_vector()[0] - self.initial_state[0]
+
+    def get_remaining_distance(self, state: State):
+        return self.road.length - state.as_vector()[0]
+
+    def get_offset_from_reference_path(self, state: State):
+        if self.solver_type == 'casadi':
+            absolute_val = ca.fabs
+        elif self.solver_type == 'cvxpy':
+            absolute_val = cp.abs
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+        return absolute_val(state.as_vector()[1])
+
+    def get_velocity(self, state: State):
+        if self.solver_type == 'casadi':
+            sqrt = ca.sqrt
+        elif self.solver_type == 'cvxpy':
+            sqrt = cp.sqrt
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+        return sqrt(state.as_vector()[2] ** 2 + state.as_vector()[3] ** 2)

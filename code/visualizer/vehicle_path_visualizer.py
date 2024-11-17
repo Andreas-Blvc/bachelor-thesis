@@ -75,18 +75,18 @@ class VehiclePathVisualizer:
                                         edgecolor=edge_col,
                                         label=label)
         self.ax.add_patch(start_polygon)
-        self.ax.plot(car.position[0], car.position[1], marker, label=label, markersize=4)
+        self.ax.plot(car.position[0], car.position[1], marker,  markersize=4)
 
     def draw(self, start: VehicleObject, goal: VehicleObject, predicted_car: VehicleObject, actual_car: VehicleObject, road: AbstractRoad):
 
         # Clear the previous drawing
         self.clear()
-        if predicted_car:
+        if actual_car:
             self.actual_path.append(actual_car.position)
         self.predicted_path.append(predicted_car.position)
 
         # Plot Road
-        if road is not None:
+        if road:
             shape, color = road.get_polygon_and_color()
             polygon = patches.Polygon(shape, closed=True, facecolor=color, edgecolor='black')
             self.ax.add_patch(polygon)
@@ -136,6 +136,9 @@ class VehiclePathVisualizer:
         if actual_car:
             actual_path = np.array(self.actual_path)
             self.ax.plot(actual_path[:, 0], actual_path[:, 1], 'k-', label='Actual Path', linewidth=2)
+
+        # Add legend for labels
+        self.ax.legend(loc='upper right')  # You can adjust `loc` to place the legend elsewhere.
 
         # Redraw the updated plot
         self.fig.canvas.draw()

@@ -67,10 +67,9 @@ def scenario_0():
 	return Scenario(dt, model, car_states, control_inputs)
 
 
-
 def scenario_1():
 	dt = 1 / 30
-	time_horizon = 30
+	time_horizon = 3
 	objective = Objectives.minimize_control_input
 	model = SingleTrackModel(
 		initial_state=np.reshape([-6, -2, 0, 0, 0], (5,)),
@@ -82,9 +81,8 @@ def scenario_1():
 		velocity_range=(-40, 40),
 		acceleration_range=(-200, 200),
 		dt=dt,
-		solver_type='cvxpy',
 	)
-	planner = ConvexPathPlanner(model, dt, time_horizon, objective)
+	planner = NonConvexPathPlanner(model, dt, time_horizon, objective)
 	car_states, control_inputs = planner.get_optimized_trajectory()
 	# actual_car_states = [model.get_initial_state()]
 	# for u in control_inputs:
@@ -129,7 +127,7 @@ def scenario_3():
 		initial_state=np.array([0, 0, 0.01, 0]),
 		goal_state=np.array([1, 0, 0.01, 0]),
 		dt=dt,
-		road=right_curved_road,
+		road=s_shaped_road,
 		v_x_range=(-5, 40),
 		v_y_range=(-1, 1),
 		acc_x_range=(-2, 2),
@@ -172,16 +170,16 @@ def scenario_3():
 
 
 def scenario_4():
-	dt = 1 / 60
-	time_horizon = 5
+	dt = 1 / 30
+	time_horizon = 4
 	objective = Objectives.minimize_remaining_distance
 	road = right_curved_road
 	model = OrientedRoadFollowingModel(
-		initial_state=np.array([0, 0, 0, 4, 0]),
+		initial_state=np.array([0, 0, 0, 1, 0]),
 		goal_state=None, # np.array([road.length, 0, 0, 2, 0]),
 		dt=dt,
 		road=road,
-		v_range=(0, 4.5),
+		v_range=(1, 6),
 		acc_range=(-2, 2),
 		steering_angle_range=((-30 / 180) * pi, (30 / 180) * pi),
 		steering_velocity_range=(-3, 3),
@@ -193,21 +191,22 @@ def scenario_4():
 	plot_control_inputs(car_states, ['s', 'n', 'xi', 'v', 'delta'], dt)
 	# plot_control_inputs([(dn.value, dxi.value) for dn, dxi in model.artificial_variables], ['dn_term', 'dxi_term'], dt)
 
+	model.goal_state = car_states[-1]
+	planner = NonConvexPathPlanner(model, dt, time_horizon, objective)
+	car_states, control_inputs = planner.get_optimized_trajectory(initial_guess=(car_states, control_inputs))
+	plot_control_inputs(control_inputs, model.get_control_input_labels(), dt)
+	plot_control_inputs(car_states, ['s', 'n', 'xi', 'v', 'delta'], dt)
+
 	actual_car_states = [model.get_initial_state()]
 	for u in control_inputs:
 		next_state, _ = model.update(actual_car_states[-1], u)
 		actual_car_states.append(next_state)
-	# model.goal_state = car_states[-1]
-	# planner = NonConvexPathPlanner(model, dt, time_horizon, objective)
-	# car_states, control_inputs = planner.get_optimized_trajectory(initial_guess=(car_states, control_inputs))
-	# plot_control_inputs(control_inputs, model.get_control_input_labels(), dt)
-	# plot_control_inputs(car_states, ['s', 'n', 'xi', 'v', 'delta'], dt)
 
-	return Scenario(dt, model, actual_car_states, control_inputs, actual_car_states)
+	return Scenario(dt, model, car_states, control_inputs, actual_car_states)
 
 if __name__ == '__main__':
 	visualizer = VehiclePathVisualizer()
-	scenario = scenario_4()
+	scenario = scenario_3()
 
 	for i in range(len(scenario.predicted_car_states)):
 		predicted_state = scenario.predicted_car_states[i]
@@ -231,7 +230,7 @@ if __name__ == '__main__':
 		# )
 		visualizer.draw(
 			start=VehicleObject(scenario.start_pos, scenario.start_orientation, scenario.start_shape),
-			goal=VehicleObject(scenario.goal_pos, scenario.goal_orientation, scenario.goal_shape) if scenario.goal_pos else None,
+			goal=VehicleObject(scenario.goal_pos, scenario.goal_orientation, scenario.goal_shape) if scenario.goal_orientation is not None else None,
 			predicted_car=VehicleObject(predicted_pos, predicted_orientation, predicted_shape),
 			actual_car=VehicleObject(actual_pos, actual_orientation, actual_shape) if scenario.actual_car_states else None,
 			road= scenario.road

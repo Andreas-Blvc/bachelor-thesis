@@ -6,6 +6,7 @@ from math import cos, sin
 from typing import Tuple, Any, List, Union
 
 from models.vehicle_model import VehicleModel
+from utils.state_space import State
 
 # Define a large constant for Big-M constraints
 BIG_M = 1e6
@@ -16,7 +17,6 @@ class SingleTrackModel(VehicleModel):
     SingleTrackModel implements a single-track (bicycle) vehicle model.
     It supports both CVXPY and CasADi solvers for optimization tasks.
     """
-
     def __init__(
         self,
         initial_state: Union[List[float], np.ndarray],
@@ -311,3 +311,26 @@ class SingleTrackModel(VehicleModel):
 
     def get_control_input_labels(self):
         return ['Steering Velocity', 'Acceleration Input']
+
+    def get_distance_between(self, state_a: State, state_b: State):
+        x_a, y_a = state_a.as_vector()[:2]
+        x_b, y_b = state_b.as_vector()[:2]
+        if self.solver_type == 'casadi':
+            sqrt = ca.sqrt
+        elif self.solver_type == 'cvxpy':
+            sqrt = cp.sqrt
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+        return sqrt((x_a - x_b) ** 2 + (y_a - y_b) ** 2)
+
+    def get_traveled_distance(self, state: State):
+        return 0
+
+    def get_remaining_distance(self, state: State):
+        return 0
+
+    def get_offset_from_reference_path(self, state: State):
+        return 0
+
+    def get_velocity(self, state: State):
+        return state.as_vector()[3]

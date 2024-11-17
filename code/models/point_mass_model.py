@@ -2,7 +2,9 @@ from typing import List
 
 import numpy as np
 import cvxpy as cp
+import casadi as ca
 from models.vehicle_model import VehicleModel
+from utils.state_space import State
 
 
 class PointMassModel(VehicleModel):
@@ -10,7 +12,6 @@ class PointMassModel(VehicleModel):
     A point mass vehicle model implementing the VehicleModel abstract base class.
     This model represents a simple point mass with position and velocity in 2D space.
     """
-
     def __init__(self, initial_state: np.ndarray, goal_state: np.ndarray, a_max: float, dt: float):
         """
         Initialize the PointMassModel.
@@ -21,6 +22,7 @@ class PointMassModel(VehicleModel):
         :param dt: Time step for state updates.
         :raises ValueError: If initial_state or goal_state do not have the correct shape.
         """
+        self.solver_type = None
         self.dim_state = 4
         self.dim_control_input = 2
         self.dt = dt
@@ -96,3 +98,32 @@ class PointMassModel(VehicleModel):
 
     def get_control_input_labels(self) -> List[str]:
         return ['Longitude Acceleration', 'Latitude Acceleration']
+
+    def get_distance_between(self, state_a: State, state_b: State):
+        x_a, y_a = state_a.as_vector()[2:]
+        x_b, y_b = state_b.as_vector()[2:]
+        if self.solver_type == 'casadi':
+            sqrt = ca.sqrt
+        elif self.solver_type == 'cvxpy':
+            sqrt = cp.sqrt
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+        return sqrt((x_a - x_b) ** 2 + (y_a - y_b) ** 2)
+
+    def get_traveled_distance(self, state: State):
+        return 0
+
+    def get_remaining_distance(self, state: State):
+        return 0
+
+    def get_offset_from_reference_path(self, state: State):
+        return 0
+
+    def get_velocity(self, state: State):
+        if self.solver_type == 'casadi':
+            sqrt = ca.sqrt
+        elif self.solver_type == 'cvxpy':
+            sqrt = cp.sqrt
+        else:
+            raise ValueError(f"solver_type {self.solver_type} not supported")
+        return sqrt(state.as_vector()[2] ** 2 + state.as_vector()[3] ** 2)
