@@ -137,6 +137,7 @@ class Scenario:
             update_func=lambda step, *_: update_func(step, start_vehicle, goal_vehicle),
             dt=self.dt,
         )
+        visualizer.show()
 
     def __repr__(self):
         """

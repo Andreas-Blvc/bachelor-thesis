@@ -134,7 +134,6 @@ class VehiclePathVisualizer:
             blit=False,
             repeat=False
         )
-        plt.show()
 
     @staticmethod
     def show():
