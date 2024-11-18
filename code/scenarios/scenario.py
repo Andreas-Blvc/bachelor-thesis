@@ -1,4 +1,5 @@
 import time
+import matplotlib.pyplot as plt
 
 from models.vehicle_model import VehicleModel
 from visualizer.vehicle_path_visualizer import VehicleObject
@@ -78,38 +79,64 @@ class Scenario:
         self.control_input_labels = model.get_control_input_labels()
         self.road = getattr(model, "road", None)
 
+    def get_predicted_actual_car(self, step):
+        predicted_state = self.predicted_car_states[step]
+        actual_car_state = self.actual_car_states[step] if self.actual_car_states else None
+
+        predicted_pos, predicted_orientation = self.get_position_orientation(predicted_state.T)
+        predicted_shape = self.get_vehicle_polygon(predicted_state)
+
+        if self.actual_car_states:
+            actual_pos, actual_orientation = self.get_position_orientation(actual_car_state.T)
+            actual_shape = self.get_vehicle_polygon(actual_car_state)
+        else:
+            actual_pos, actual_orientation, actual_shape = None, None, None
+
+        # Create VehicleObject instances
+        predicted_car = VehicleObject(predicted_pos, predicted_orientation, predicted_shape)
+        actual_car = VehicleObject(actual_pos, actual_orientation,
+                                   actual_shape) if actual_car_state is not None else None
+        return predicted_car, actual_car
+
     def visualize(self, visualizer):
-        for i in range(len(self.predicted_car_states)):
-            predicted_state = self.predicted_car_states[i]
-            actual_car_state = self.actual_car_states[i] if self.actual_car_states else None
+        """
+        Visualizes the simulation using the updated animation-based visualizer.
+        """
+        num_steps = len(self.predicted_car_states)
 
-            predicted_pos, predicted_orientation = self.get_position_orientation(predicted_state.T)
-            predicted_shape = self.get_vehicle_polygon(predicted_state)
+        def update_func(step, start, goal):
+            """
+            Update function for animation.
+            """
+            predicted_car_update, actual_car_update = self.get_predicted_actual_car(step)
 
-            if self.actual_car_states:
-                actual_pos, actual_orientation = self.get_position_orientation(actual_car_state.T)
-                actual_shape = self.get_vehicle_polygon(actual_car_state)
-            else:
-                actual_pos, actual_orientation, actual_shape = None, None, None
-
-            control = self.control_inputs[i] if i < len(self.control_inputs) else (0, 0)
-
-            # print(
-            # 	f"Step {i + 1}: "
-            # 	f"Position = ({pos[0]:.2f} m, {pos[1]:.2f} m), "
-            # 	+ scenario.to_string(state, control)
-            # )
-            visualizer.draw(
-                start=VehicleObject(self.start_pos, self.start_orientation, self.start_shape),
-                goal=VehicleObject(self.goal_pos, self.goal_orientation,
-                                   self.goal_shape) if self.goal_orientation is not None else None,
-                predicted_car=VehicleObject(predicted_pos, predicted_orientation, predicted_shape),
-                actual_car=VehicleObject(actual_pos, actual_orientation,
-                                         actual_shape) if self.actual_car_states else None,
-                road=self.road
+            # Update the visualizer for the current step
+            visualizer.update_frame(
+                step,
+                predicted_car=predicted_car_update,
+                actual_car=actual_car_update,
             )
-            time.sleep(self.dt / 10)  # Add delay to simulate motion
-        visualizer.show()
+
+        # Create start and goal vehicle objects
+        start_vehicle = VehicleObject(self.start_pos, self.start_orientation, self.start_shape)
+        goal_vehicle = (
+            VehicleObject(self.goal_pos, self.goal_orientation, self.goal_shape)
+            if self.goal_orientation is not None
+            else None
+        )
+
+        # Assign the animation to a variable to prevent garbage collection
+        predicted_car, actual_car = self.get_predicted_actual_car(0)
+        visualizer.animate(
+            start=start_vehicle,
+            goal=goal_vehicle,
+            predicted_car=predicted_car,  # Placeholder, updated in `update_func`
+            actual_car=actual_car,  # Placeholder, updated in `update_func`
+            road=self.road,
+            num_frames=num_steps,
+            update_func=lambda step, *_: update_func(step, start_vehicle, goal_vehicle),
+            dt=self.dt,
+        )
 
     def __repr__(self):
         """

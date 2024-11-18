@@ -3,10 +3,9 @@ import matplotlib.patches as patches
 from matplotlib import use
 import numpy as np
 from obstacles.road import AbstractRoad
-from typing import List
+from matplotlib.animation import FuncAnimation
 
 use("TkAgg")
-
 
 class VehicleObject:
     def __init__(self, position, orientation, shape):
@@ -40,109 +39,102 @@ class VehicleObject:
 
 class VehiclePathVisualizer:
     def __init__(self):
-        """
-        Initializes the visualizer with a figure and axis.
-        """
-        # Enable interactive mode for live updates
-        plt.ion()
+        self.anim = None
         self.fig, self.ax = plt.subplots()
         self.setup_plot()
+
+        # Storage for paths
         self.actual_path = []
         self.predicted_path = []
 
+        # Patches for dynamic updates
+        self.start_patch = None
+        self.goal_patch = None
+        self.predicted_patch = None
+        self.actual_patch = None
+        self.predicted_path_line, = self.ax.plot([], [], 'b-', label='Planned Path')
+        self.actual_path_line, = self.ax.plot([], [], 'k-', label='Actual Path')
+
     def setup_plot(self):
-        """
-        Sets up the initial plot configuration such as axis labels and limits.
-        """
-        self.ax.set_xlabel('X Position')
-        self.ax.set_ylabel('Y Position')
-        self.ax.set_title('Car Motion Planning Visualization')
         self.ax.set_xlim(-15, 15)
         self.ax.set_ylim(-12, 12)
-        self.ax.grid(True)
         self.ax.set_aspect('equal', adjustable='box')
+        self.ax.grid(True)
+        self.ax.set_xlabel("X Position")
+        self.ax.set_ylabel("Y Position")
+        self.ax.set_title("Vehicle Path Visualization")
+        # self.ax.legend()
 
-    def clear(self):
+    def init_patches(self, start, goal, predicted_car, actual_car):
         """
-        Clears the current plot to allow for redrawing.
+        Initialize the car patches for the animation.
         """
-        self.ax.clear()
-        self.setup_plot()
+        # START
+        self.start_patch = patches.Polygon(
+            start.polygon_coordinates(), closed=True, facecolor='lightgreen', edgecolor='green', label='Start'
+        )
+        self.ax.add_patch(self.start_patch)
 
+        # PREDICTED CAR-STATE
+        self.predicted_patch = patches.Polygon(
+            predicted_car.polygon_coordinates(), closed=True, facecolor='cyan', edgecolor='blue', label='Predicted'
+        )
+        self.ax.add_patch(self.predicted_patch)
 
-    def plot_car(self, car, label, face_col, edge_col, marker):
-        start_polygon = patches.Polygon(car.polygon_coordinates(), closed=True, facecolor=face_col,
-                                        edgecolor=edge_col,
-                                        label=label)
-        self.ax.add_patch(start_polygon)
-        self.ax.plot(car.position[0], car.position[1], marker,  markersize=4)
+        if goal is not None:
+            self.goal_patch = patches.Polygon(
+                goal.polygon_coordinates(), closed=True, facecolor='lightcoral', edgecolor='red', label='Goal'
+            )
+            self.ax.add_patch(self.goal_patch)
 
-    def draw(self, start: VehicleObject, goal: VehicleObject, predicted_car: VehicleObject, actual_car: VehicleObject, road: AbstractRoad):
+        if actual_car is not None:
+            self.actual_patch = patches.Polygon(
+                actual_car.polygon_coordinates(), closed=True, facecolor='grey', edgecolor='black', label='Actual'
+            )
+            self.ax.add_patch(self.actual_patch)
 
-        # Clear the previous drawing
-        self.clear()
-        if actual_car:
+    def update_frame(self, step, predicted_car, actual_car):
+        """
+        Update the animation frame with new car positions.
+        """
+        # Update paths
+        if actual_car is not None:
             self.actual_path.append(actual_car.position)
+            self.actual_patch.set_xy(actual_car.polygon_coordinates())
+            self.actual_path_line.set_data(
+                [p[0] for p in self.actual_path], [p[1] for p in self.actual_path]
+            )
+
         self.predicted_path.append(predicted_car.position)
+        self.predicted_patch.set_xy(predicted_car.polygon_coordinates())
+        self.predicted_path_line.set_data(
+            [p[0] for p in self.predicted_path], [p[1] for p in self.predicted_path]
+        )
 
-        # Plot Road
-        if road:
+        # Redraw
+        return self.predicted_patch, self.actual_patch, self.predicted_path_line, self.actual_path_line
+
+    def animate(self, start, goal, predicted_car, actual_car, road, num_frames, update_func, dt):
+        """
+        Run the animation.
+        """
+        if road:  # Draw road only once
             shape, color = road.get_polygon_and_color()
-            polygon = patches.Polygon(shape, closed=True, facecolor=color, edgecolor='black')
-            self.ax.add_patch(polygon)
+            road_patch = patches.Polygon(shape, closed=True, facecolor=color, edgecolor='black')
+            self.ax.add_patch(road_patch)
 
+        self.init_patches(start, goal, predicted_car, actual_car)
 
-        # Draw the car shape at the start position
-        self.plot_car(
-            car=start,
-            label='Start',
-            face_col='lightgreen',
-            edge_col='green',
-            marker='go',
+        self.anim = FuncAnimation(
+            self.fig,
+            update_func,
+            frames=num_frames,
+            fargs=(predicted_car, actual_car),
+            interval=int(dt * 1000),  # Interval in ms
+            blit=False,
+            repeat=False
         )
-
-        # Draw the car shape at the goal position
-        if goal:
-            self.plot_car(
-                car=goal,
-                label='Goal',
-                face_col='lightcoral',
-                edge_col='red',
-                marker='ro',
-            )
-
-        # Draw the predicted car
-        self.plot_car(
-            car=predicted_car,
-            label='Predicted',
-            face_col='cyan',
-            edge_col='blue',
-            marker='bo',
-        )
-
-        # Draw the actual car
-        if actual_car:
-            self.plot_car(
-                car=actual_car,
-                label='Actual',
-                face_col='grey',
-                edge_col='black',
-                marker='ko',
-            )
-
-        # Plot the car's path as a trail of markers
-        predicted_path = np.array(self.predicted_path)
-        self.ax.plot(predicted_path[:, 0], predicted_path[:, 1], 'b-', label='Planned Path', linewidth=2)
-        if actual_car:
-            actual_path = np.array(self.actual_path)
-            self.ax.plot(actual_path[:, 0], actual_path[:, 1], 'k-', label='Actual Path', linewidth=2)
-
-        # Add legend for labels
-        self.ax.legend(loc='upper right')  # You can adjust `loc` to place the legend elsewhere.
-
-        # Redraw the updated plot
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
+        plt.show()
 
     @staticmethod
     def show():
