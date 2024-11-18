@@ -7,7 +7,7 @@ from path_planner.objectives import Objectives
 from scenarios.scenario import Scenario
 
 
-def _create_scenario():
+def create_scenario():
     dt = 1 / 30
     time_horizon = 4
     objective = Objectives.minimize_remaining_distance
@@ -42,4 +42,3 @@ def _create_scenario():
 
     return Scenario(dt, model, car_states, control_inputs, actual_car_states)
 
-scenario = _create_scenario()

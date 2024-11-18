@@ -3,6 +3,6 @@ import scenarios
 
 if __name__ == '__main__':
 	visualizer = VehiclePathVisualizer()
-	scenario = scenarios.oriented_road_following.scenario
+	scenario = scenarios.oriented_road_following.create_scenario()
 	scenario.visualize(visualizer)
 

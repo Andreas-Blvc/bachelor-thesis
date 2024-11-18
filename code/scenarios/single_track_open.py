@@ -6,7 +6,7 @@ from path_planner.objectives import Objectives
 from scenarios.scenario import Scenario
 
 
-def _create_scenario_simple():
+def create_scenario_simple():
     dt = 1 / 30
     time_horizon = 3
     objective = Objectives.minimize_control_input
@@ -29,7 +29,7 @@ def _create_scenario_simple():
     return Scenario(dt, model, car_states, control_inputs)
 
 
-def _create_scenario_line_change():
+def create_scenario_line_change():
     dt = 0.1
     time_horizon = 10
     objective = Objectives.minimize_control_input
@@ -53,6 +53,3 @@ def _create_scenario_line_change():
     for u in control_inputs:
         actual_car_states.append(model.accurate_update(actual_car_states[-1], u))
     return Scenario(dt, model, actual_car_states, control_inputs)
-
-scenario_simple = _create_scenario_simple()
-scenario_line_change = _create_scenario_line_change()

@@ -6,7 +6,7 @@ from path_planner.objectives import Objectives
 from scenarios.scenario import Scenario
 
 
-def _create_scenario():
+def create_scenario():
     dt = 0.1
     time_horizon = 2
     objective = Objectives.minimize_control_input
@@ -23,4 +23,3 @@ def _create_scenario():
     return Scenario(dt, model, car_states, control_inputs)
 
 
-scenario = _create_scenario()
