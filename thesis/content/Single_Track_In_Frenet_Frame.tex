@@ -1,0 +1,70 @@
+\chapter{Single Track Model} \label{ch:sin_tra_mod}
+
+\section{Model}
+
+The state variables and control inputs for the single-track model are defined as follows:
+
+\[
+	x = \begin{bmatrix}
+		s \\ n \\ \xi \\ v \\ \delta
+	\end{bmatrix}
+	\quad \text{(state variables)},
+	\qquad
+	u = \begin{bmatrix}
+		a_{x,b} \\ v_\delta
+	\end{bmatrix}
+	\quad \text{(control inputs)}.
+\]
+
+,where the state consist of Frenet Frame Coordinates ($s$,$n$), a Heading Alignment Error $\xi$, a longitude vehicle velocity $v$ and a
+steering angle $\delta$.
+The state evolution is given by:
+
+\[
+	\dot{x} =
+	\begin{bmatrix}
+		\frac{v \cos\xi}{1 - nC(s)}                \\[8pt]
+		v \sin\xi                                  \\[8pt]
+		\frac{1}{l_{wb}}v \tan\delta - C(s)\dot{s} \\[8pt]
+		a_{x,b}                                    \\[8pt]
+		v_\delta
+	\end{bmatrix}.
+\]
+
+\section{Assumptions}
+
+To simplify the model, the following assumptions are made:
+
+\begin{itemize}
+	\item $C(s)$ is constant.
+	\item $nC(s)$ is close to zero.
+\end{itemize}
+
+\section{Non-Linear Terms}
+
+The following approximations are applied to linearize the model:
+
+\begin{itemize}
+	\item $\frac{v \cos\xi}{1 - nC(s)} \approx v \cos\xi \approx v$
+	\item $v \sin\xi \approx v \xi$
+	\item $v \tan\delta \approx v \delta$
+\end{itemize}
+
+\section{Handling Bilinear Terms}
+
+To handle bilinear terms of the form \(w = xy\), the following constraints are applied based on the bounds of \(x\) and \(y\):
+
+\[
+	x^L \leq x \leq x^U, \qquad y^L \leq y \leq y^U.
+\]
+
+The resulting constraints for \(w\) are:
+
+\[
+	\begin{aligned}
+		w & \geq x^L y + x y^L - x^L y^L, \\
+		w & \geq x^U y + x y^U - x^U y^U, \\
+		w & \leq x^U y + x y^L - x^U y^L, \\
+		w & \leq x^L y + x y^U - x^L y^U.
+	\end{aligned}
+\]
