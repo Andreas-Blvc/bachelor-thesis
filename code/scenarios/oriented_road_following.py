@@ -7,17 +7,20 @@ from path_planner.objectives import Objectives
 from scenarios.scenario import Scenario
 
 
-def create_scenario():
+def create_scenario(v_min=None, v_max=None, v_start=None):
+    v_min = v_min or 4
+    v_max = v_max or 5
+    v_start = v_start or 4
     dt = 1 / 30
     time_horizon = 4
     objective = Objectives.minimize_remaining_distance
     road = roads.right_curved_road
     model = OrientedRoadFollowingModel(
-        initial_state=np.array([0, 0, 0, 4, 0]),
+        initial_state=np.array([0, 0, 0, v_start, 0]),
         goal_state=None,  # np.array([road.length, 0, 0, 2, 0]),
         dt=dt,
         road=road,
-        v_range=(4, 6),
+        v_range=(v_min, v_max),
         acc_range=(-2, 2),
         steering_angle_range=((-30 / 180) * np.pi, (30 / 180) * np.pi),
         steering_velocity_range=(-3, 3),
