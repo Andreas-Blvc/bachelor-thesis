@@ -52,28 +52,28 @@ class Scenario:
                 f"the number of predicted car states ({len(self.predicted_car_states)})."
             )
 
-    def _initialize_model_dependent_attributes(self, model):
+    def _initialize_model_dependent_attributes(self, model: AbstractVehicleModel):
         """
         Initialize attributes derived from the model, such as start and goal positions.
         """
         # Start attributes
-        initial_state = model.get_initial_state()
-        self.start_pos, self.start_orientation = model.get_position_orientation(initial_state)
+        initial_state = model.initial_state
+        self.start_pos, self.start_orientation = model.convert_vec_to_state(initial_state).get_position_orientation()
         self.start_shape = model.get_vehicle_polygon(initial_state)
 
         # Goal attributes
-        goal_state = model.get_goal_state()
+        goal_state = model.goal_state
         if goal_state is not None:
-            self.goal_pos, self.goal_orientation = model.get_position_orientation(goal_state)
+            self.goal_pos, self.goal_orientation = model.convert_vec_to_state(goal_state).get_position_orientation()
             self.goal_shape = model.get_vehicle_polygon(goal_state)
         else:
             self.goal_pos, self.goal_orientation, self.goal_shape = None, None, None
 
         # Model-dependent methods and attributes
-        self.to_string = model.to_string
+        self.to_string = lambda state_vec, control_vec: model.state_vec_to_string(state_vec) + "\n" + model.control_vec_to_string(control_vec)
         self.get_vehicle_polygon = model.get_vehicle_polygon
-        self.get_position_orientation = model.get_position_orientation
-        self.control_input_labels = model.get_control_input_labels()
+        self.get_position_orientation = lambda state_vec: model.convert_vec_to_state(state_vec).get_position_orientation()
+        self.control_input_labels = model.control_input_labels
         self.road = getattr(model, "road", None)
 
     def get_predicted_actual_car(self, step):
@@ -101,7 +101,7 @@ class Scenario:
         """
         num_steps = len(self.predicted_car_states)
 
-        def update_func(step, start, goal):
+        def update_func(step):
             """
             Update function for animation.
             """
@@ -131,7 +131,7 @@ class Scenario:
             actual_car=actual_car,  # Placeholder, updated in `update_func`
             road=self.road,
             num_frames=num_steps,
-            update_func=lambda step, *_: update_func(step, start_vehicle, goal_vehicle),
+            update_func=update_func,
             dt=self.dt,
         )
         visualizer.show()

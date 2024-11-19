@@ -1,6 +1,5 @@
 from math import cos, pi, sin, tan
 from typing import Any, List, Tuple
-
 import casadi as ca
 import cvxpy as cp
 import numpy as np
@@ -32,23 +31,25 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
                  road: AbstractRoad,
                  initial_state: np.ndarray,
                  goal_state: np.ndarray=None,
+                 l_wb: float = 1.8,
                  ):
-        self.solver_type = None
-        self.dim_state = 5
-        self.dim_control_input = 2
+        super().__init__(
+            dim_state=5,
+            dim_control_input=2,
+            control_input_labels=['a_x,b', 'v_delta'],
+            state_labels=['s', 'n', 'xi', 'v', 'delta'],
+            initial_state=initial_state
+        )
+        # Params:
         self.dt = dt
         self.road = road
+        self.L_wb = l_wb
+
+        # Aliases
         self.C = road.get_curvature_at
         self.dC = road.get_curvature_derivative_at
-        self.L_wb = 1.8
 
-        if initial_state.shape != (self.dim_state,):
-            raise ValueError(f"initial_state must have shape ({self.dim_state},), got {initial_state.shape}")
-        if goal_state is not None and goal_state.shape != (self.dim_state,):
-            raise ValueError(f"goal_state must have shape ({self.dim_state},), got {goal_state.shape}")
-
-        self.initial_state = initial_state
-        self.goal_state = goal_state
+        # Aliases for range access
         self.v_min, self.v_max = v_range
         self.a_min, self.a_max = acc_range
         self.n_min, self.n_max = -road.width/2, road.width/2
@@ -66,10 +67,8 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
         self.artificial_variables = []
 
     def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
-        if current_state.shape != (self.dim_state,) and current_state.shape != (self.dim_state, 1):
-            raise ValueError(f"current_state must have shape ({self.dim_state},) or ({self.dim_state}, 1), got {current_state.shape}")
-        if control_inputs.shape != (self.dim_control_input,) and control_inputs.shape != (self.dim_control_input, 1):
-            raise ValueError(f"control_inputs must have shape ({self.dim_control_input},)  or ({self.dim_control_input}, 1), got {control_inputs.shape}")
+        self._validate__state_dimension(current_state)
+        self._validate__control_dimension(control_inputs)
 
         s, n, xi, v, delta = [current_state[i] for i in range(self.dim_state)]
         a_x_b, v_delta = [control_inputs[i] for i in range(self.dim_control_input)]
@@ -114,7 +113,7 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
                 delta + v_delta * self.dt,
             ]).flatten()
         else:
-            raise ValueError(f"solver_type {self.solver_type} not supported")
+            self._raise_unsupported_solver()
 
         constraints += [
             0 <= s, s <= self.road.length,
@@ -170,21 +169,6 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
 
         return v, dn_term, dxi_term
 
-
-    def get_initial_state(self) -> np.ndarray:
-        return self.initial_state
-
-    def get_goal_state(self) -> np.ndarray:
-        return self.goal_state
-
-    def get_position_orientation(self, state) -> Tuple[np.ndarray, float]:
-        s, n, xi, v, delta = state
-        cur_pos = np.array(self.road.get_global_position(s, n))
-        return (
-            cur_pos,
-            self.road.get_tangent_angle_at(s) + xi
-        )
-
     def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
         front_wheel_front = self._add_tuple(self._rotate((0.5, 0), float(state[-1])), (1, 0))
         front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), float(state[-1])), (1, 0))
@@ -197,55 +181,22 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
             (-1, -0.5),
         ]
 
-    def get_distance_between(self, state_a: State, state_b: State):
-        if self.solver_type == 'casadi':
-            norm = ca.sumsqr
-        elif self.solver_type == 'cvxpy':
-            norm = cp.sum_squares
-        else:
-            raise ValueError(f"solver_type {self.solver_type} not supported")
-        return norm(state_a.as_vector()[:2] - state_b.as_vector()[:2])
-
-    def get_traveled_distance(self, state: State):
-        return state.as_vector()[0] - self.initial_state[0]
-
-    def get_remaining_distance(self, state: State):
-        return self.road.length - state.as_vector()[0]
-
-    def get_offset_from_reference_path(self, state: State):
-        if self.solver_type == 'casadi':
-            absolute_val = ca.fabs
-        elif self.solver_type == 'cvxpy':
-            absolute_val = cp.abs
-        else:
-            raise ValueError(f"solver_type {self.solver_type} not supported")
-        return absolute_val(state.as_vector()[1])
-
-    def get_velocity(self, state: State):
-        return state.as_vector()[3]
-
-    def get_dim_state(self) -> int:
-        return self.dim_state
-
-    def get_dim_control_input(self) -> int:
-        return self.dim_control_input
-
-    def get_a_max(self) -> float:
-        return self.a_max
-
-    def to_string(self, state, control):
-        # Unpack state and control for clarity
-        s, n, xi, v, delta = state
-        a, kap = control
-
-        # Format the output string
-        state_str = f"State: [s: {s:.2f}, n: {n:.2f}, v: {v:.2f}, xi: {xi:.2f}, delta: {delta:.2f}]"
-        control_str = f"Control: [a: {a:.2f}, kap: {kap:.2f}]"
-
-        return f"{state_str} | {control_str}"
-
-    def get_control_input_labels(self) -> List[str]:
-        return ['a_x,b', 'v_delta']
+    def convert_vec_to_state(self, vec) -> State:
+        # vec: s, n, xi, v, delta
+        self._validate__state_dimension(vec)
+        return State(
+            vec=vec,
+            get_velocity=lambda: vec[3],
+            get_offset_from_reference_path=lambda: self._absolute(vec[1]),
+            get_remaining_distance=lambda: self.road.length - vec[0],
+            get_traveled_distance=lambda: vec[0] - self.initial_state[0],
+            get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),
+            get_position_orientation=lambda: (
+                np.array(self.road.get_global_position(vec[0], vec[1])),
+                self.road.get_tangent_angle_at(vec[0]) + vec[2]
+            ),
+            to_string=lambda: self.state_vec_to_string(vec),
+        )
 
     @staticmethod
     def _add_tuple(a: Tuple[float, float], b: Tuple[float, float]) -> Tuple[float, float]:

@@ -35,7 +35,7 @@ class Objectives:
     @staticmethod
     def maximize_distance(states: List[State], control_inputs: List[ControlInput]):
         _validate_typs(states, control_inputs)
-        objective = states[-1].traveled_distance - states[-1].offset_from_reference_path
+        objective = states[-1].get_traveled_distance() - states[-1].get_offset_from_reference_path()
         return objective, Objectives.Type.MAXIMIZE
 
 
@@ -43,24 +43,24 @@ class Objectives:
     def minimize_velocity_deviation(states: List[State], control_inputs: List[ControlInput]):
         _validate_typs(states, control_inputs)
         objective = None
-        ref_velocity = states[0].velocity
+        ref_velocity = states[0].get_velocity()
         for state in states:
             if objective is None:
-                objective = (state.velocity - ref_velocity) ** 2
+                objective = (state.get_velocity() - ref_velocity) ** 2
             else:
-                objective += (state.velocity - ref_velocity) ** 2
+                objective += (state.get_velocity() - ref_velocity) ** 2
         return objective, Objectives.Type.MINIMIZE
 
     @staticmethod
     def minimize_remaining_distance(states: List[State], control_inputs: List[ControlInput]):
         _validate_typs(states, control_inputs)
-        objective = states[-1].remaining_distance + states[-1].offset_from_reference_path
+        objective = states[-1].get_remaining_distance() + states[-1].get_offset_from_reference_path()
         return objective, Objectives.Type.MINIMIZE
 
     @staticmethod
     def minimize_offset_from_reference_path(states: List[State], control_inputs: List[ControlInput]):
         _validate_typs(states, control_inputs)
-        objective = 0 * states[-1].offset_from_reference_path
+        objective = 0 * states[-1].get_offset_from_reference_path()
         for state in states:
-            objective += state.offset_from_reference_path
+            objective += state.get_offset_from_reference_path()
         return objective, Objectives.Type.MINIMIZE

@@ -4,6 +4,7 @@ from typing import Any, List, Tuple, Union
 import casadi as ca
 import cvxpy as cp
 import numpy as np
+from tenacity import retry
 
 from models import AbstractVehicleModel
 from utils import State
@@ -28,7 +29,6 @@ class SingleTrackModelAbstract(AbstractVehicleModel):
         velocity_range: Tuple[float, float],
         acceleration_range: Tuple[float, float],
         dt: float,
-        solver_type: str = 'cvxpy'
     ):
         """
         Initialize the SingleTrackModel.
@@ -45,28 +45,24 @@ class SingleTrackModelAbstract(AbstractVehicleModel):
         :param solver_type: Type of solver to use ('cvxpy' or 'casadi').
         :raises ValueError: If invalid solver_type is provided.
         """
-        self.dim_state = 5
-        self.dim_control_input = 2
+        super().__init__(
+            dim_state=5,
+            dim_control_input=2,
+            state_labels=['x_position', 'y_position', 'steering_angle', 'velocity', 'orientation'],
+            control_input_labels=['Steering Velocity', 'Acceleration Input'],
+            initial_state=initial_state,
+            goal_state=goal_state,
+        )
+        # params
         self.dt = dt
-        self.solver_type = solver_type.lower()
-
-        if self.solver_type not in ['cvxpy', 'casadi']:
-            raise ValueError("solver_type must be either 'cvxpy' or 'casadi'.")
-
         self.l_wb = l_wb
         self.v_s = v_s
+
+        # range aliases
         self.steering_velocity_lb, self.steering_velocity_ub = steering_velocity_range
         self.steering_angle_lb, self.steering_angle_ub = steering_angle_range
         self.velocity_lb, self.velocity_ub = velocity_range
         self.acceleration_lb, self.a_max = acceleration_range
-
-        if initial_state.shape != (self.dim_state,):
-            raise ValueError(f"initial_state must have shape ({self.dim_state},), got {initial_state.shape}")
-        if goal_state.shape != (self.dim_state,):
-            raise ValueError(f"goal_state must have shape ({self.dim_state},), got {goal_state.shape}")
-
-        self.initial_state = initial_state
-        self.goal_state = goal_state
 
     def acceleration_ub(self, v: Union[cp.Variable, ca.MX, float]) -> Tuple[Any, List[Any]]:
         if self.solver_type == 'casadi':
@@ -247,18 +243,6 @@ class SingleTrackModelAbstract(AbstractVehicleModel):
 
         return current_state + dx_dt * self.dt
 
-
-    def get_initial_state(self) -> np.ndarray:
-        return self.initial_state
-
-    def get_goal_state(self) -> np.ndarray:
-        return self.goal_state
-
-    def get_position_orientation(self, state: np.ndarray) -> Tuple[np.ndarray, float]:
-        if state.shape != (self.dim_state,):
-            raise ValueError(f"state must have shape ({self.dim_state},), got {state.shape}")
-        return state[:2], float(state[4])
-
     def get_vehicle_polygon(self, state: np.ndarray) -> List[Tuple[float, float]]:
         front_wheel_front = self._add_tuple(self._rotate((0.5, 0), float(state[2])), (1, 0))
         front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), float(state[2])), (1, 0))
@@ -270,29 +254,6 @@ class SingleTrackModelAbstract(AbstractVehicleModel):
                        (1, -0.5),
             (-1, -0.5),
         ]
-
-    def get_dim_state(self) -> int:
-        return self.dim_state
-
-    def get_dim_control_input(self) -> int:
-        return self.dim_control_input
-
-    def get_a_max(self) -> float:
-        return self.a_max
-
-    def to_string(self, state, control):
-        _, _, steering_angle, velocity, orientation = state
-        steering_velocity, acc_input = control
-
-        orientation_deg = orientation * 180 / pi  # Convert radians to degrees
-        steering_angle_deg = steering_angle * 180 / pi  # Convert radians to degrees
-        return (
-            f"Orientation = {orientation_deg:.2f}°, "
-            f"Steering Angle = {steering_angle_deg:.2f}°, "
-            f"Velocity = {velocity:.2f}m/s, "
-            f"Control Inputs = [Steering Velocity: {steering_velocity:.5f}, "
-            f"Acceleration Input: {acc_input:.5f}]"
-        )
 
     @staticmethod
     def _add_tuple(a: Tuple[float, float], b: Tuple[float, float]) -> Tuple[float, float]:
@@ -309,28 +270,18 @@ class SingleTrackModelAbstract(AbstractVehicleModel):
             y * cos(theta) + x * sin(theta),
         )
 
-    def get_control_input_labels(self):
-        return ['Steering Velocity', 'Acceleration Input']
-
-    def get_distance_between(self, state_a: State, state_b: State):
-        x_a, y_a = state_a.as_vector()[:2]
-        x_b, y_b = state_b.as_vector()[:2]
-        if self.solver_type == 'casadi':
-            sqrt = ca.sqrt
-        elif self.solver_type == 'cvxpy':
-            sqrt = cp.sqrt
-        else:
-            raise ValueError(f"solver_type {self.solver_type} not supported")
-        return sqrt((x_a - x_b) ** 2 + (y_a - y_b) ** 2)
-
-    def get_traveled_distance(self, state: State):
-        return 0
-
-    def get_remaining_distance(self, state: State):
-        return 0
-
-    def get_offset_from_reference_path(self, state: State):
-        return 0
-
-    def get_velocity(self, state: State):
-        return state.as_vector()[3]
+    def convert_vec_to_state(self, vec) -> State:
+        # vec: x_position, y_position, steering_angle, velocity, orientation
+        self._validate__state_dimension(vec)
+        return State(
+            vec=vec,
+            get_velocity=lambda: float(vec[3]),
+            get_offset_from_reference_path=lambda: 0,
+            get_remaining_distance=lambda: 0,
+            get_traveled_distance=lambda: 0,
+            get_distance_between=lambda other_state: self._sqrt(self._norm_squared(vec[:2] - other_state.as_vector()[:2])),
+            get_position_orientation=lambda: (
+                vec[:2], float(vec[4])
+            ),
+            to_string=self.state_vec_to_string(vec)
+        )

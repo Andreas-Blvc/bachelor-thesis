@@ -1,7 +1,6 @@
 import cvxpy as cp
 
 from models import AbstractVehicleModel
-from utils import ControlInput, State
 
 from .objectives import Objectives
 
@@ -11,7 +10,6 @@ class ConvexPathPlanner:
         # Configure others:
         model.solver_type = 'cvxpy'
         Objectives.norm = cp.sum_squares
-        model.configure_state_class()
 
         self.verbose = verbose
         self.dt = dt
@@ -19,14 +17,14 @@ class ConvexPathPlanner:
         N = int(time_horizon / dt)
 
         # Define control and state variables for the entire time horizon
-        self.u = cp.Variable((N, model.get_dim_control_input()))  # Control inputs matrix: (N, 2)
-        self.x = cp.Variable((N + 1, model.get_dim_state()))  # State variables matrix: (N + 1, 4)
+        self.u = cp.Variable((N, model.dim_control_input))  # Control inputs matrix: (N, 2)
+        self.x = cp.Variable((N + 1, model.dim_state))  # State variables matrix: (N + 1, 4)
 
         # Initialize constraints list
         constraints = []
 
-        initial_state = model.get_initial_state()
-        goal_state = model.get_goal_state()
+        initial_state = model.initial_state
+        goal_state = model.goal_state
 
         # Initial state constraint
         constraints.append(self.x[0, :] == initial_state)
@@ -46,8 +44,8 @@ class ConvexPathPlanner:
             constraints.append(self.x[j + 1, :].T == next_state)
 
         # Define the optimization problem
-        states = [State(self.x[j, :]) for j in range(N + 1)]
-        control_inputs = [ControlInput(self.u[j, :]) for j in range(N)]
+        states = [model.convert_vec_to_state(self.x[j, :]) for j in range(N + 1)]
+        control_inputs = [model.convert_vec_to_control_input(self.u[j, :]) for j in range(N)]
         objective, objective_type = get_objective(states, control_inputs)
         if objective_type == Objectives.Type.MINIMIZE:
             self.prob = cp.Problem(cp.Minimize(objective), constraints)

@@ -38,7 +38,7 @@ def create_scenario(v_min=None, v_max=None, v_start=None):
     # plot_control_inputs(control_inputs, model.get_control_input_labels(), dt)
     # plot_control_inputs(car_states, ['s', 'n', 'xi', 'v', 'delta'], dt)
 
-    actual_car_states = [model.get_initial_state()]
+    actual_car_states = [model.initial_state]
     for u in control_inputs:
         next_state, _ = model.update(actual_car_states[-1], u)
         actual_car_states.append(next_state)

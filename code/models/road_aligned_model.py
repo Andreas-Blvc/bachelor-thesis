@@ -30,20 +30,19 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
         :param dt: Time step for state updates.
         :raises ValueError: If initial_state or goal_state do not have the correct shape.
         """
-        self.solver_type = None
-        self.dim_state = 4
-        self.dim_control_input = 2
+        super().__init__(
+            dim_state=4,
+            dim_control_input=2,
+            state_labels=['s', 'n', 'ds', 'dn'],
+            control_input_labels=['u_t', 'u_n'],
+            initial_state=initial_state,
+            goal_state=goal_state
+        )
+        # Params
         self.dt = dt
         self.road = road
 
-        if initial_state.shape != (self.dim_state,):
-            raise ValueError(f"initial_state must have shape ({self.dim_state},), got {initial_state.shape}")
-        if goal_state.shape != (self.dim_state,):
-            raise ValueError(f"goal_state must have shape ({self.dim_state},), got {goal_state.shape}")
-
-        self.initial_state = initial_state
-        self.goal_state = goal_state
-
+        # Aliases for range access
         self.c_min = road.get_curvature_min(float(initial_state[0]), float(goal_state[0]))
         self.c_max = road.get_curvature_max(float(initial_state[0]), float(goal_state[0]))
         self.n_min = -road.width/2
@@ -65,55 +64,22 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
             u_t=None,
         )
 
-        # self.v_x_min / (1 + self.nc_max) <= ds <=  self.v_x_max / (1 + self.nc_min)
-        new_ranges = MainPaperConstraintsReduction.v_x_constraint_reduction(
+        MainPaperConstraintsReduction.apply_all(
+            state_ranges=ranges,
             v_x_range=v_x_range,
-            c_range=ranges.c,
-            n_range=ranges.n,
-        )
-        ranges.update(new_ranges)
-
-        # self.yaw_rate_min <= C(s) * ds <= self.yaw_rate_max,
-        new_ranges = MainPaperConstraintsReduction.yaw_rate_constraint_reduction(
+            acc_x_range=acc_x_range,
+            acc_y_range=acc_y_range,
             yaw_rate_range=yaw_rate_range,
-            c_range=ranges.c,
-        )
-        ranges.update(new_ranges)
+            yaw_acc_range=yaw_acc_range,
+            curvature_derivative=road.get_curvature_derivative_at(0.5)  # constant for all s
 
-        # self.yaw_acc_min <= C'(s) * ds**2 + C(s) * u_t <= self.yaw_acc_max,
-        new_ranges = MainPaperConstraintsReduction.yaw_acceleration_constraint_reduction(
-            yaw_acceleration_range=yaw_acc_range,
-            c_range=ranges.c,
-            ds_range=ranges.ds,
-            dc_ds=road.get_curvature_derivative_at(0.5) # constant for all s
         )
-        ranges.update(new_ranges)
-
-        # self.acc_x_min <= g[0] <= self.acc_x_max,
-        new_ranges = MainPaperConstraintsReduction.x_acceleration_constraint_reduction(
-            x_acceleration_range=acc_x_range,
-            c_range=ranges.c,
-            n_range=ranges.n,
-            dn_range=ranges.dn,
-            ds_range=ranges.ds,
-            dc_ds=road.get_curvature_derivative_at(0.5) # constant for all s
-        )
-        ranges.update(new_ranges)
-
-        # self.acc_y_min <= g[1] <= self.acc_y_max,
-        new_ranges = MainPaperConstraintsReduction.y_acceleration_constraint_reduction(
-            y_acceleration_range=acc_y_range,
-            c_range=ranges.c,
-            n_range=ranges.n,
-            ds_range=ranges.ds,
-        )
-        ranges.update(new_ranges)
 
         self.ranges = ranges
         print(ranges)
+
         # helper:
         self.last_orientation = 0
-        self.counter = 0
 
 
     def to_body_fixed(self, x_tn, u):
@@ -135,10 +101,8 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
         ]
 
     def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
-        if current_state.shape != (self.dim_state,) and current_state.shape != (self.dim_state, 1):
-            raise ValueError(f"current_state must have shape ({self.dim_state},) or ({self.dim_state}, 1), got {current_state.shape}")
-        if control_inputs.shape != (self.dim_control_input,) and control_inputs.shape != (self.dim_control_input, 1):
-            raise ValueError(f"control_inputs must have shape ({self.dim_control_input},)  or ({self.dim_control_input}, 1), got {control_inputs.shape}")
+        self._validate__state_dimension(current_state)
+        self._validate__control_dimension(control_inputs)
 
         dx_dt = np.array([
             current_state[2],
@@ -204,28 +168,6 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
         )
 
 
-    def get_initial_state(self) -> np.ndarray:
-        return self.initial_state
-
-    def get_goal_state(self) -> np.ndarray:
-        return self.goal_state
-
-    def get_position_orientation(self, state) -> Tuple[np.ndarray, float]:
-        s, n, ds, dn = state
-        cur_pos = np.array(self.road.get_global_position(s, n))
-        next_pos = np.array(self.road.get_global_position(s + ds * self.dt, n + dn * self.dt))
-        delta_y = next_pos[1] - cur_pos[1]
-        delta_x = next_pos[0] - cur_pos[0]
-        if delta_y != 0 and delta_x != 0:
-            orientation = atan(delta_y / delta_x)
-            self.last_orientation = orientation
-        else:
-            orientation = self.last_orientation
-        return (
-            cur_pos,
-            orientation,
-        )
-
     def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
         return [
             (-1, 0.5), (1, 0.5),
@@ -233,61 +175,19 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
             (-1, -0.5)
         ]
 
-    def get_dim_state(self) -> int:
-        return self.dim_state
-
-    def get_dim_control_input(self) -> int:
-        return self.dim_control_input
-
-    def get_a_max(self) -> float:
-        return self.a_max
-
-    def to_string(self, state, control):
-        # Unpack state and control for clarity
-        s, n, ds, dn = state
-        u_t, u_n = control
-
-        # Format the output string
-        state_str = f"State: [s: {s:.2f}, n: {n:.2f}, ds: {ds:.2f}, dn: {dn:.2f}]"
-        control_str = f"Control: [u_t: {u_t:.2f}, u_n: {u_n:.2f}]"
-
-        return f"{state_str} | {control_str}"
-
-    def get_control_input_labels(self) -> List[str]:
-        return [
-            'u_t',
-            'u_n'
-        ]
-
-    def get_distance_between(self, state_a: State, state_b: State):
-        if self.solver_type == 'casadi':
-            norm = ca.sumsqr
-        elif self.solver_type == 'cvxpy':
-            norm = cp.sum_squares
-        else:
-            raise ValueError(f"solver_type {self.solver_type} not supported")
-        return norm(state_a.as_vector()[:2] - state_b.as_vector()[:2])
-
-    def get_traveled_distance(self, state: State):
-        return state.as_vector()[0] - self.initial_state[0]
-
-    def get_remaining_distance(self, state: State):
-        return self.road.length - state.as_vector()[0]
-
-    def get_offset_from_reference_path(self, state: State):
-        if self.solver_type == 'casadi':
-            absolute_val = ca.fabs
-        elif self.solver_type == 'cvxpy':
-            absolute_val = cp.abs
-        else:
-            raise ValueError(f"solver_type {self.solver_type} not supported")
-        return absolute_val(state.as_vector()[1])
-
-    def get_velocity(self, state: State):
-        if self.solver_type == 'casadi':
-            sqrt = ca.sqrt
-        elif self.solver_type == 'cvxpy':
-            sqrt = cp.sqrt
-        else:
-            raise ValueError(f"solver_type {self.solver_type} not supported")
-        return sqrt(state.as_vector()[2] ** 2 + state.as_vector()[3] ** 2)
+    def convert_vec_to_state(self, vec) -> State:
+        # vec: s, n, ds, dn
+        self._validate__state_dimension(vec)
+        return State(
+            vec=vec,
+            get_velocity=lambda: self._sqrt(self._norm_squared(vec[2:])),
+            get_offset_from_reference_path= lambda: self._absolute(vec[1]),
+            get_remaining_distance=lambda: self.road.length - vec[0],
+            get_traveled_distance=lambda: vec[0] - self.initial_state[0],
+            get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),
+            to_string=lambda: self.state_vec_to_string(vec),
+            get_position_orientation=lambda: (
+                np.array(self.road.get_global_position(vec[0], vec[1])),
+                self.road.get_tangent_angle_at(vec[0]),
+            )
+        )

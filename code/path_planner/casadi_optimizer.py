@@ -2,7 +2,6 @@ import casadi as ca
 import numpy as np
 
 from models import AbstractVehicleModel
-from utils import ControlInput, State
 
 from .objectives import Objectives
 
@@ -12,7 +11,6 @@ class NonConvexPathPlanner:
         # Configure others
         model.solver_type = 'casadi'
         Objectives.norm = ca.sumsqr
-        model.configure_state_class()
 
         # Initialize the Opti object
         self.opti = ca.Opti()
@@ -20,10 +18,9 @@ class NonConvexPathPlanner:
         self.dt = dt
         self.model = model
         self.N = int(time_horizon / dt)
-        self.a_max = model.get_a_max()  # Maximum allowable acceleration
 
-        x_dim = model.get_dim_state()
-        u_dim = model.get_dim_control_input()
+        x_dim = model.dim_state
+        u_dim = model.dim_control_input
 
         # Define CasADi Opti variables for states and controls
         # States: (N+1) x x_dim
@@ -32,12 +29,12 @@ class NonConvexPathPlanner:
         self.u = self.opti.variable(self.N, u_dim)
 
         # Initial state constraint (equality)
-        initial_state = np.array(model.get_initial_state()).reshape((1, x_dim))
+        initial_state = np.array(model.initial_state).reshape((1, x_dim))
         self.opti.subject_to(self.x[0, :] == initial_state)
 
         # Goal state constraint (equality) at final time step
-        if model.get_goal_state() is not None:
-            goal_state = np.array(model.get_goal_state()).reshape((1, x_dim))
+        if model.goal_state is not None:
+            goal_state = np.array(model.goal_state).reshape((1, x_dim))
             self.opti.subject_to(self.x[self.N, :] == goal_state)
 
         for j in range(self.N):
@@ -59,8 +56,8 @@ class NonConvexPathPlanner:
 
 
         # Set the objective in the Opti problem
-        states = [State(self.x[j, :]) for j in range(self.N + 1)]
-        control_inputs = [ControlInput(self.u[j, :]) for j in range(self.N)]
+        states = [model.convert_vec_to_state(self.x[j, :]) for j in range(self.N + 1)]
+        control_inputs = [model.convert_vec_to_control_input(self.u[j, :]) for j in range(self.N)]
         objective, objective_type = get_objective(states, control_inputs)
         if objective_type == Objectives.Type.MINIMIZE:
             self.opti.minimize(objective)

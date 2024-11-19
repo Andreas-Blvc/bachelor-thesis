@@ -128,7 +128,6 @@ class VehiclePathVisualizer:
             self.fig,
             update_func,
             frames=num_frames,
-            fargs=(predicted_car, actual_car),
             interval=int(dt * 1000),  # Interval in ms
             blit=False,
             repeat=False
