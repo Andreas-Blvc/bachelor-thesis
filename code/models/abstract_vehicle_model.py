@@ -1,8 +1,9 @@
-import numpy as np
-from typing import Tuple, Any, List
 from abc import abstractmethod
+from typing import Any, List, Tuple
 
-from utils.state_space import State
+import numpy as np
+
+from utils import State
 
 
 class AbstractVehicleModel:

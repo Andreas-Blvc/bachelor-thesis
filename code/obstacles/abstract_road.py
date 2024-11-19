@@ -107,8 +107,8 @@ class AbstractRoad(ABC):
         """
         Plots the curvature and its derivative along the road.
         """
-        import numpy as np
         import matplotlib.pyplot as plt
+        import numpy as np
 
         s_samples = np.linspace(0, 1, 500)
 

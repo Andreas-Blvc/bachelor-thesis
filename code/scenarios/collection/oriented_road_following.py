@@ -3,7 +3,8 @@ import numpy as np
 from models import OrientedRoadFollowingModelAbstract
 from obstacles import roads
 from path_planner import ConvexPathPlanner, Objectives
-from scenarios._internal.scenario import Scenario
+
+from .._scenario import Scenario
 
 
 def create_scenario(v_min=None, v_max=None, v_start=None):

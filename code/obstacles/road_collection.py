@@ -1,6 +1,8 @@
-from obstacles.constant_curvature_road import ConstantCurvatureRoad
-from obstacles.linear_curvature_road import LinearCurvatureRoad
 from math import pi
+
+from ._internal.constant_curvature_road import ConstantCurvatureRoad
+from ._internal.linear_curvature_road import LinearCurvatureRoad
+
 
 class _Roads:
 	def __init__(self):

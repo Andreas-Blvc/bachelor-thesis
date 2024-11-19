@@ -1,9 +1,11 @@
-import numpy as np
-from scipy.special import fresnel
-from scipy.optimize import minimize
 from typing import List, Tuple
 
+import numpy as np
+from scipy.optimize import minimize
+from scipy.special import fresnel
+
 from obstacles import AbstractRoad
+
 
 class LinearCurvatureRoad(AbstractRoad):
     """

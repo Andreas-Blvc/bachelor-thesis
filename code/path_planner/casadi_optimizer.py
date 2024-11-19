@@ -1,12 +1,14 @@
 import casadi as ca
 import numpy as np
-from models.vehicle_model import VehicleModel
-from path_planner.objectives import Objectives
-from utils.state_space import State, ControlInput
+
+from models import AbstractVehicleModel
+from utils import ControlInput, State
+
+from .objectives import Objectives
 
 
 class NonConvexPathPlanner:
-    def __init__(self, model: VehicleModel, dt, time_horizon, get_objective):
+    def __init__(self, model: AbstractVehicleModel, dt, time_horizon, get_objective):
         # Configure others
         model.solver_type = 'casadi'
         Objectives.norm = ca.sumsqr

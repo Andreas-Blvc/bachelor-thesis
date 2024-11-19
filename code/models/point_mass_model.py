@@ -1,13 +1,14 @@
 from typing import List
 
-import numpy as np
-import cvxpy as cp
 import casadi as ca
-from models.vehicle_model import VehicleModel
-from utils.state_space import State
+import cvxpy as cp
+import numpy as np
+
+from models import AbstractVehicleModel
+from utils import State
 
 
-class PointMassModel(VehicleModel):
+class PointMassModelAbstract(AbstractVehicleModel):
     """
     A point mass vehicle model implementing the VehicleModel abstract base class.
     This model represents a simple point mass with position and velocity in 2D space.

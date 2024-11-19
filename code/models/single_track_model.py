@@ -1,18 +1,18 @@
-import numpy as np
-from math import pi
+from math import cos, pi, sin
+from typing import Any, List, Tuple, Union
+
 import casadi as ca
 import cvxpy as cp
-from math import cos, sin
-from typing import Tuple, Any, List, Union
+import numpy as np
 
-from models.vehicle_model import VehicleModel
-from utils.state_space import State
+from models import AbstractVehicleModel
+from utils import State
 
 # Define a large constant for Big-M constraints
 BIG_M = 1e6
 
 
-class SingleTrackModel(VehicleModel):
+class SingleTrackModelAbstract(AbstractVehicleModel):
     """
     SingleTrackModel implements a single-track (bicycle) vehicle model.
     It supports both CVXPY and CasADi solvers for optimization tasks.

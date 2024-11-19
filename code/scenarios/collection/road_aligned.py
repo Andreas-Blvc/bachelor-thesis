@@ -3,7 +3,8 @@ import numpy as np
 from models import RoadAlignedModelAbstract
 from obstacles import roads
 from path_planner import ConvexPathPlanner, Objectives
-from scenarios._internal.scenario import Scenario
+
+from .._scenario import Scenario
 
 
 def create_scenario():

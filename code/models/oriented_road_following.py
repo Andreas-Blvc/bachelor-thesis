@@ -1,14 +1,13 @@
-from typing import Tuple, List, Any
-import numpy as np
-import cvxpy as cp
+from math import cos, pi, sin, tan
+from typing import Any, List, Tuple
+
 import casadi as ca
-from math import sin, cos, tan, pi
+import cvxpy as cp
+import numpy as np
 
-from scipy.linalg import solve
-
-from models.vehicle_model import VehicleModel
-from obstacles.road import AbstractRoad
-from utils.state_space import State
+from models import AbstractVehicleModel
+from obstacles import AbstractRoad
+from utils import State
 
 BIG_M = 1e6
 
@@ -23,7 +22,7 @@ def mccormick_envelopes(z, x, y, x_L, x_U, y_L, y_U):
     return constraints
 
 
-class OrientedRoadFollowingModel(VehicleModel):
+class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
     def __init__(self,
                  dt: float,
                  v_range: Tuple[float, float],

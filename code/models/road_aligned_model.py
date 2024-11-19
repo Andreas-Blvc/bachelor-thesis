@@ -1,16 +1,17 @@
-from typing import List, Any
-import numpy as np
+from math import atan
+from typing import Any, List, Tuple
+
 import casadi as ca
 import cvxpy as cp
-from math import atan
+import numpy as np
 
-from utils.range_bounding import *
-from models.vehicle_model import VehicleModel
-from obstacles.road import AbstractRoad
-from utils.state_space import State
-from visualizer.plot_with_bounds import plot_with_bounds
+from models import AbstractVehicleModel
+from obstacles import AbstractRoad
+from utils import MainPaperConstraintsReduction, State, StateRanges
+from visualizer import plot_with_bounds
 
-class RoadAlignedModel(VehicleModel):
+
+class RoadAlignedModelAbstract(AbstractVehicleModel):
 
     def __init__(self, initial_state: np.ndarray, goal_state: np.ndarray, dt: float, road: AbstractRoad,
                  v_x_range: Tuple[float, float],
@@ -55,7 +56,7 @@ class RoadAlignedModel(VehicleModel):
         self.yaw_acc_min, self.yaw_acc_max = yaw_acc_range
         self.a_max = a_max
 
-        ranges = Ranges(
+        ranges = StateRanges(
             n=(self.n_min, self.n_max),
             c=(self.c_min, self.c_max),
             ds=(-0.01, 0.16), # tbd: should not be necessary to set here
@@ -65,7 +66,7 @@ class RoadAlignedModel(VehicleModel):
         )
 
         # self.v_x_min / (1 + self.nc_max) <= ds <=  self.v_x_max / (1 + self.nc_min)
-        new_ranges = v_x_constraint_reduction(
+        new_ranges = MainPaperConstraintsReduction.v_x_constraint_reduction(
             v_x_range=v_x_range,
             c_range=ranges.c,
             n_range=ranges.n,
@@ -73,14 +74,14 @@ class RoadAlignedModel(VehicleModel):
         ranges.update(new_ranges)
 
         # self.yaw_rate_min <= C(s) * ds <= self.yaw_rate_max,
-        new_ranges = yaw_rate_constraint_reduction(
+        new_ranges = MainPaperConstraintsReduction.yaw_rate_constraint_reduction(
             yaw_rate_range=yaw_rate_range,
             c_range=ranges.c,
         )
         ranges.update(new_ranges)
 
         # self.yaw_acc_min <= C'(s) * ds**2 + C(s) * u_t <= self.yaw_acc_max,
-        new_ranges = yaw_acceleration_constraint_reduction(
+        new_ranges = MainPaperConstraintsReduction.yaw_acceleration_constraint_reduction(
             yaw_acceleration_range=yaw_acc_range,
             c_range=ranges.c,
             ds_range=ranges.ds,
@@ -89,7 +90,7 @@ class RoadAlignedModel(VehicleModel):
         ranges.update(new_ranges)
 
         # self.acc_x_min <= g[0] <= self.acc_x_max,
-        new_ranges = x_acceleration_constraint_reduction(
+        new_ranges = MainPaperConstraintsReduction.x_acceleration_constraint_reduction(
             x_acceleration_range=acc_x_range,
             c_range=ranges.c,
             n_range=ranges.n,
@@ -100,7 +101,7 @@ class RoadAlignedModel(VehicleModel):
         ranges.update(new_ranges)
 
         # self.acc_y_min <= g[1] <= self.acc_y_max,
-        new_ranges = y_acceleration_constraint_reduction(
+        new_ranges = MainPaperConstraintsReduction.y_acceleration_constraint_reduction(
             y_acceleration_range=acc_y_range,
             c_range=ranges.c,
             n_range=ranges.n,

@@ -2,7 +2,8 @@ import numpy as np
 
 from models import SingleTrackModelAbstract
 from path_planner import NonConvexPathPlanner, Objectives
-from scenarios._internal.scenario import Scenario
+
+from .._scenario import Scenario
 
 
 def create_scenario_simple():

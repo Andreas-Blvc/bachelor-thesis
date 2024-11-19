@@ -1,7 +1,8 @@
 from enum import Enum
-
-from utils.state_space import State, ControlInput
 from typing import List
+
+from utils import ControlInput, State
+
 
 def _validate_typs(states, control_inputs):
     # Validate states

@@ -1,13 +1,13 @@
 import cvxpy as cp
-import numpy as np
 
-from models.vehicle_model import VehicleModel
-from path_planner.objectives import Objectives
-from utils.state_space import State, ControlInput
+from models import AbstractVehicleModel
+from utils import ControlInput, State
+
+from .objectives import Objectives
 
 
 class ConvexPathPlanner:
-    def __init__(self, model: VehicleModel, dt, time_horizon, get_objective, verbose=False):
+    def __init__(self, model: AbstractVehicleModel, dt, time_horizon, get_objective, verbose=False):
         # Configure others:
         model.solver_type = 'cvxpy'
         Objectives.norm = cp.sum_squares

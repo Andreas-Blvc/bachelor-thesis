@@ -2,7 +2,8 @@ import numpy as np
 
 from models import PointMassModelAbstract
 from path_planner import ConvexPathPlanner, Objectives
-from scenarios._internal.scenario import Scenario
+
+from .._scenario import Scenario
 
 
 def create_scenario():

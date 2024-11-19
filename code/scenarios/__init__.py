@@ -1,4 +1,1 @@
-import scenarios.point_mass_open as point_mass_open
-import scenarios.single_track_open as single_track_open
-import scenarios.road_aligned as road_aligned
-import scenarios.oriented_road_following as oriented_road_following
+from . import collection

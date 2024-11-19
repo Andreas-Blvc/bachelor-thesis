@@ -1,8 +1,7 @@
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from matplotlib import use
+import matplotlib.pyplot as plt
 import numpy as np
-from obstacles.road import AbstractRoad
+from matplotlib import use
 from matplotlib.animation import FuncAnimation
 
 use("TkAgg")

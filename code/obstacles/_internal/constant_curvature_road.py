@@ -1,5 +1,7 @@
-import numpy as np
 from typing import List, Tuple
+
+import numpy as np
+
 from obstacles import AbstractRoad
 
 
