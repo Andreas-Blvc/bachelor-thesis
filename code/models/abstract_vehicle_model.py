@@ -5,7 +5,7 @@ from abc import abstractmethod
 from utils.state_space import State
 
 
-class VehicleModel:
+class AbstractVehicleModel:
 	road = None
 	@abstractmethod
 	def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:

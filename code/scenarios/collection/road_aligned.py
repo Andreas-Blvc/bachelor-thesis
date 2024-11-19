@@ -1,10 +1,9 @@
 import numpy as np
 
-from models.road_aligned_model import RoadAlignedModel
-from obstacles.road_collection import roads
-from path_planner.cvxpy_optimizer import ConvexPathPlanner
-from path_planner.objectives import Objectives
-from scenarios.scenario import Scenario
+from models import RoadAlignedModelAbstract
+from obstacles import roads
+from path_planner import ConvexPathPlanner, Objectives
+from scenarios._internal.scenario import Scenario
 
 
 def create_scenario():
@@ -12,7 +11,7 @@ def create_scenario():
     time_horizon = 10
     objective = Objectives.minimize_control_input
 
-    model = RoadAlignedModel(
+    model = RoadAlignedModelAbstract(
         initial_state=np.array([0, 0, 0.01, 0]),
         goal_state=np.array([1, 0, 0.01, 0]),
         dt=dt,

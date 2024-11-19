@@ -28,7 +28,7 @@ def _update_range(current, new):
     return updated_lower, updated_upper
 
 
-class Ranges:
+class StateRanges:
     def __init__(self, c=None, n=None, ds=None, dn=None, u_t=None, u_n=None):
         """
         Initialize the Ranges object with optional range tuples.

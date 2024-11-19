@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Tuple
-from obstacles.road import AbstractRoad
+from obstacles import AbstractRoad
 
 
 class ConstantCurvatureRoad(AbstractRoad):

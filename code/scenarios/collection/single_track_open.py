@@ -1,16 +1,15 @@
 import numpy as np
 
-from models.single_track_model import SingleTrackModel
-from path_planner.casadi_optimizer import NonConvexPathPlanner
-from path_planner.objectives import Objectives
-from scenarios.scenario import Scenario
+from models import SingleTrackModelAbstract
+from path_planner import NonConvexPathPlanner, Objectives
+from scenarios._internal.scenario import Scenario
 
 
 def create_scenario_simple():
     dt = 1 / 30
     time_horizon = 3
     objective = Objectives.minimize_control_input
-    model = SingleTrackModel(
+    model = SingleTrackModelAbstract(
         initial_state=np.reshape([-6, -2, 0, 0, 0], (5,)),
         goal_state=np.reshape([6, -2, (0 / 180) * np.pi, 0, 0], (5,)),
         l_wb=1.8,
@@ -33,7 +32,7 @@ def create_scenario_line_change():
     dt = 0.1
     time_horizon = 10
     objective = Objectives.minimize_control_input
-    model = SingleTrackModel(
+    model = SingleTrackModelAbstract(
         initial_state=np.reshape([-6, -2, 0, 0, 0], (5,)),
         goal_state=np.reshape([2, -1, 0, 0, (0 / 180) * np.pi], (5,)),
         l_wb=1.8,

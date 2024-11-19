@@ -1,16 +1,15 @@
 import numpy as np
 
-from models.point_mass_model import PointMassModel
-from path_planner.cvxpy_optimizer import ConvexPathPlanner
-from path_planner.objectives import Objectives
-from scenarios.scenario import Scenario
+from models import PointMassModelAbstract
+from path_planner import ConvexPathPlanner, Objectives
+from scenarios._internal.scenario import Scenario
 
 
 def create_scenario():
     dt = 0.1
     time_horizon = 2
     objective = Objectives.minimize_control_input
-    model = PointMassModel(
+    model = PointMassModelAbstract(
         initial_state=np.reshape([0, 0, 0, 0], (4,)),
         goal_state=np.reshape([4, 2, 0, 0], (4,)),
         a_max=20,

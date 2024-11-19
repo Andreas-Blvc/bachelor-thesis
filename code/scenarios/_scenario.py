@@ -1,8 +1,5 @@
-import time
-import matplotlib.pyplot as plt
-
-from models.vehicle_model import VehicleModel
-from visualizer.vehicle_path_visualizer import VehicleObject
+from models import AbstractVehicleModel
+from visualizer import VehicleObject
 
 
 class Scenario:
@@ -24,13 +21,13 @@ class Scenario:
         road (object or None): Road model, if available.
     """
 
-    def __init__(self, dt, model: VehicleModel, predicted_car_states, control_inputs, actual_car_states=None, obstacles=None):
+    def __init__(self, dt, model: AbstractVehicleModel, predicted_car_states, control_inputs, actual_car_states=None, obstacles=None):
         """
         Initialize a Scenario object.
 
         Args:
             dt (float): Time step duration.
-            model (VehicleModel): Vehicle model providing state and shape functions.
+            model (AbstractVehicleModel): Vehicle model providing state and shape functions.
             predicted_car_states (list): Predicted vehicle states over time.
             control_inputs (list): Control inputs applied to the vehicle.
             actual_car_states (list, optional): Actual vehicle states, if available.

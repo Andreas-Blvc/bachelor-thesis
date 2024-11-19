@@ -3,7 +3,7 @@ from scipy.special import fresnel
 from scipy.optimize import minimize
 from typing import List, Tuple
 
-from obstacles.road import AbstractRoad
+from obstacles import AbstractRoad
 
 class LinearCurvatureRoad(AbstractRoad):
     """
