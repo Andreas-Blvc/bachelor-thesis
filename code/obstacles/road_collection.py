@@ -1,7 +1,7 @@
 from math import pi
 
-from ._internal.constant_curvature_road import ConstantCurvatureRoad
-from ._internal.linear_curvature_road import LinearCurvatureRoad
+from obstacles._constant_curvature_road import ConstantCurvatureRoad
+from obstacles._linear_curvature_road import LinearCurvatureRoad
 
 
 class _Roads:
