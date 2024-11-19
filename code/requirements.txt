@@ -39,3 +39,5 @@ xattr~=1.1.0
 trove-classifiers~=2024.10.21.16
 build~=1.2.2.post1
 more-itertools~=10.5.0
+tenacity~=9.0.0
+ipywidgets~=8.1.5

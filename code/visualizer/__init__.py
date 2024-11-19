@@ -1,3 +1,4 @@
 from .control_inputs_plot import plot_control_inputs
 from .plot_with_bounds import plot_with_bounds
 from .vehicle_path_visualizer import VehicleObject, VehiclePathVisualizer
+from .visualize_mccormick import visualize_mccormick, visualize_mccormick_2d_interactive
