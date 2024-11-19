@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import use
 from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
 
-use("TkAgg")
+use("Agg")
 
 class VehicleObject:
     def __init__(self, position, orientation, shape):
@@ -132,6 +133,11 @@ class VehiclePathVisualizer:
             blit=False,
             repeat=False
         )
+
+        # Close the static figure
+        plt.close(self.fig)
+
+        return HTML(self.anim.to_jshtml())
 
     @staticmethod
     def show():

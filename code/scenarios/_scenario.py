@@ -95,7 +95,7 @@ class Scenario:
                                    actual_shape) if actual_car_state is not None else None
         return predicted_car, actual_car
 
-    def visualize(self, visualizer):
+    def generate_jshtml_animation(self, visualizer):
         """
         Visualizes the simulation using the updated animation-based visualizer.
         """
@@ -124,7 +124,7 @@ class Scenario:
 
         # Assign the animation to a variable to prevent garbage collection
         predicted_car, actual_car = self.get_predicted_actual_car(0)
-        visualizer.animate(
+        return visualizer.animate(
             start=start_vehicle,
             goal=goal_vehicle,
             predicted_car=predicted_car,  # Placeholder, updated in `update_func`
@@ -134,7 +134,6 @@ class Scenario:
             update_func=update_func,
             dt=self.dt,
         )
-        visualizer.show()
 
     def __repr__(self):
         """
