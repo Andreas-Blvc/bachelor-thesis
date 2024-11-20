@@ -17,9 +17,6 @@ RUN apt-get update && \
         cmake && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python Requirements
-RUN pip install -r requirements.txt
-
 # Create a non-root user
 RUN useradd -m nonrootuser
 
@@ -29,11 +26,14 @@ WORKDIR /app
 # Ensure /app is owned by nonrootuser
 RUN chown -R nonrootuser:nonrootuser /app
 
-# Switch to the non-root user
-USER nonrootuser
-
 # Copy the entire project into the container
 COPY --chown=nonrootuser:nonrootuser . .
+
+# Install Python Requirements
+RUN pip install -r requirements.txt
+
+# Switch to the non-root user
+USER nonrootuser
 
 # Expose the port for Jupyter Notebook
 EXPOSE 8888
