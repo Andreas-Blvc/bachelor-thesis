@@ -36,8 +36,8 @@ ENV PATH="/home/nonrootuser/.local/bin:$PATH"
 COPY --chown=nonrootuser:nonrootuser . .
 
 # Install Python dependencies as the non-root user
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir jupyter
+RUN pip install -r requirements.txt && \
+    pip install jupyter
 
 # Expose the port for Jupyter Notebook
 EXPOSE 8888
