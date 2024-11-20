@@ -46,5 +46,5 @@ RUN pip install -r requirements.txt && \
 EXPOSE 8888
 
 # Command to run Jupyter Notebook
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--no-browser", "--NotebookApp.token='41b8b8ec553624e31baa17b394e6d907'"]
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--no-browser", "--NotebookApp.token=$(cat /app/jupyter_token.txt)"]
 
