@@ -38,6 +38,7 @@ class Scenario:
         self.actual_car_states = actual_car_states or []
         self.control_inputs = control_inputs
         self.obstacles = obstacles or []
+        self.model = model
 
         self._validate_states()
         self._initialize_model_dependent_attributes(model)

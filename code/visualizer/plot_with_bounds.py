@@ -1,41 +1,69 @@
 import matplotlib.pyplot as plt
 
 
-def plot_with_bounds(y_label, lower_bound, upper_bound, y_values, x_values=None):
+def plot_with_bounds(
+    y_label,
+    bounds,
+    y_values_list,
+    x_values=None,
+    y_labels=None
+):
     """
-    Plots values with shaded regions for upper and lower bounds, with dynamic y-axis scaling.
+    Plots multiple functions with shared bounds for each x_value.
 
     Parameters:
     - y_label (str): The label for the y-axis.
-    - lower_bound (float): The lower bound value.
-    - upper_bound (float): The upper bound value.
-    - y_values (list or array): The data values to plot.
+    - bounds (list or array of tuples): The lower-,upper-bound values for each x_value.
+    - y_values_list (list of lists): Each entry contains multiple y-values (one list per x_value).
     - x_values (list or array, optional): The x-axis values. If None, the index will be used.
+    - y_labels (list of str, optional): The labels for each function. Defaults to "Function i".
     """
-    # Create a new figure to separate this plot from others
+    # Create a new figure
     plt.figure()
 
-    # Create an index for x-axis
+    # Determine x_values if not provided
     if x_values is None:
-        x_values = range(len(y_values))
+        x_values = range(len(bounds))
 
-    # Plot the values
-    plt.plot(x_values, y_values, label=y_label, color="blue")
+    # Validate dimensions
+    if len(bounds) != len(y_values_list):
+        raise ValueError("Length of bounds and y_values_list must match x_values.")
 
-    # Adjust y-axis limits based on y_values with a small margin for better visibility
-    y_min, y_max = min(y_values), max(y_values)
-    margin = 0.1 * (y_max - y_min) if y_max != y_min else 1  # Add a 10% margin, fallback if range is 0
-    plt.ylim(y_min - margin, y_max + margin)
+    # Default function labels
+    if y_labels is None:
+        num_functions = len(y_values_list[0])  # Number of functions per x_value
+        y_labels = [f"Function {i + 1}" for i in range(num_functions)]
+
+    # Extract number of functions
+    num_functions = len(y_values_list[0])
+
+    # Prepare arrays for each function across all x_values
+    function_values = [[] for _ in range(num_functions)]
+    for y_values in y_values_list:
+        for i, value in enumerate(y_values):
+            function_values[i].append(value)
+
+    # Plot each function
+    for i, func_values in enumerate(function_values):
+        plt.plot(x_values, func_values, label=y_labels[i])
 
     # Fill the area between lower and upper bounds
-    plt.fill_between(x_values, lower_bound, upper_bound, color="green", alpha=0.2, label="Bounds")
+    lower_bounds, upper_bounds = tuple([list(group) for group in zip(*bounds)])
+    plt.fill_between(
+        x_values,
+        lower_bounds,
+        upper_bounds,
+        color="green",
+        alpha=0.2,
+        label="Bounds"
+    )
 
-    # Add horizontal lines for bounds
-    plt.axhline(lower_bound, color="red", linestyle=":", label="Lower Bound")
-    plt.axhline(upper_bound, color="red", linestyle="--", label="Upper Bound")
+    # Add horizontal lines for bounds (optional for better clarity)
+    plt.plot(x_values, lower_bounds, linestyle=":", color="red", label="Lower Bound")
+    plt.plot(x_values, upper_bounds, linestyle="--", color="red", label="Upper Bound")
 
     # Add labels, legend, and grid
-    plt.xlabel("Index")
+    plt.xlabel("X-axis")
     plt.ylabel(y_label)
     plt.legend()
     plt.grid(True, linestyle=":", color="gray", alpha=0.7)

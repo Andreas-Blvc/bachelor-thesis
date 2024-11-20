@@ -4,21 +4,55 @@ import casadi as ca
 import cvxpy as cp
 import numpy as np
 
+from visualizer import plot_with_bounds
 from models import AbstractVehicleModel
 from obstacles import AbstractRoad
 from utils import State
 
-BIG_M = 1e6
+class McCormickConvexRelaxation:
+    def __init__(self, x, y, x_L, x_U, y_L, y_U):
+        self._z = cp.Variable()
+        self._x = x
+        self._y = y
+        self._x_L = x_L
+        self._x_U = x_U
+        self._y_L = y_L
+        self._y_U = y_U
 
+    def get_envelopes(self):
+        constraints = [
+            self._z >= self._x_L * self._y + self._x * self._y_L - self._x_L * self._y_L,
+            self._z >= self._x_U * self._y + self._x * self._y_U - self._x_U * self._y_U,
+            self._z <= self._x_U * self._y + self._x * self._y_L - self._x_U * self._y_L,
+            self._z <= self._x_L * self._y + self._x * self._y_U - self._x_L * self._y_U,
+        ]
+        return constraints
 
-def mccormick_envelopes(z, x, y, x_L, x_U, y_L, y_U):
-    constraints = [
-        z >= x_L * y + x * y_L - x_L * y_L,
-        z >= x_U * y + x * y_U - x_U * y_U,
-        z <= x_U * y + x * y_L - x_U * y_L,
-        z <= x_L * y + x * y_U - x_L * y_U,
-    ]
-    return constraints
+    def get_relaxation_variable(self):
+        return self._z
+
+    def get_lower_upper_bound(self) -> Tuple[float, float]:
+        # Only Callable if prob.solve() was called
+        self._check()
+        l = max(
+            self._x_L * self._y.value + self._x.value * self._y_L - self._x_L * self._y_L,
+            self._x_U * self._y.value + self._x.value * self._y_U - self._x_U * self._y_U,
+        )
+        u = min(
+            self._x_U * self._y.value + self._x.value * self._y_L - self._x_U * self._y_L,
+            self._x_L * self._y.value + self._x.value * self._y_U - self._x_L * self._y_U,
+        )
+        return l, u
+
+    def get_bilinear_value(self):
+        # Only Callable if prob.solve() was called
+        self._check()
+        return self._x.value * self._y.value
+
+    def _check(self):
+        # Check if prob.solve() was called
+        if self._x.value is None or self._y.value is None:
+            raise RuntimeError("Solver must be called before accessing bilinear value.")
 
 
 class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
@@ -38,7 +72,8 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
             dim_control_input=2,
             control_input_labels=['a_x,b', 'v_delta'],
             state_labels=['s', 'n', 'xi', 'v', 'delta'],
-            initial_state=initial_state
+            initial_state=initial_state,
+            goal_state = goal_state,
         )
         # Params:
         self.dt = dt
@@ -64,7 +99,7 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
 
         # Artificial Variables Approximation:
         self.xi_abs_bound = 45/180 * pi
-        self.artificial_variables = []
+        self._mccormick_relaxations: List[Tuple[McCormickConvexRelaxation]] = []
 
     def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
@@ -103,7 +138,7 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
             # 1. v * cos(xi) / (1 - n * self.C(s)) (ds-term)
             # 2. v * sin(xi) (dn-term)
             # 3. v * tan(delta) (dxi-term)
-            ds_term, dn_term, dxi_term = self.artificial_variables_approximation(s, n, xi, v, delta, constraints)
+            ds_term, dn_term, dxi_term = self._convex_relax_bilinear_terms(s, n, xi, v, delta, constraints)
 
             next_state = cp.vstack([
                 s + ds_term * self.dt,
@@ -126,7 +161,7 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
 
         return next_state, constraints
 
-    def taylor_approximation(self, s, n, xi, v, delta):
+    def _taylor_approximate_terms(self, s, n, xi, v, delta):
         ds_term = (
                 (self.v_0 * cos(self.xi_0)) / (1 - self.C(s) * self.n_0) +
                 cos(self.xi_0) / (1 - self.C(s) * self.n_0) * (v - self.v_0) +
@@ -145,13 +180,9 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
         )
         return ds_term, dn_term, dxi_term
 
-    def artificial_variables_approximation(self, s, n, xi, v, delta, constraints):
+    def _convex_relax_bilinear_terms(self, s, n, xi, v, delta, constraints):
         if self.solver_type != 'cvxpy':
             raise NotImplementedError('artificial_variables_approximation only for cvxpy solver')
-        # ds_term = cp.Variable()
-        dn_term = cp.Variable()
-        dxi_term = cp.Variable()
-        self.artificial_variables += [(dn_term, dxi_term)]
 
         # Define variable bounds
         v_min = self.v_min
@@ -161,13 +192,43 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
         delta_min = self.steering_angle_min
         delta_max = self.steering_angle_max
 
+        ds_term_relaxation = v
+        dn_term_relaxation = McCormickConvexRelaxation(v, xi, v_min, v_max, xi_min, xi_max)
+        dxi_term_relaxation = McCormickConvexRelaxation(v, delta, v_min, v_max, delta_min, delta_max)
+
+        self._mccormick_relaxations += [(dn_term_relaxation, dxi_term_relaxation)]
+
         # McCormick envelopes for dn_term = v * xi
-        constraints += mccormick_envelopes(dn_term, v, xi, v_min, v_max, xi_min, xi_max)
+        constraints += dn_term_relaxation.get_envelopes()
 
         # McCormick envelopes for dxi_term = v * delta
-        constraints += mccormick_envelopes(dxi_term, v, delta, v_min, v_max, delta_min, delta_max)
+        constraints += dxi_term_relaxation.get_envelopes()
 
-        return v, dn_term, dxi_term
+        return ds_term_relaxation, dn_term_relaxation.get_relaxation_variable(), dxi_term_relaxation.get_relaxation_variable()
+
+    def plot_additional_information(self):
+        # We want to plot the values of the relaxation variables, their bounds and the actual value
+        for idx, y_label in enumerate(['dn_term', 'dxi_term']):
+            bounds = []
+            y_values = []
+            for mccormick_relaxation_tuple in self._mccormick_relaxations:
+                mccormick_relaxation = mccormick_relaxation_tuple[idx]
+                bounds.append(mccormick_relaxation.get_lower_upper_bound())
+                y_values.append([
+                    mccormick_relaxation.get_relaxation_variable().value,
+                    mccormick_relaxation.get_bilinear_value()
+                ])
+            y_labels = [
+                'Relaxation Variable Value',
+                'Actual Bilinear Value',
+                'Actual Bilinear Value',
+            ]
+            plot_with_bounds(
+                bounds=bounds,
+                y_values_list=y_values,
+                y_labels=y_labels,
+                y_label=y_label,
+            )
 
     def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
         front_wheel_front = self._add_tuple(self._rotate((0.5, 0), float(state[-1])), (1, 0))

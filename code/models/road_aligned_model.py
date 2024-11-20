@@ -153,21 +153,6 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
 
         return next_state, constraints
 
-    def visualize_constraints(self, current_states, control_inputs):
-        current_states_s = [x[0] for x in current_states]
-        current_states_n = [x[1] for x in current_states]
-        current_states_ds = [x[2] for x in current_states]
-        current_states_dn = [x[3] for x in current_states]
-
-        v_x_s = [ds*(1 + n*self.road.get_curvature_at(s)) for s, ds, n in zip(current_states_s, current_states_ds, current_states_n)]
-        plot_with_bounds(
-            y_values=v_x_s,
-            lower_bound=self.v_x_min,
-            upper_bound=self.v_x_max,
-            y_label='C(s)'
-        )
-
-
     def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
         return [
             (-1, 0.5), (1, 0.5),

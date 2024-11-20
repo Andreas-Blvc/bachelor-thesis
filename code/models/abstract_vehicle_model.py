@@ -31,6 +31,9 @@ class AbstractVehicleModel:
 	@abstractmethod
 	def convert_vec_to_state(self, vec) -> State:
 		raise "convert_vec_to_state not implemented"
+	@abstractmethod
+	def plot_additional_information(self):
+		raise "plot_additional_information not implemented"
 
 	def convert_vec_to_control_input(self, vec) -> ControlInput:
 		self._validate__control_dimension(vec)
