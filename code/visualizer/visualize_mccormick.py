@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from ipywidgets import interact, FloatSlider, fixed
-from IPython.display import display
 
 def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     """
@@ -143,7 +142,7 @@ def visualize_mccormick_2d_interactive(x_bounds, y_bounds, resolution=100):
         max=y_U,
         step=(y_U - y_L) / 100,
         description='y_fixed',
-        continuous_update=True
+        continuous_update=False
     )
 
     interact(plot_for_y_fixed, y_fixed=y_slider)

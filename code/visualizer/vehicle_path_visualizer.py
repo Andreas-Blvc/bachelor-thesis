@@ -5,7 +5,7 @@ from matplotlib import use
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 
-use("Agg")
+use("TkAgg")
 
 class VehicleObject:
     def __init__(self, position, orientation, shape):
@@ -38,9 +38,12 @@ class VehicleObject:
         return transformed_points
 
 class VehiclePathVisualizer:
-    def __init__(self):
+    def __init__(self, interactive: bool):
         self.anim = None
+        self.interactive = interactive
         self.fig, self.ax = plt.subplots()
+        if not interactive:
+            plt.close(self.fig)  # Suppress display right after creation
         self.setup_plot()
 
         # Storage for paths
@@ -134,11 +137,16 @@ class VehiclePathVisualizer:
             repeat=False
         )
 
-        # Close the static figure
-        plt.close(self.fig)
-
-        return HTML(self.anim.to_jshtml())
+        if not self.interactive:
+            centered_html = f"""
+            <div style="display: flex; justify-content: center; align-items: center;">
+                {self.anim.to_jshtml()}
+            </div>
+            """
+            return HTML(centered_html)
+        else:
+            self.show()
 
     @staticmethod
     def show():
-        plt.show(block=True)
+        plt.show()

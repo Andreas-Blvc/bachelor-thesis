@@ -74,6 +74,7 @@ class Scenario:
         self.get_vehicle_polygon = model.get_vehicle_polygon
         self.get_position_orientation = lambda state_vec: model.convert_vec_to_state(state_vec).get_position_orientation()
         self.control_input_labels = model.control_input_labels
+        self.state_labels = model.state_labels
         self.road = getattr(model, "road", None)
 
     def get_predicted_actual_car(self, step):
@@ -95,7 +96,7 @@ class Scenario:
                                    actual_shape) if actual_car_state is not None else None
         return predicted_car, actual_car
 
-    def generate_jshtml_animation(self, visualizer):
+    def visualize(self, visualizer):
         """
         Visualizes the simulation using the updated animation-based visualizer.
         """
