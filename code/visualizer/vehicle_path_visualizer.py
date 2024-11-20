@@ -1,11 +1,8 @@
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import use
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
-
-use("TkAgg")
 
 class VehicleObject:
     def __init__(self, position, orientation, shape):

@@ -5,14 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="45182e1f-98e0-486d-918f-0ea139f18002" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/visualizer/plot_states_or_inputs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preview.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/preview.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scenarios/_scenario.py" beforeDir="false" afterPath="$PROJECT_DIR$/scenarios/_scenario.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/visualizer/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualizer/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualizer/control_inputs_plot.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/visualizer/vehicle_path_visualizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualizer/vehicle_path_visualizer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualizer/visualize_mccormick.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualizer/visualize_mccormick.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -129,7 +124,7 @@
       <workItem from="1731151539610" duration="40992000" />
       <workItem from="1731750219866" duration="11007000" />
       <workItem from="1731768106629" duration="83493000" />
-      <workItem from="1732028416148" duration="12976000" />
+      <workItem from="1732028416148" duration="13168000" />
     </task>
     <servers />
   </component>
@@ -149,7 +144,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/src$motion_visualization.coverage" NAME="motion_visualization Coverage Results" MODIFIED="1729956358113" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/visualizer" />
-    <SUITE FILE_PATH="coverage/code$main.coverage" NAME="main Coverage Results" MODIFIED="1732061632140" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/code$main.coverage" NAME="main Coverage Results" MODIFIED="1732061903532" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/src$optimization.coverage" NAME="optimization Coverage Results" MODIFIED="1729953284494" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/path_planner" />
     <SUITE FILE_PATH="coverage/src$main.coverage" NAME="main Coverage Results" MODIFIED="1730922672934" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
