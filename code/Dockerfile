@@ -17,8 +17,8 @@ RUN apt-get update && \
         cmake && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python build tools
-RUN pip install --no-cache-dir meson ipywidgets
+# Install Python Requirements
+RUN pip install -r requirements.txt
 
 # Create a non-root user
 RUN useradd -m nonrootuser
@@ -32,15 +32,8 @@ RUN chown -R nonrootuser:nonrootuser /app
 # Switch to the non-root user
 USER nonrootuser
 
-# Add local user bin to PATH
-ENV PATH="/home/nonrootuser/.local/bin:$PATH"
-
 # Copy the entire project into the container
 COPY --chown=nonrootuser:nonrootuser . .
-
-# Install Python dependencies as the non-root user
-RUN pip install -r requirements.txt && \
-    pip install jupyter
 
 # Expose the port for Jupyter Notebook
 EXPOSE 8888
