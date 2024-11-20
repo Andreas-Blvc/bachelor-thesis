@@ -39,5 +39,5 @@ USER nonrootuser
 EXPOSE 8888
 
 # Command to run Jupyter Notebook
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--no-browser", "--NotebookApp.token=$(cat /app/jupyter_token.txt)"]
+CMD ["sh", "-c", "jupyter notebook --ip=0.0.0.0 --no-browser --NotebookApp.token=$(cat /app/jupyter_token.txt)"]
 
