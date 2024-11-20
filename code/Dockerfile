@@ -26,6 +26,9 @@ RUN useradd -m nonrootuser
 # Set the working directory for the non-root user
 WORKDIR /app
 
+# Ensure /app is owned by nonrootuser
+RUN chown -R nonrootuser:nonrootuser /app
+
 # Switch to the non-root user
 USER nonrootuser
 
