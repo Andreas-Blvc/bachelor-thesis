@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ipywidgets import interact, FloatSlider, fixed
 
+
 def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     """
     Visualize the McCormick envelopes for a bilinear term z = x * y.
@@ -56,6 +57,66 @@ def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     # Adjust layout
     plt.tight_layout()
     plt.show()
+
+
+def _visualize_mccormick_export_latex(x_bounds, y_bounds, resolution=50):
+    plt.rcParams.update({
+        "text.usetex": True,  # Use LaTeX for rendering text
+        "font.family": "serif",  # Use a serif font to match LaTeX
+        "font.serif": ["Palatino"],  # Use Palatino to match your LaTeX document
+        "pgf.texsystem": "pdflatex",  # Use pdflatex for .pgf output
+        "pgf.rcfonts": False,  # Prevent matplotlib from overriding LaTeX fonts
+        "font.size": 11,  # Set the font size to match your LaTeX document (11pt)
+        "axes.titlesize": 11,  # Title font size to match the document
+        "axes.labelsize": 11,  # Axis label font size
+        "xtick.labelsize": 9,  # X-tick label size (slightly smaller than labels)
+        "ytick.labelsize": 9,  # Y-tick label size (slightly smaller than labels)
+        "legend.fontsize": 10,  # Legend font size
+    })
+
+    x_L, x_U = x_bounds
+    y_L, y_U = y_bounds
+    aspect_ratio = abs((x_U - x_L) / (y_U - y_L))  # Calculate aspect ratio based on bounds
+
+    # Generate grid for x and y
+    x = np.linspace(x_L, x_U, resolution)
+    y = np.linspace(y_L, y_U, resolution)
+    X, Y = np.meshgrid(x, y)
+    Z = X * Y  # Actual bilinear function
+
+    # Compute McCormick upper and lower bounds
+    Z_bound_1 = x_U * Y + X * y_L - x_U * y_L
+    Z_bound_2 = x_L * Y + X * y_U - x_L * y_U
+    Z_upper = np.minimum(Z_bound_1, Z_bound_2)
+    Z_diff_upper = Z_upper - Z
+
+    # Plot Difference to Upper Bound
+    plt.figure(figsize=(5, 4))
+    plt.imshow(Z_diff_upper, extent=(x.min(), x.max(), y.min(), y.max()),
+               origin='lower', cmap='cividis', interpolation='bilinear', aspect=aspect_ratio)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.colorbar(fraction=0.046, pad=0.04)
+    plt.tight_layout()
+    plt.savefig("mccormick-bounds-1-upper.pgf", bbox_inches='tight')
+    plt.close()
+
+    # Compute McCormick lower bounds
+    Z_bound_3 = x_U * Y + X * y_U - x_U * y_U
+    Z_bound_4 = x_L * Y + X * y_L - x_L * y_L
+    Z_lower = np.maximum(Z_bound_3, Z_bound_4)
+    Z_diff_lower = Z - Z_lower
+
+    # Plot Difference to Lower Bound
+    plt.figure(figsize=(5, 4))
+    plt.imshow(Z_diff_lower, extent=(x.min(), x.max(), y.min(), y.max()),
+               origin='lower', cmap='cividis', interpolation='bilinear', aspect=aspect_ratio)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.colorbar(fraction=0.046, pad=0.04)
+    plt.tight_layout()
+    plt.savefig("mccormick-bounds-1-lower.pgf", bbox_inches='tight')
+    plt.close()
 
 
 def visualize_mccormick_2d_interactive(x_bounds, y_bounds, resolution=100):
@@ -121,5 +182,3 @@ def visualize_mccormick_2d_interactive(x_bounds, y_bounds, resolution=100):
     )
 
     interact(plot_for_y_fixed, y_fixed=y_slider)
-
-

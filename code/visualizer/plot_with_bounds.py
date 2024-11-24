@@ -6,7 +6,9 @@ def plot_with_bounds(
     bounds,
     y_values_list,
     x_values=None,
-    y_labels=None
+    y_labels=None,
+    store_as_pgf=False,
+    pgf_name='output'
 ):
     """
     Plots multiple functions with shared bounds for each x_value.
@@ -18,6 +20,21 @@ def plot_with_bounds(
     - x_values (list or array, optional): The x-axis values. If None, the index will be used.
     - y_labels (list of str, optional): The labels for each function. Defaults to "Function i".
     """
+    if store_as_pgf:
+        plt.rcParams.update({
+            "text.usetex": True,  # Use LaTeX for rendering text
+            "font.family": "serif",  # Use a serif font to match LaTeX
+            "font.serif": ["Palatino"],  # Use Palatino to match your LaTeX document
+            "pgf.texsystem": "pdflatex",  # Use pdflatex for .pgf output
+            "pgf.rcfonts": False,  # Prevent matplotlib from overriding LaTeX fonts
+            "font.size": 11,  # Set the font size to match your LaTeX document (11pt)
+            "axes.titlesize": 11,  # Title font size to match the document
+            "axes.labelsize": 11,  # Axis label font size
+            "xtick.labelsize": 9,  # X-tick label size (slightly smaller than labels)
+            "ytick.labelsize": 9,  # Y-tick label size (slightly smaller than labels)
+            "legend.fontsize": 10,  # Legend font size
+        })
+
     # Create a new figure
     plt.figure()
 
@@ -67,4 +84,6 @@ def plot_with_bounds(
     plt.ylabel(y_label)
     plt.legend()
     plt.grid(True, linestyle=":", color="gray", alpha=0.7)
+    if store_as_pgf:
+        plt.savefig(pgf_name, bbox_inches='tight')
     plt.show()
