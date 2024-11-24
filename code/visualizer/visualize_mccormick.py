@@ -21,65 +21,40 @@ def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     Z = X * Y  # Actual bilinear function
 
     # Compute McCormick bounds
-    Z_upper = np.minimum(
-        np.minimum(x_U * Y + X * y_L - x_U * y_L, x_L * Y + X * y_U - x_L * y_U),
-        np.minimum(x_U * Y + X * y_U - x_U * y_U, x_L * Y + X * y_L - x_L * y_L)
-    )
+    # All possible bounds
+    Z_bound_1 = x_U * Y + X * y_L - x_U * y_L
+    Z_bound_2 = x_L * Y + X * y_U - x_L * y_U
+    Z_bound_3 = x_U * Y + X * y_U - x_U * y_U
+    Z_bound_4 = x_L * Y + X * y_L - x_L * y_L
 
-    Z_lower = np.maximum(
-        np.maximum(x_L * Y + X * y_L - x_L * y_L, x_U * Y + X * y_U - x_U * y_U),
-        np.maximum(x_L * Y + X * y_U - x_L * y_U, x_U * Y + X * y_L - x_U * y_L)
-    )
+    Z_upper = np.minimum.reduce([Z_bound_1, Z_bound_2])
+    Z_lower = np.maximum.reduce([Z_bound_3, Z_bound_4])
 
-    # Start plotting
-    fig = plt.figure(figsize=(14, 10))
-    ax = fig.add_subplot(111, projection='3d')
+    # Create subplots
+    fig, axes = plt.subplots(1, 2, figsize=(12, 12))  # Set a square figure size, 12x12
 
-    # Plot the actual bilinear function
-    surf = ax.plot_surface(X, Y, Z, alpha=0.8, cmap='viridis', edgecolor='none', label='Bilinear Function')
+    # First heatmap: Difference to upper bound
+    Z_diff_upper = Z_upper - Z
+    im1 = axes[0].imshow(Z_diff_upper, extent=[x.min(), x.max(), y.min(), y.max()],
+                         origin='lower', cmap='Greys', interpolation='bilinear')
+    axes[0].set_title("Difference to upper bound")
+    axes[0].set_xlabel("x")
+    axes[0].set_ylabel("y")
+    axes[0].set_aspect(abs((x_U - x_L) / (y_U - y_L)))  # Adjust aspect ratio to make the figure look square
+    fig.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04)  # Add colorbar for the first heatmap with adjusted height
 
-    # Plot McCormick envelopes (upper and lower bounds)
-    # Upper bound plane
-    ax.plot_surface(X, Y, Z_upper, alpha=0.3, color='red', edgecolor='none')
-    # Lower bound plane
-    ax.plot_surface(X, Y, Z_lower, alpha=0.3, color='blue', edgecolor='none')
+    # Second heatmap: Difference to lower bound
+    Z_diff_lower = Z - Z_lower
+    im2 = axes[1].imshow(Z_diff_lower, extent=[x.min(), x.max(), y.min(), y.max()],
+                         origin='lower', cmap='Greys', interpolation='bilinear')
+    axes[1].set_title("Difference to lower bound")
+    axes[1].set_xlabel("x")
+    axes[1].set_ylabel("y")
+    axes[1].set_aspect(abs((x_U - x_L) / (y_U - y_L)))  # Adjust aspect ratio to make the figure look square
+    fig.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04)  # Add colorbar for the second heatmap with adjusted height
 
-    # Plot the feasible region as a volume between the upper and lower bounds
-    # For better visualization, we can plot the edges of the feasible region
-    ax.plot_wireframe(X, Y, Z_upper, color='red', alpha=0.1)
-    ax.plot_wireframe(X, Y, Z_lower, color='blue', alpha=0.1)
-
-    # Add contour plots on the bottom (x-y plane)
-    cset = ax.contour(X, Y, Z, zdir='z', offset=np.min(Z_lower)-0.1*(np.max(Z_upper)-np.min(Z_lower)), cmap='viridis')
-
-    # Labels and titles with mathematical expressions
-    ax.set_title("Visualization of McCormick Envelopes for $z = x \cdot y$", fontsize=16)
-    ax.set_xlabel("$x$", fontsize=14, labelpad=10)
-    ax.set_ylabel("$y$", fontsize=14, labelpad=10)
-    ax.set_zlabel("$z$", fontsize=14, labelpad=10)
-
-    # Set the limits of the axes
-    ax.set_xlim(x_L, x_U)
-    ax.set_ylim(y_L, y_U)
-    z_L = np.min(Z_lower)-0.1*(np.max(Z_upper)-np.min(Z_lower))
-    z_U = np.max(Z_upper)+0.1*(np.max(Z_upper)-np.min(Z_lower))
-    ax.set_zlim(z_L, z_U)
-
-    # Adjust viewing angle for better visualization
-    ax.view_init(elev=30, azim=-60)
-
-    # Create custom legend
-    from matplotlib.lines import Line2D
-    legend_elements = [
-        Line2D([0], [0], color='purple', lw=4, label='Bilinear Function $z = x \cdot y$'),
-        Line2D([0], [0], color='red', lw=4, label='McCormick Upper Bound'),
-        Line2D([0], [0], color='blue', lw=4, label='McCormick Lower Bound')
-    ]
-    ax.legend(handles=legend_elements, loc='upper left', fontsize=12)
-
-    # Show the plot
+    # Adjust layout
     plt.tight_layout()
-    plt.legend()
     plt.show()
 
 
