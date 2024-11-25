@@ -10,7 +10,7 @@
 	- Auswertung des Verfahrens
 - Code verbessert,  Jupytur NoteBook angelegt
 	- https://github.com/Andreas-Blvc/bachelor-thesis
-	- http://wg-server.net:8888/notebooks/preview.ipynb?token=ee698e22fcf5ba0313e1dbc65d261ddba9eddee771a4c600c3c79cfeba015fe2
+	- http://wg-server.net:8888/notebooks/preview.ipynb?token=<token>
 
 ---
 
