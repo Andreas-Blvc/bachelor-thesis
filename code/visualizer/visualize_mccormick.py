@@ -37,7 +37,7 @@ def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     # First heatmap: Difference to upper bound
     Z_diff_upper = Z_upper - Z
     im1 = axes[0].imshow(Z_diff_upper, extent=[x.min(), x.max(), y.min(), y.max()],
-                         origin='lower', cmap='Greys', interpolation='bilinear')
+                         origin='lower', cmap='cividis', interpolation='bilinear')
     axes[0].set_title("Difference to upper bound")
     axes[0].set_xlabel("x")
     axes[0].set_ylabel("y")
@@ -47,7 +47,7 @@ def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     # Second heatmap: Difference to lower bound
     Z_diff_lower = Z - Z_lower
     im2 = axes[1].imshow(Z_diff_lower, extent=[x.min(), x.max(), y.min(), y.max()],
-                         origin='lower', cmap='Greys', interpolation='bilinear')
+                         origin='lower', cmap='cividis', interpolation='bilinear')
     axes[1].set_title("Difference to lower bound")
     axes[1].set_xlabel("x")
     axes[1].set_ylabel("y")
