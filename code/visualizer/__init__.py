@@ -1,6 +1,6 @@
 from matplotlib import use
 
-use("Agg")
+use("TkAgg")
 
 from .plot_states_or_inputs import plot_states_or_inputs
 from .plot_with_bounds import plot_with_bounds
