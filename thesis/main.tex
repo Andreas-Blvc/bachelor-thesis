@@ -9,6 +9,14 @@
 % \input{pages/glossary} % TODO: uncomment if glossary needed
 % \input{pages/acronyms} % TODO: uncomment if list of abbreviations needed
 
+\def\mathdefault#1{#1}
+\everymath=\expandafter{\the\everymath\displaystyle}
+
+\ifdefined\pdftexversion\else  % non-pdftex case.
+	\usepackage{fontspec}
+\fi
+\makeatletter\@ifpackageloaded{underscore}{}{\usepackage[strings]{underscore}}\makeatother
+
 \begin{document}
 % \input{settings/cover}
 
@@ -22,20 +30,21 @@
 \microtypesetup{protrusion=true}
 
 \mainmatter{}
+\input{content/Mccormick.tex}
 % \input{content/Introduction}
-\input{content/Single_Track_In_Frenet_Frame.tex}
-\input{content/Derivation_Ingrator_Model}
-\input{content/Format}
-\input{content/Style}
-\input{content/Latex}
-\input{content/Lit_review}
+% \input{content/Single_Track_In_Frenet_Frame.tex}
+% \input{content/Derivation_Ingrator_Model}
+% \input{content/Format}
+% \input{content/Style}
+% \input{content/Latex}
+% \input{content/Lit_review}
 
 \appendix{}
 %\microtypesetup{protrusion=false}
 % \glsaddall{} % add all defined terms to glossary, even if not referenced in text
 % \printglossaries{} % TODO: uncomment if glossary needed
-\listoffigures{}
-\listoftables{}
+% \listoffigures{}
+% \listoftables{}
 \printbibliography{}
 
 \end{document}

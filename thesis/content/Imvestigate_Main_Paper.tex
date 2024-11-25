@@ -1,0 +1,150 @@
+\chapter{Investigate Main Paper} \label{ch:main-paper}
+
+Mapping Vector $p$ between the Coordinate Systems
+
+\begin{equation}
+	p^T\mathbf{B}_b = p^T\begin{bmatrix}
+		\cos{\xi}  & \sin{\xi} & 0 \\
+		-\sin{\xi} & \cos{\xi} & 0 \\
+		0          & 0         & 1
+	\end{bmatrix} \mathbf{B}_{tn}
+\end{equation}
+\\
+Mapping Velocity
+
+\begin{equation}
+	\label{velocity-mapping}
+	\begin{bmatrix}
+		\dot{s}(1-nC) \\
+		\dot{n}       \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn} = \begin{bmatrix}
+		v_x\cos{\xi} - v_y\sin{\xi} \\
+		v_x\sin{\xi} + v_y\cos{\xi} \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn}
+\end{equation}
+\\
+Mapping Acceleration
+
+\begin{equation}
+	\begin{bmatrix}
+		a_{x,tn} \\
+		a_{y,tn} \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn} = \begin{bmatrix}
+		(\dot{v}_x - v_y\dot{\psi})\cos{\xi} - (\dot{v}_y + v_x\dot{\psi})\sin{\xi} \\
+		(\dot{v}_x - v_y\dot{\psi})\sin{\xi} + (\dot{v}_y + v_x\dot{\psi})\cos{\xi} \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn}
+\end{equation}
+\\
+with $a_{x,tn}=\ddot{s}(1-nC(s))-2\dot{n}C(s)\dot{s}-nC'(s)\dot{s}^2$, $a_{y,tn} = \ddot{n}+C(s)\dot{s}^2(1-nC(s))$, it follows
+
+\begin{equation}
+	\begin{bmatrix}
+		\ddot{s} \\
+		\ddot{n} \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn} = \begin{bmatrix}
+		\frac{
+			(\dot{v}_x - v_y\dot{\psi})\cos{\xi} - (\dot{v}_y + v_x\dot{\psi})\sin{\xi} +
+			2\dot{n}C(s)\dot{s}-nC'(s)\dot{s}^2
+		} {
+			1-nC(s)
+		}                      \\
+		(\dot{v}_x - v_y\dot{\psi})\sin{\xi} + (\dot{v}_y + v_x\dot{\psi})\cos{\xi} -
+		C(s)\dot{s}^2(1-nC(s)) \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn}
+\end{equation}
+\\
+since a vehicle has only longitudinal velocity, set $v_y=0$, $\dot{v}_y=0$
+
+\begin{equation}
+	\label{velocity-mapping-vx}
+	\begin{bmatrix}
+		\dot{s}(1-nC) \\
+		\dot{n}       \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn} = \begin{bmatrix}
+		v_x\cos{\xi} \\
+		v_x\sin{\xi} \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn}
+\end{equation}
+
+\begin{equation}
+	\begin{bmatrix}
+		\ddot{s} \\
+		\ddot{n} \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn} = \begin{bmatrix}
+		\frac{
+			(\dot{v}_x + v_x\dot{\psi})\sin{\xi} +
+			2\dot{n}C(s)\dot{s}-nC'(s)\dot{s}^2
+		} {
+			1-nC(s)
+		}                      \\
+		(\dot{v}_x + v_x\dot{\psi})\cos{\xi} -
+		C(s)\dot{s}^2(1-nC(s)) \\
+		0
+	\end{bmatrix}^T \mathbf{B}_{tn}
+\end{equation}
+\\
+Choosing $\dot{v}_x$ and $\ddot{\psi}$ as control input results in the following state transition
+
+\begin{equation}
+	x_{tn} = \begin{bmatrix}
+		s & n & \xi & \dot{s} & \dot{n} & \dot{\psi}
+	\end{bmatrix}^T
+\end{equation}
+
+\begin{equation}
+	\dot{x}_{tn} = f_{tn}(s, n, \xi, \dot{s}, \dot{n}, \dot{\psi}, \dot{v}_x, \ddot{\psi}) = \begin{bmatrix}
+		\dot{s}                   \\
+		\dot{n}                   \\
+		\dot{\psi} - C(s) \dot{s} \\
+		\frac{
+			(\dot{v}_x + v_x\dot{\psi})\sin{\xi} +
+			2\dot{n}C(s)\dot{s}-nC'(s)\dot{s}^2
+		} {
+			1-nC(s)
+		}                         \\
+		(\dot{v}_x + v_x\dot{\psi})\cos{\xi} -
+		C(s)\dot{s}^2(1-nC(s))    \\
+		\ddot{\psi}
+	\end{bmatrix}
+\end{equation}
+\\
+with \eqref{velocity-mapping-vx}
+
+\begin{equation}
+	\dot{x}_{tn} = f_{tn}(s, n, \xi, \dot{s}, \dot{n}, \dot{\psi}, \dot{v}_x, \ddot{\psi}) = \begin{bmatrix}
+		\dot{s}                   \\
+		\dot{n}                   \\
+		\dot{\psi} - C(s) \dot{s} \\
+		\frac{
+			\dot{v}_x\sin{\xi} + \dot{\psi}\dot{n} +
+			2\dot{n}C(s)\dot{s}-nC'(s)\dot{s}^2
+		} {
+			1-nC(s)
+		}                         \\
+		\dot{v}_x\cos{\xi} + \dot{\psi}\dot{s}(1-nC) -
+		C(s)\dot{s}^2(1-nC(s))    \\
+		\ddot{\psi}
+	\end{bmatrix}
+\end{equation}
+\\
+to make life easier, replace the state variables $\dot{s}$ and $\dot{n}$ with $v_x$, one can derive $\dot{s}$ and $\dot{n}$ using
+\eqref{velocity-mapping-vx}
+
+\begin{equation}
+	\dot{x}_{tn} = f_{tn}(s, n, \xi, v_x, \dot{\psi}, \dot{v}_x, \ddot{\psi}) = \begin{bmatrix}
+		\frac{v_x\cos{\xi}}{1-nC} \\
+		v_x\sin{\xi}              \\
+		\dot{\psi} - C(s) \dot{s} \\
+		\dot{v}_x                 \\
+		\ddot{\psi}
+	\end{bmatrix}
+\end{equation}

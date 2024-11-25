@@ -1,0 +1,111 @@
+\chapter{McCormick Relaxation}
+
+To address bilinear terms of the form \( w = xy \), we introduce the following constraints based on the bounds of \( x \) and \( y \):
+
+\[ x^L \leq x \leq x^U, \qquad y^L \leq y \leq y^U.
+\]
+
+The resulting McCormick relaxation constraints for \( w \) are:
+
+\[
+	\begin{aligned}
+		w & \geq x^L y + x y^L - x^L y^L, \\
+		w & \geq x^U y + x y^U - x^U y^U, \\
+		w & \leq x^U y + x y^L - x^U y^L, \\
+		w & \leq x^L y + x y^U - x^L y^U.
+	\end{aligned}
+\]
+
+These constraints establish an overestimation and underestimation of the bilinear term \( w \), which can be visualized to assess their accuracy
+compared to the actual bilinear relationship.
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-0-upper.pgf}}
+		\caption{Difference to the upper bound}
+		\label{fig:mccormick_0_upper}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-0-lower.pgf}}
+		\caption{Difference to the lower bound}
+		\label{fig:mccormick_0_lower}
+	\end{subfigure}
+	\caption{McCormick relaxation bounds for the bilinear term \( w = xy \).}
+	\label{fig:mccormick_bounds_0}
+\end{figure}
+
+Figure \ref{fig:mccormick_0_upper} illustrates the deviation between the actual bilinear term \( w = xy \) and the smallest upper bound provided by
+the relaxation constraints.
+Similarly, Figure \ref{fig:mccormick_0_lower} shows the deviation to the greatest lower bound.
+For the range \( -2 \leq x \leq 2 \) and \( 0 \leq y \leq 50 \).
+It is evident that the bounds improve as \( x \) and \( y \) approach their respective limits.
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-1-upper.pgf}}
+		\caption{Difference to the upper bound}
+		\label{fig:mccormick_1_upper}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-1-lower.pgf}}
+		\caption{Difference to the lower bound}
+		\label{fig:mccormick_1_lower}
+	\end{subfigure}
+	\caption{McCormick relaxation bounds for the bilinear term \( w = xy \) with stricter bounds on \( x \).}
+	\label{fig:mccormick_bounds_1}
+\end{figure}
+
+Figures \ref{fig:mccormick_1_upper} and \ref{fig:mccormick_1_lower} present the results when \( x \) is more tightly bounded, specifically \( -2 \leq
+x \leq 0 \).
+One can observe that the maximum deviation is considerably reduced compared to the previous scenario, indicating that tighter bounds yield a more
+accurate relaxation.
+
+To illustrate the application of these relaxations in practice, consider a path-planning scenario with \( v_{min} = 1 \), \( v_{max} = 4 \), and \(
+v_{start} = 1 \).
+In this scenario, the bilinear term \( v\xi \), which appears in the equation of motion for \(\dot{n} = v \sin{\xi} \approx v\xi\), is approximated
+using McCormick relaxations.
+
+\begin{figure}[h]
+	\centering
+	\resizebox{1\textwidth}{!}{\input{figures/velocity.pgf}}
+	\caption{Planned velocity profile.}
+	\label{fig:velocity}
+\end{figure}
+
+Figure \ref{fig:velocity} shows the planned velocity profile, which quickly reaches its upper limit.
+
+\begin{figure}[h]
+	\centering
+	\resizebox{1\textwidth}{!}{\input{figures/alignment-error.pgf}}
+	\caption{Alignment error \(\xi\) over time.}
+	\label{fig:alignment-error}
+\end{figure}
+
+Figure \ref{fig:alignment-error} depicts the alignment error \( \xi \) at each planned time point.
+Here, \( \xi \) is bounded within \(-45^{\circ} \leq \xi \leq 45^{\circ} \).
+It is noteworthy that \( \xi \) does not reach these bounds.
+
+\begin{figure}[h]
+	\centering
+	\resizebox{0.7\textwidth}{!}{\input{figures/dn-term-approx.pgf}}
+	\caption{State transition approximation for \( n \) using bilinear term relaxation.}
+	\label{fig:dn-term-approx}
+\end{figure}
+
+Figure \ref{fig:dn-term-approx} compares the actual bilinear value \( v\xi \) with the relaxation variable \( w \) introduced via McCormick
+envelopes.
+This comparison highlights the accuracy of the relaxation approach in approximating the bilinear interaction and its effect on the state transition
+of \( n \).
+Once the velocity reaches its limit, the approximation becomes increasingly accurate.
+
+Note: The x-axis does not represent time directly but instead shows discrete time points.
+Here, 30 time points per second were chosen, resulting in a range from 0 to 120 for this figure, whereas the other figures range from 0 to 4.
+
