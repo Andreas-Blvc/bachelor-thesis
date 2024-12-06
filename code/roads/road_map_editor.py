@@ -127,8 +127,10 @@ class RoadMapEditor:
             length = simpledialog.askfloat("Input", "Enter the length of the Straight Road:", minvalue=.01)
             width = simpledialog.askfloat("Input", "Enter the width of the Straight Road:", minvalue=.01)
             if len(self.roads) == 0:
-                direction_angle = simpledialog.askfloat("Input",
-                                                        "Enter the direction angle (in degrees) of the Straight Road:")
+                direction_angle = simpledialog.askfloat(
+                    "Input",
+                    "Enter the direction angle (in degrees) of the Straight Road:"
+                )
                 direction_angle = math.radians(direction_angle) if direction_angle else 0.0
             else:
                 direction_angle = self.roads[-1].get_tangent_angle_at(1)
@@ -143,14 +145,26 @@ class RoadMapEditor:
 
         elif self.selected_road_type.get() == "CircularCurve":
             # Get parameters for the CircularCurveRoad from the user
-            radius = simpledialog.askfloat("Input", "Enter the radius of the Circular Curve Road:", minvalue=.01)
-            width = simpledialog.askfloat("Input", "Enter the width of the Circular Curve Road:", minvalue=.01)
+            radius = simpledialog.askfloat(
+                "Input",
+                "Enter the radius of the Circular Curve Road:", minvalue=.01
+            )
+            width = simpledialog.askfloat(
+                "Input",
+                "Enter the width of the Circular Curve Road:", minvalue=.01
+            )
             start_angle = None
             if len(self.roads) == 0:
-                start_angle = simpledialog.askfloat("Input", "Enter the start angle (in degrees) of the Circular Curve:")
+                start_angle = simpledialog.askfloat(
+                    "Input",
+                    "Enter the start angle (in degrees) of the Circular Curve:"
+                )
                 start_angle = math.radians(start_angle) if start_angle else 0.0
 
-            angle_sweep = simpledialog.askfloat("Input", "Enter the angle sweep (in degrees) of the Circular Curve:")
+            angle_sweep = simpledialog.askfloat(
+                "Input",
+                "Enter the angle sweep (in degrees) of the Circular Curve:"
+            )
             angle_sweep = math.radians(angle_sweep) if angle_sweep else math.pi / 2
 
             if start_angle is None:

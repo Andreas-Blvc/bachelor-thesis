@@ -47,7 +47,8 @@ class AbstractVehicleModel:
 	def _validate__control_dimension(self, control):
 		if control.shape != (self.dim_control_input,) and control.shape != (self.dim_control_input, 1):
 			raise ValueError(
-				f"control_inputs must have shape ({self.dim_control_input},)  or ({self.dim_control_input}, 1), got {control.shape}")
+				f"control_inputs must have shape ({self.dim_control_input},)  "
+				f"or ({self.dim_control_input}, 1), got {control.shape}")
 
 
 	def state_vec_to_string(self, state_vec):
@@ -60,7 +61,8 @@ class AbstractVehicleModel:
 		self._validate__control_dimension(control_vec)
 		if self.control_input_labels is None:
 			raise ValueError("control_input_labels not defined")
-		return "Control Input: " + ", ".join([f"({self.control_input_labels[i]}: {v:.2f})" for i, v in enumerate(control_vec)])
+		return ("Control Input: " +
+				", ".join([f"({self.control_input_labels[i]}: {v:.2f})" for i, v in enumerate(control_vec)]))
 
 	def _raise_unsupported_solver(self) -> NoReturn:
 		raise ValueError(f"solver_type {self.solver_type} not supported")

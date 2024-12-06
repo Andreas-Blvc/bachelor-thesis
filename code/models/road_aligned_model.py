@@ -103,7 +103,8 @@ class RoadAlignedModel(AbstractVehicleModel):
         s, n, ds, dn = [x_tn[i] for i in range(self.dim_state)]
         u_t, u_n = [u[i] for i in range(self.dim_control_input)]
         return [
-            (1 - n*self.road.get_curvature_at(s)) * u_t - (2*dn*self.road.get_curvature_at(s)*ds + n*self.road.get_curvature_derivative_at(s)*ds**2),
+            (1 - n*self.road.get_curvature_at(s)) * u_t -
+            (2*dn*self.road.get_curvature_at(s)*ds + n*self.road.get_curvature_derivative_at(s)*ds**2),
             u_n + self.road.get_curvature_at(s) * ds**2 * (1-n*self.road.get_curvature_at(s)),
         ]
 
@@ -138,7 +139,8 @@ class RoadAlignedModel(AbstractVehicleModel):
                 # 0 <= ds,
                 self.c_min <= self.road.get_curvature_at(s), self.road.get_curvature_at(s) <= self.c_max,
                 self.n_min <= n, n <= self.n_max,
-                self.v_x_min <= ds*(1 + n*self.road.get_curvature_at(s)), ds*(1 + n*self.road.get_curvature_at(s)) <= self.v_x_max,
+                self.v_x_min <= ds*(1 + n*self.road.get_curvature_at(s)),
+                ds*(1 + n*self.road.get_curvature_at(s)) <= self.v_x_max,
                 self.v_y_min <= dn, dn <= self.v_y_max,
                 self.yaw_rate_min <= self.road.get_curvature_at(s) * ds,
                 self.road.get_curvature_at(s) * ds <= self.yaw_rate_max,

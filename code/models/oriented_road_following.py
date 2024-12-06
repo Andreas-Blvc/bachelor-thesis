@@ -232,7 +232,11 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         # McCormick envelopes for dxi_term = v * delta
         constraints += dxi_term_relaxation.get_envelopes()
 
-        return ds_term_relaxation, dn_term_relaxation.get_relaxation_variable(), dxi_term_relaxation.get_relaxation_variable()
+        return (
+            ds_term_relaxation,
+            dn_term_relaxation.get_relaxation_variable(),
+            dxi_term_relaxation.get_relaxation_variable()
+        )
 
     def plot_additional_information(self):
         # We want to plot the values of the relaxation variables, their bounds and the actual value

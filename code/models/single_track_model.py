@@ -158,9 +158,11 @@ class SingleTrackModel(AbstractVehicleModel):
         :raises ValueError: If input shapes are incorrect.
         """
         if current_state.shape != (self.dim_state,) and current_state.shape != (self.dim_state, 1):
-            raise ValueError(f"current_state must have shape ({self.dim_state},) or ({self.dim_state}, 1), got {current_state.shape}")
+            raise ValueError(f"current_state must have shape ({self.dim_state},) "
+                             f"or ({self.dim_state}, 1), got {current_state.shape}")
         if control_inputs.shape != (self.dim_control_input,) and control_inputs.shape != (self.dim_control_input, 1):
-            raise ValueError(f"control_inputs must have shape ({self.dim_control_input},)  or ({self.dim_control_input}, 1), got {control_inputs.shape}")
+            raise ValueError(f"control_inputs must have shape ({self.dim_control_input},)  "
+                             f"or ({self.dim_control_input}, 1), got {control_inputs.shape}")
 
         # Extract state variables
         if current_state.shape == (self.dim_state,):
@@ -214,7 +216,8 @@ class SingleTrackModel(AbstractVehicleModel):
         return self.a_max * self.v_s / np.max((v, self.v_s))
 
     def accurate_steer(self, steering_angle, steering_velocity):
-        if (steering_angle <= self.steering_angle_lb and steering_velocity <= 0) or (steering_angle >= self.steering_angle_ub and steering_velocity >= 0):
+        if ((steering_angle <= self.steering_angle_lb and steering_velocity <= 0)
+                or (steering_angle >= self.steering_angle_ub and steering_velocity >= 0)):
             return 0
         else:
             return np.min((np.max((steering_velocity, self.steering_velocity_lb)), self.steering_velocity_ub))

@@ -21,7 +21,13 @@ class Scenario:
         road (object or None): Road model, if available.
     """
 
-    def __init__(self, dt, model: AbstractVehicleModel, predicted_car_states, control_inputs, actual_car_states=None, obstacles=None):
+    def __init__(self,
+                 dt,
+                 model: AbstractVehicleModel,
+                 predicted_car_states,
+                 control_inputs,
+                 actual_car_states=None,
+                 obstacles=None):
         """
         Initialize a Scenario object.
 
@@ -72,9 +78,11 @@ class Scenario:
             self.goal_pos, self.goal_orientation, self.goal_shape = None, None, None
 
         # Model-dependent methods and attributes
-        self.to_string = lambda state_vec, control_vec: model.state_vec_to_string(state_vec) + "\n" + model.control_vec_to_string(control_vec)
+        self.to_string = lambda state_vec, control_vec: (model.state_vec_to_string(state_vec) + "\n" +
+                                                         model.control_vec_to_string(control_vec))
         self.get_vehicle_polygon = model.get_vehicle_polygon
-        self.get_position_orientation = lambda state_vec: model.convert_vec_to_state(state_vec).get_position_orientation()
+        self.get_position_orientation = lambda state_vec: (model.convert_vec_to_state(state_vec).
+                                                           get_position_orientation())
         self.control_input_labels = model.control_input_labels
         self.state_labels = model.state_labels
         self.road = getattr(model, "road", None)

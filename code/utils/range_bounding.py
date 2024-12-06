@@ -25,7 +25,8 @@ def _affine_range_bounding(slope_range, intercept_range, lower_bound, upper_boun
     slope_min, slope_max = slope_range
     intercept_min, intercept_max = intercept_range
     if slope_min > slope_max or intercept_min > intercept_max:
-        raise ValueError(f"invalid range: slope_min, slope_max = {slope_min, slope_max}; intercept_min, intercept_max = {intercept_min, intercept_max} ")
+        raise ValueError(f"invalid range: slope_min, slope_max = {slope_min, slope_max}; "
+                         f"intercept_min, intercept_max = {intercept_min, intercept_max} ")
     if slope_min == 0 or slope_max == 0:
         raise NotImplementedError('unhandled case')
 
@@ -89,7 +90,15 @@ def _calculate_product_range(*ranges: Tuple[float, float]) -> Tuple[float, float
 
 class MainPaperConstraintsReduction:
     @staticmethod
-    def apply_all(state_ranges: StateRanges, v_x_range, acc_x_range, acc_y_range, yaw_rate_range, yaw_acc_range, curvature_derivative):
+    def apply_all(
+            state_ranges: StateRanges,
+            v_x_range,
+            acc_x_range,
+            acc_y_range,
+            yaw_rate_range,
+            yaw_acc_range,
+            curvature_derivative
+    ):
         # self.v_x_min / (1 + self.nc_max) <= ds <=  self.v_x_max / (1 + self.nc_min)
         state_ranges.update(
             MainPaperConstraintsReduction.v_x_constraint_reduction(

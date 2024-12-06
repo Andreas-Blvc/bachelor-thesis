@@ -35,7 +35,8 @@ class Road(AbstractRoadSegment):
 
     def get_curvature_derivative_at(self, s: float, current_road_segment=None) -> float:
         if current_road_segment is not None:
-            return self.segments[current_road_segment].get_curvature_derivative_at(s - self._get_prev_length(current_road_segment))
+            return (self.segments[current_road_segment].
+                    get_curvature_derivative_at(s - self._get_prev_length(current_road_segment)))
 
         current_length = 0
         for segment in self.segments:
@@ -48,7 +49,8 @@ class Road(AbstractRoadSegment):
 
     def get_global_position(self, s: float, lateral_offset: float, current_road_segment=None) -> Tuple[float, float]:
         if current_road_segment is not None:
-            return self.segments[current_road_segment].get_global_position(s - self._get_prev_length(current_road_segment), lateral_offset)
+            return (self.segments[current_road_segment].
+                    get_global_position(s - self._get_prev_length(current_road_segment), lateral_offset))
 
         current_length = 0
         for segment in self.segments:
@@ -95,7 +97,8 @@ class Road(AbstractRoadSegment):
 
     def get_tangent_angle_at(self, s: float, current_road_segment=None) -> float:
         if current_road_segment is not None:
-            return self.segments[current_road_segment].get_tangent_angle_at(s - self._get_prev_length(current_road_segment))
+            return (self.segments[current_road_segment].
+                    get_tangent_angle_at(s - self._get_prev_length(current_road_segment)))
 
         current_length = 0
         for segment in self.segments:
