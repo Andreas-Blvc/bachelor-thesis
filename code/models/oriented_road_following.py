@@ -101,6 +101,34 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         self.xi_abs_bound = 45/180 * pi
         self._mccormick_relaxations: List[Tuple[McCormickConvexRelaxation]] = []
 
+    def curvature_at(self, s):
+        if self.solver_type == 'casadi':
+            current_length = 0
+            curvature = 0
+
+            for segment in self.road.segments:
+                segment_length = segment.length
+
+                # Define the local s for this segment
+                local_s = s - current_length
+
+                # Check if `s` is in this segment
+                in_segment = ca.logic_and(current_length <= s, s <= current_length + segment_length)
+
+                # Use casadi.if_else to set the value of curvature_derivative if `s` is within this segment
+                curvature = ca.if_else(
+                    in_segment,
+                    segment.get_curvature_at(local_s),
+                    curvature
+                )
+
+                # Update current length
+                current_length += segment_length
+
+            return curvature
+        else:
+            self._raise_unsupported_solver()
+
     def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
@@ -123,8 +151,8 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
 
         constraints = []
         if self.solver_type == 'casadi':
-            ds = ca.cos(xi) * v / (1 - n * self.C(s))
-            d_theta = self.C(s) * ds
+            ds = ca.cos(xi) * v / (1 - n * self.curvature_at(s))
+            d_theta = self.curvature_at(s) * ds
             d_phi = (v / self.L_wb) * ca.tan(delta)
             next_state = ca.vertcat(*[
                 s + ds * self.dt,

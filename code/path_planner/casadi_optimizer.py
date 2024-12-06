@@ -56,8 +56,8 @@ class NonConvexPathPlanner:
 
 
         # Set the objective in the Opti problem
-        states = [model.convert_vec_to_state(self.x[j, :]) for j in range(self.N + 1)]
-        control_inputs = [model.convert_vec_to_control_input(self.u[j, :]) for j in range(self.N)]
+        states = [model.convert_vec_to_state(self.x[j, :].T) for j in range(self.N + 1)]
+        control_inputs = [model.convert_vec_to_control_input(self.u[j, :].T) for j in range(self.N)]
         objective, objective_type = get_objective(states, control_inputs)
         if objective_type == Objectives.Type.MINIMIZE:
             self.opti.minimize(objective)

@@ -6,7 +6,8 @@ import dill as pickle
 from typing import List, Tuple
 
 from .road import Road
-from .segments import AbstractRoadSegment, StraightRoad, CircularCurveRoad
+from .road_interface import AbstractRoadSegment
+from .segments import StraightRoad, CircularCurveRoad
 
 # CONSTANTS
 TK_WIDTH = 800
@@ -15,7 +16,6 @@ PATH_PLANNER_HEIGHT = 20
 PATH_PLANNER_WIDTH = 20
 GRID_SPACING = 20
 DATA_FOLDER = "data"
-
 
 def tk_to_path_coord(x: float, y: float) -> Tuple[float, float]:
     return (
@@ -50,6 +50,10 @@ class RoadMapEditor:
         # Add clear button to the toolbar
         self.clear_btn = Button(self.toolbar, text="Clear", command=self.clear_canvas)
         self.clear_btn.pack(side=LEFT, padx=2, pady=2)
+
+        # Add delete last segment button to the toolbar
+        self.delete_last_btn = Button(self.toolbar, text="Delete Last Segment", command=self.delete_last_segment)
+        self.delete_last_btn.pack(side=LEFT, padx=2, pady=2)
 
         # Add save and load buttons to the toolbar
         self.save_btn = Button(self.toolbar, text="Save", command=self.save_road)
@@ -196,6 +200,20 @@ class RoadMapEditor:
         self.last_endpoint = None
         self.full_road = None
 
+    def delete_last_segment(self):
+        """Deletes the last added road segment."""
+        if self.roads:
+            # Remove the last road segment
+            last_segment = self.roads.pop()
+            self.last_endpoint = self.calculate_endpoint(self.roads[-1]) if self.roads else None
+            self.canvas.delete("all")
+            self.draw_grid()
+            for segment in self.roads:
+                self.draw_road(segment)
+            print("Last segment deleted.")
+        else:
+            print("No segments to delete.")
+
     def save_road(self):
         """Saves the current road to a file in the data folder."""
         if self.full_road is None:
@@ -221,7 +239,6 @@ class RoadMapEditor:
             return
 
         with open(filepath, "rb") as file:
-            print(filepath)
             loaded_road = pickle.load(file)
 
         if isinstance(loaded_road, Road):

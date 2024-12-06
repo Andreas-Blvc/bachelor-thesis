@@ -1,7 +1,7 @@
 from typing import Tuple, List
 import math
 
-from .abstract_road_segment import AbstractRoadSegment
+from ..road_interface import AbstractRoadSegment
 
 
 class CircularCurveRoad(AbstractRoadSegment):
@@ -23,7 +23,7 @@ class CircularCurveRoad(AbstractRoadSegment):
 
     def get_global_position(self, s: float, lateral_offset: float) -> Tuple[float, float]:
         # Ensure that s parameter is within the valid range
-        if s < 0 or s > self.length:
+        if s < -1e-6 or s > self.length+1e-6:
             raise ValueError("s_param is out of bounds. It should be between 0 and the length of the road.")
 
         # Calculate the angle based on s parameter and the total angle sweep
@@ -50,5 +50,5 @@ class CircularCurveRoad(AbstractRoadSegment):
             polygon.append(self.get_global_position(s, -self.width(s) / 2))
         return polygon, "blue"
 
-    def get_tangent_angle_at(self, s_param: float) -> float:
-        return (0.5 if self.angle_sweep > 0 else 1.5) * math.pi + self.start_angle + s_param * self.angle_sweep
+    def get_tangent_angle_at(self, s: float) -> float:
+        return (0.5 if self.angle_sweep > 0 else 1.5) * math.pi + self.start_angle + (s / self.length) * self.angle_sweep

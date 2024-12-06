@@ -56,8 +56,8 @@ class VehiclePathVisualizer:
         self.actual_path_line, = self.ax.plot([], [], 'k-', label='Actual Path')
 
     def setup_plot(self):
-        self.ax.set_xlim(-15, 15)
-        self.ax.set_ylim(-12, 12)
+        self.ax.set_xlim(0, 25)
+        self.ax.set_ylim(-15, 20)
         self.ax.set_aspect('equal', adjustable='box')
         self.ax.grid(True)
         self.ax.set_xlabel("X Position")

@@ -1,7 +1,7 @@
 from typing import Tuple, List
 import math
 
-from .abstract_road_segment import AbstractRoadSegment
+from ..road_interface import AbstractRoadSegment
 
 class StraightRoad(AbstractRoadSegment):
     """
@@ -19,7 +19,7 @@ class StraightRoad(AbstractRoadSegment):
         return 0.0  # No change in curvature for a straight road.
 
     def get_global_position(self, s: float, lateral_offset: float) -> Tuple[float, float]:
-        if s < 0 or s > self.length:
+        if s < -1e-6 or s > self.length+1e-6:
             raise ValueError("s_param is out of bounds. It should be between 0 and the length of the road.")
 
         x = self.start_position[0] + s * math.cos(self.direction_angle) - lateral_offset * math.sin(self.direction_angle)
@@ -34,10 +34,10 @@ class StraightRoad(AbstractRoadSegment):
 
     def get_polygon_and_color(self) -> Tuple[List[Tuple[float, float]], str]:
         # Approximate the road as a rectangle
-        x1, y1 = self.get_global_position(0, -self.width(0) / 2)
-        x2, y2 = self.get_global_position(0, self.width(0) / 2)
-        x3, y3 = self.get_global_position(self.length, self.width(self.length) / 2)
-        x4, y4 = self.get_global_position(self.length, -self.width(self.length) / 2)
+        x1, y1 = self.get_global_position(0, self.width(0) / 2)
+        x2, y2 = self.get_global_position(self.length, self.width(self.length) / 2)
+        x3, y3 = self.get_global_position(self.length, -self.width(self.length) / 2)
+        x4, y4 = self.get_global_position(0, -self.width(0) / 2)
         return [(x1, y1), (x2, y2), (x3, y3), (x4, y4)], "gray"
 
     def get_tangent_angle_at(self, s_param: float) -> float:

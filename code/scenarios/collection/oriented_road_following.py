@@ -1,8 +1,8 @@
 import numpy as np
 
 from models import OrientedRoadFollowingModel
-from obstacles import roads
-from path_planner import ConvexPathPlanner, Objectives
+from roads import load_road
+from path_planner import NonConvexPathPlanner, ConvexPathPlanner, Objectives
 
 from .._scenario import Scenario
 
@@ -12,21 +12,21 @@ def create_scenario(v_min=None, v_max=None, v_start=None):
     v_max = v_max or 5
     v_start = v_start or 4
     dt = 1 / 30
-    time_horizon = 4
-    objective = Objectives.minimize_remaining_distance
-    road = roads.right_curved_road
+    time_horizon = 10
+    objective = Objectives.minimize_control_input
+    road = load_road("./data/right_turn.pkl")
     model = OrientedRoadFollowingModel(
         initial_state=np.array([0, 0, 0, v_start, 0]),
-        goal_state=None,  # np.array([road.length, 0, 0, 2, 0]),
+        goal_state=np.array([road.length, 0, 0, v_start, 0]),  # np.array([road.length, 0, 0, 2, 0]),
         dt=dt,
         road=road,
         v_range=(v_min, v_max),
         acc_range=(-2, 2),
-        steering_angle_range=((-30 / 180) * np.pi, (30 / 180) * np.pi),
-        steering_velocity_range=(-3, 3),
+        steering_angle_range=((-45 / 180) * np.pi, (46 / 180) * np.pi),
+        steering_velocity_range=(-5, 5),
     )
 
-    planner = ConvexPathPlanner(model, dt, time_horizon, objective)
+    planner = NonConvexPathPlanner(model, dt, time_horizon, objective)
     car_states, control_inputs = planner.get_optimized_trajectory()
     # plot_control_inputs(control_inputs, model.get_control_input_labels(), dt)
     # plot_control_inputs(car_states, ['s', 'n', 'xi', 'v', 'delta'], dt)
