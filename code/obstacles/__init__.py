@@ -4,6 +4,11 @@ from .road_collection import roads
 
 __all__ = ['AbstractRoad', 'roads']
 
+
+import warnings
+warnings.warn("the obstacle module is deprecated", DeprecationWarning,
+              stacklevel=2)
+
 # Prevent access to _internal modules
 import sys
 

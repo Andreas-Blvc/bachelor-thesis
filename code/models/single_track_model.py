@@ -4,7 +4,6 @@ from typing import Any, List, Tuple, Union
 import casadi as ca
 import cvxpy as cp
 import numpy as np
-from tenacity import retry
 
 from models import AbstractVehicleModel
 from utils import State
@@ -13,7 +12,7 @@ from utils import State
 BIG_M = 1e6
 
 
-class SingleTrackModelAbstract(AbstractVehicleModel):
+class SingleTrackModel(AbstractVehicleModel):
     """
     SingleTrackModel implements a single-track (bicycle) vehicle model.
     It supports both CVXPY and CasADi solvers for optimization tasks.

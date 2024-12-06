@@ -5,7 +5,7 @@ from models import AbstractVehicleModel
 from utils import State
 
 
-class PointMassModelAbstract(AbstractVehicleModel):
+class PointMassModel(AbstractVehicleModel):
     """
     A point mass vehicle model implementing the VehicleModel abstract base class.
     This model represents a simple point mass with position and velocity in 2D space.

@@ -1,1 +1,1 @@
-from . import collection
+from . import collection, benchmarks

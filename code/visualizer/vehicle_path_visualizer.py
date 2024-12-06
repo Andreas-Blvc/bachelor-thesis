@@ -93,6 +93,8 @@ class VehiclePathVisualizer:
             )
             self.ax.add_patch(self.actual_patch)
 
+        self.ax.legend()
+
     def update_frame(self, step, predicted_car, actual_car):
         """
         Update the animation frame with new car positions.

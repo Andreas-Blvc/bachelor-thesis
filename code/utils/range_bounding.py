@@ -50,15 +50,15 @@ def _affine_range_bounding(slope_range, intercept_range, lower_bound, upper_boun
             max(0, (upper_bound - intercept_max) / slope_max)
         )
 
-    print(
-        "------------------\n"
-        f"Slope: {slope_range[0]:.3f}, {slope_range[1]:.3f}\n"
-        f"Intercept: {intercept_range[0]:.3f}, {intercept_range[1]:.3f}\n"
-        f"Lower: {lower_bound}\n"
-        f"Upper: {upper_bound}\n"
-        f"X: {X[0]:.3f}, {X[1]:.3f}\n"
-        "------------------"
-    )
+    # print(
+    #     "------------------\n"
+    #     f"Slope: {slope_range[0]:.3f}, {slope_range[1]:.3f}\n"
+    #     f"Intercept: {intercept_range[0]:.3f}, {intercept_range[1]:.3f}\n"
+    #     f"Lower: {lower_bound}\n"
+    #     f"Upper: {upper_bound}\n"
+    #     f"X: {X[0]:.3f}, {X[1]:.3f}\n"
+    #     "------------------"
+    # )
     return X
 
 def _calculate_product_range(*ranges: Tuple[float, float]) -> Tuple[float, float]:

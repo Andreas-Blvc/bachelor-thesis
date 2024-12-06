@@ -33,6 +33,7 @@ class Scenario:
             actual_car_states (list, optional): Actual vehicle states, if available.
             obstacles (list, optional): List of obstacles in the scenario.
         """
+        self.anim = None
         self.dt = dt
         self.predicted_car_states = predicted_car_states
         self.actual_car_states = actual_car_states or []
@@ -126,7 +127,7 @@ class Scenario:
 
         # Assign the animation to a variable to prevent garbage collection
         predicted_car, actual_car = self.get_predicted_actual_car(0)
-        return visualizer.animate(
+        self.anim = visualizer.animate(
             start=start_vehicle,
             goal=goal_vehicle,
             predicted_car=predicted_car,  # Placeholder, updated in `update_func`
@@ -136,6 +137,7 @@ class Scenario:
             update_func=update_func,
             dt=self.dt,
         )
+        return self.anim
 
     def __repr__(self):
         """

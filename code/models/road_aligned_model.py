@@ -6,14 +6,20 @@ import cvxpy as cp
 import numpy as np
 
 from models import AbstractVehicleModel
-from obstacles import AbstractRoad
+from roads import Road
 from utils import MainPaperConstraintsReduction, State, StateRanges
 from visualizer import plot_with_bounds
 
 
-class RoadAlignedModelAbstract(AbstractVehicleModel):
+class RoadAlignedModel(AbstractVehicleModel):
 
-    def __init__(self, initial_state: np.ndarray, goal_state: np.ndarray, dt: float, road: AbstractRoad,
+    def plot_additional_information(self):
+        pass
+
+    def __init__(self,
+                 initial_state: np.ndarray,
+                 dt: float,
+                 road: Road,
                  v_x_range: Tuple[float, float],
                  v_y_range: Tuple[float, float],
                  acc_x_range: Tuple[float, float],
@@ -21,6 +27,7 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
                  yaw_rate_range: Tuple[float, float],
                  yaw_acc_range: Tuple[float, float],
                  a_max,
+                 goal_state: np.ndarray=None,
                  ):
         """
         Initialize the RoadAlignedModel.
@@ -43,10 +50,10 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
         self.road = road
 
         # Aliases for range access
-        self.c_min = road.get_curvature_min(float(initial_state[0]), float(goal_state[0]))
-        self.c_max = road.get_curvature_max(float(initial_state[0]), float(goal_state[0]))
-        self.n_min = -road.width/2
-        self.n_max = road.width/2
+        self.c_min = road.get_curvature_min(float(initial_state[0]), float(goal_state[0] if goal_state else road.length))
+        self.c_max = road.get_curvature_max(float(initial_state[0]), float(goal_state[0]) if goal_state else road.length)
+        self.n_min = -road.width(0)/2  # TODO
+        self.n_max = road.width(0)/2  # TODO
         self.v_x_min, self.v_x_max = v_x_range
         self.v_y_min, self.v_y_max = v_y_range
         self.acc_x_min, self.acc_x_max = acc_x_range
@@ -76,7 +83,7 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
         )
 
         self.ranges = ranges
-        print(ranges)
+        # print(ranges)
 
         # helper:
         self.last_orientation = 0
@@ -114,6 +121,10 @@ class RoadAlignedModelAbstract(AbstractVehicleModel):
         s, n, ds, dn = [current_state[i] for i in range(self.dim_state)]
         u_t, u_n = [control_inputs[i] for i in range(self.dim_control_input)]
         g = self.g(current_state, control_inputs)
+
+        if np.isscalar(s):
+            next_state = current_state + dx_dt * self.dt
+            return next_state, []
 
         if self.solver_type == 'casadi':
             # Compute the next state based on the input accelerations

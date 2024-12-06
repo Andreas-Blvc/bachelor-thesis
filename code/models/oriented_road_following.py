@@ -6,7 +6,7 @@ import numpy as np
 
 from visualizer import plot_with_bounds
 from models import AbstractVehicleModel
-from obstacles import AbstractRoad
+from roads import Road
 from utils import State
 
 class McCormickConvexRelaxation:
@@ -55,14 +55,14 @@ class McCormickConvexRelaxation:
             raise RuntimeError("Solver must be called before accessing bilinear value.")
 
 
-class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
+class OrientedRoadFollowingModel(AbstractVehicleModel):
     def __init__(self,
                  dt: float,
                  v_range: Tuple[float, float],
                  acc_range: Tuple[float, float],
                  steering_angle_range: Tuple[float, float],
                  steering_velocity_range: Tuple[float, float],
-                 road: AbstractRoad,
+                 road: Road,
                  initial_state: np.ndarray,
                  goal_state: np.ndarray=None,
                  l_wb: float = 1.8,
@@ -87,7 +87,7 @@ class OrientedRoadFollowingModelAbstract(AbstractVehicleModel):
         # Aliases for range access
         self.v_min, self.v_max = v_range
         self.a_min, self.a_max = acc_range
-        self.n_min, self.n_max = -road.width/2, road.width/2
+        self.n_min, self.n_max = -road.width(0)/2, road.width(0)/2  # TODO
         self.steering_angle_min, self.steering_angle_max = steering_angle_range
         self.steering_velocity_min, self.steering_velocity_max = steering_velocity_range
 

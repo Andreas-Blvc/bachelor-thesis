@@ -1,6 +1,6 @@
 import numpy as np
 
-from models import OrientedRoadFollowingModelAbstract
+from models import OrientedRoadFollowingModel
 from obstacles import roads
 from path_planner import ConvexPathPlanner, Objectives
 
@@ -15,7 +15,7 @@ def create_scenario(v_min=None, v_max=None, v_start=None):
     time_horizon = 4
     objective = Objectives.minimize_remaining_distance
     road = roads.right_curved_road
-    model = OrientedRoadFollowingModelAbstract(
+    model = OrientedRoadFollowingModel(
         initial_state=np.array([0, 0, 0, v_start, 0]),
         goal_state=None,  # np.array([road.length, 0, 0, 2, 0]),
         dt=dt,
