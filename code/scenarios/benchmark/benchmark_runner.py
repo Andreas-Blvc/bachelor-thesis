@@ -1,8 +1,7 @@
 import numpy as np
-from docutils.nodes import title
 
 from models import OrientedRoadFollowingModel, RoadAlignedModel
-from path_planner import ConvexPathPlanner, Objectives, NonConvexPathPlanner
+from path_planner import ConvexPathPlanner, NonConvexPathPlanner
 from roads import load_road
 
 from .._scenario import Scenario
@@ -10,6 +9,12 @@ from .benchmark_configuration import *
 
 
 def run(config: BenchmarkConfiguration):
+    # store for non-convex case
+    oriented_road_following_possible_goal_state = None
+    oriented_road_following_initial_guess = None
+    road_aligned_possible_goal_state = None
+    road_aligned_initial_guess = None
+
     objective = config.objective
     dt = config.time_discretization.value
     time_horizon = config.time_horizon.value
@@ -24,12 +29,13 @@ def run(config: BenchmarkConfiguration):
         start_velocity * config.velocity_range.value[1],
     )
 
-    def _get_planned_trajectory(model, non_convex=False):
+    def _get_planned_trajectory(model, non_convex=False, initial_guess=None):
         if non_convex:
             planner = NonConvexPathPlanner(model, dt, time_horizon, objective)
+            planned_car_states, control_inputs = planner.get_optimized_trajectory(initial_guess)
         else:
             planner = ConvexPathPlanner(model, dt, time_horizon, objective)
-        planned_car_states, control_inputs = planner.get_optimized_trajectory()
+            planned_car_states, control_inputs = planner.get_optimized_trajectory()
         actual_car_states = [model.initial_state]
         if control_inputs is not None:
             for u in control_inputs:
@@ -44,7 +50,7 @@ def run(config: BenchmarkConfiguration):
             case Model.OrientedRoadFollowingModel:
                 vehicle_model = OrientedRoadFollowingModel(
                     initial_state=np.array([0, start_offset, 0, start_velocity, 0]),
-                    goal_state=None,  # np.array([road.length, 0, 0, 2, 0]),
+                    goal_state=None if solver_type != SolverType.NonConvex else oriented_road_following_possible_goal_state,
                     dt=dt,
                     road=road,
                     v_range=velocity_range,
@@ -56,7 +62,7 @@ def run(config: BenchmarkConfiguration):
             case Model.RoadAlignedModel:
                 vehicle_model = RoadAlignedModel(
                     initial_state=np.array([0, start_offset, start_velocity, 0]),
-                    goal_state=None,
+                    goal_state=None if solver_type != SolverType.NonConvex else road_aligned_possible_goal_state,
                     dt=dt,
                     road=road,
                     v_x_range=velocity_range,
@@ -70,21 +76,31 @@ def run(config: BenchmarkConfiguration):
             case _:
                 raise ValueError('model type not supported')
         try:
-            print(f'Starting planning for {model_type.value}')
+            print(f'Starting planning for {model_type.value} {"(NonConvex)" if solver_type == SolverType.NonConvex else ""}')
             planned_states, actual_states, controls, solve_time = _get_planned_trajectory(
                 vehicle_model,
-                non_convex=solver_type == SolverType.NonConvex
+                non_convex=solver_type == SolverType.NonConvex,
+                initial_guess= road_aligned_initial_guess if model_type == Model.RoadAlignedModel
+                    else oriented_road_following_initial_guess,
             )
         except ValueError as e:
             print(f"{model_type.value} failed")
             print(e)
             continue
-        print(
-            f"{model_type.value}, solve time {'(NonConvex)' if solver_type == SolverType.NonConvex else ''}: "
-            f"{solve_time * 1000:.1f}ms, "
-            f"state transitions: {len(controls)}"
-        )
+
         if controls is not None:
+            print(
+                f"{model_type.value}, solve time {'(NonConvex)' if solver_type == SolverType.NonConvex else ''}: "
+                f"{solve_time * 1000:.1f}ms, "
+                f"state transitions: {len(controls)}"
+            )
+            if model_type == Model.RoadAlignedModel:
+                road_aligned_possible_goal_state = planned_states[-1]
+                road_aligned_initial_guess = np.array(planned_states), np.array(controls)
+            elif model_type == Model.OrientedRoadFollowingModel:
+                oriented_road_following_possible_goal_state = planned_states[-1]
+                oriented_road_following_initial_guess = np.array(planned_states), np.array(controls)
+
             scenarios.append(
                 Scenario(
                     dt,
@@ -97,6 +113,5 @@ def run(config: BenchmarkConfiguration):
             )
         else:
             print(f"{model_type.value} did not found a solution")
-            vehicle_model.plot_additional_information()
 
     return scenarios

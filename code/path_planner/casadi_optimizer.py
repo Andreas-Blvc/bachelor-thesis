@@ -1,5 +1,6 @@
 import casadi as ca
 import numpy as np
+import sys
 
 from models import AbstractVehicleModel
 
@@ -67,7 +68,7 @@ class NonConvexPathPlanner:
 
         # Optionally, you can set solver options here
         p_opts = {"expand": True}
-        s_opts = {"max_iter": 500, "print_level": 0}
+        s_opts = {"max_iter": 5000, "print_level": 0}
         self.opti.solver('ipopt', p_opts, s_opts)
 
     def get_optimized_trajectory(self, initial_guess=None):
@@ -79,16 +80,18 @@ class NonConvexPathPlanner:
             if u_guess is not None:
                 self.opti.set_initial(self.u, u_guess)
 
-        try:
-            # Solve the optimization problem
-            solution = self.opti.solve()
+        with open('solver_output.txt', 'w') as output_file:
+            stdout_old = sys.stdout
+            sys.stdout = output_file
 
-            # Capture the solve time from the solver stats
-            self.solve_time = solution.stats()['t_mainloop']
-        except RuntimeError as e:
-            # Handle solver errors (e.g., infeasibility)
-            print("Solver failed:", e)
-            return None, None
+            try:
+                solution = self.opti.solve()
+                self.solve_time = solution.stats()['t_proc_total']
+                sys.stdout = stdout_old
+            except RuntimeError as e:
+                # traceback.print_exc(file=stdout_old)
+                sys.stdout = stdout_old
+                return None, None
 
         # Extract the optimized states and controls
         x_opt = solution.value(self.x)
