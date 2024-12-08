@@ -1,5 +1,5 @@
 from models import AbstractVehicleModel
-from visualizer import VehicleObject
+from visualizer import VehicleObject, plot_states_or_inputs, VehiclePathVisualizer
 
 
 class Scenario:
@@ -27,7 +27,10 @@ class Scenario:
                  predicted_car_states,
                  control_inputs,
                  actual_car_states=None,
-                 obstacles=None):
+                 obstacles=None,
+                 interactive=False,
+                 title: str = ''
+                 ):
         """
         Initialize a Scenario object.
 
@@ -49,6 +52,7 @@ class Scenario:
 
         self._validate_states()
         self._initialize_model_dependent_attributes(model)
+        self.visualizer = VehiclePathVisualizer(interactive, title)
 
     def _validate_states(self):
         """
@@ -106,7 +110,7 @@ class Scenario:
                                    actual_shape) if actual_car_state is not None else None
         return predicted_car, actual_car
 
-    def visualize(self, visualizer):
+    def visualize(self):
         """
         Visualizes the simulation using the updated animation-based visualizer.
         """
@@ -119,7 +123,7 @@ class Scenario:
             predicted_car_update, actual_car_update = self.get_predicted_actual_car(step)
 
             # Update the visualizer for the current step
-            visualizer.update_frame(
+            self.visualizer.update_frame(
                 step,
                 predicted_car=predicted_car_update,
                 actual_car=actual_car_update,
@@ -135,7 +139,7 @@ class Scenario:
 
         # Assign the animation to a variable to prevent garbage collection
         predicted_car, actual_car = self.get_predicted_actual_car(0)
-        self.anim = visualizer.animate(
+        self.anim = self.visualizer.animate(
             start=start_vehicle,
             goal=goal_vehicle,
             predicted_car=predicted_car,  # Placeholder, updated in `update_func`
@@ -146,6 +150,9 @@ class Scenario:
             dt=self.dt,
         )
         return self.anim
+
+    def plot_states(self):
+        plot_states_or_inputs(self.actual_car_states, self.state_labels, self.dt)
 
     def __repr__(self):
         """

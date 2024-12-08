@@ -1,9 +1,9 @@
 from typing import Tuple, List
 import math
 
-from ..road_interface import AbstractRoadSegment
+from ..road_interface import AbstractRoad
 
-class StraightRoad(AbstractRoadSegment):
+class StraightRoad(AbstractRoad):
     """
     s goes from 0 to length
     """

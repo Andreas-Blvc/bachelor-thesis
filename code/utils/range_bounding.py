@@ -27,9 +27,71 @@ def _affine_range_bounding(slope_range, intercept_range, lower_bound, upper_boun
     if slope_min > slope_max or intercept_min > intercept_max:
         raise ValueError(f"invalid range: slope_min, slope_max = {slope_min, slope_max}; "
                          f"intercept_min, intercept_max = {intercept_min, intercept_max} ")
-    if slope_min == 0 or slope_max == 0:
-        raise NotImplementedError('unhandled case')
 
+    if slope_min <= 0 <= slope_max:
+        if intercept_min < lower_bound or intercept_max > upper_bound:
+            return 0, 0
+
+    # Case Distinction:
+    #  slope_min = slope_max:
+    #  1. slope_min = slope_max = 0
+    #  2. slope_min = slope_max < 0
+    #  3. slope_min = slope_max > 0
+    #  slope_min < slope_max:
+    #  4. slope_max < 0
+    #  5. 0 < slope_min
+    #  6. slope_max = 0
+    #  7. 0 = slope_min
+    #  8. slope_min < 0 < slope_max
+
+    # 1.
+    if slope_min == slope_max == 0:
+        # lower_bound <= b <= upper_bound -> either for all x (no range) or for no x ([0, 0])
+        if intercept_min < lower_bound or intercept_max > upper_bound:
+            return 0, 0
+        else:
+            return None
+
+    # 2.
+    if slope_min == slope_max < 0:
+        x_lb = (upper_bound - intercept_max) / slope_max
+        x_ub = (lower_bound - intercept_min) / slope_max
+        return x_lb, x_ub if x_lb <= x_ub else (0, 0)
+
+    # 3.
+    if slope_min == slope_max > 0:
+        x_lb = (lower_bound - intercept_min) / slope_max
+        x_ub = (upper_bound - intercept_max) / slope_max
+        return x_lb, x_ub if x_lb <= x_ub else (0, 0)
+
+    # 4.
+    if slope_max < 0:
+        if upper_bound - intercept_max < 0:
+            x_lb = (upper_bound - intercept_max) / slope_max
+        else:
+            x_lb = (upper_bound - intercept_max) / slope_min
+        if lower_bound - intercept_min < 0:
+            x_ub = (lower_bound - intercept_min) / slope_max
+        else:
+            x_ub = (lower_bound - intercept_min) / slope_min
+        return x_lb, x_ub if x_lb <= x_ub else (0, 0)
+
+    # 5.
+    if 0 < slope_min:
+        if lower_bound - intercept_min > 0:
+            x_lb = (lower_bound - intercept_min) / slope_min
+        else:
+            x_lb = (lower_bound - intercept_min) / slope_max
+        if upper_bound - intercept_max > 0:
+            x_ub = (upper_bound - intercept_max) / slope_min
+        else:
+            x_ub = (upper_bound - intercept_max) / slope_max
+        return x_lb, x_ub if x_lb <= x_ub else (0, 0)
+
+    #  6. 7. 8.
+    # lower_bound < intercept_min and intercept_max < upper_bound:
+    if intercept_min < lower_bound or intercept_max > upper_bound:
+        raise AssertionError("lower_bound < intercept_min and intercept_max < upper_bound does not hold")
     if slope_min < 0 < slope_max:
         X = (
             max(
@@ -40,15 +102,21 @@ def _affine_range_bounding(slope_range, intercept_range, lower_bound, upper_boun
             )
 
         )
-    elif slope_max < 0:
+    elif slope_min < 0:  # slope_max = 0
         X = (
             min(0, (upper_bound - intercept_max) / slope_min),
             max(0, (lower_bound - intercept_min) /slope_min)
         )
-    else: # slope_min > 0
+    elif slope_max > 0:  # slope_min = 0
         X = (
             min(0, (lower_bound - intercept_min) / slope_max),
             max(0, (upper_bound - intercept_max) / slope_max)
+        )
+    else:
+        raise NotImplementedError(
+            'Unhandled case occurred\n'
+            f"slope_min, slope_max = {slope_min, slope_max}; "
+            f"intercept_min, intercept_max = {intercept_min, intercept_max}"
         )
 
     # print(

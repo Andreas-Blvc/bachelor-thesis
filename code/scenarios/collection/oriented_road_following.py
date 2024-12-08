@@ -7,23 +7,23 @@ from path_planner import NonConvexPathPlanner, ConvexPathPlanner, Objectives
 from .._scenario import Scenario
 
 
-def create_scenario(v_min=None, v_max=None, v_start=None):
-    v_min = v_min or 4
+def create_scenario(v_min=None, v_max=None, v_start=None, n_start=0, n_end=0):
+    v_min = v_min or -2
     v_max = v_max or 5
-    v_start = v_start or 4
+    v_start = v_start or 0
     dt = 1 / 30
     time_horizon = 10
     objective = Objectives.minimize_control_input
-    road = load_road("./data/right_turn.pkl")
+    road = load_road("./data/obstacle.pkl")
     model = OrientedRoadFollowingModel(
-        initial_state=np.array([0, 0, 0, v_start, 0]),
-        goal_state=np.array([road.length, 0, 0, v_start, 0]),  # np.array([road.length, 0, 0, 2, 0]),
+        initial_state=np.array([0, n_start, 0, v_start, 0]),
+        goal_state=np.array([road.length, n_end, 0, 0, 0]),  # np.array([road.length, 0, 0, 2, 0]),
         dt=dt,
         road=road,
         v_range=(v_min, v_max),
         acc_range=(-2, 2),
-        steering_angle_range=((-45 / 180) * np.pi, (46 / 180) * np.pi),
-        steering_velocity_range=(-5, 5),
+        steering_angle_range=((-60 / 180) * np.pi, (60 / 180) * np.pi),
+        steering_velocity_range=(-10, 10),
     )
 
     planner = NonConvexPathPlanner(model, dt, time_horizon, objective)

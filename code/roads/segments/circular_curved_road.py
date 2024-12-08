@@ -1,10 +1,10 @@
 from typing import Tuple, List
 import math
 
-from ..road_interface import AbstractRoadSegment
+from ..road_interface import AbstractRoad
 
 
-class CircularCurveRoad(AbstractRoadSegment):
+class CircularCurveRoad(AbstractRoad):
     def __init__(self, width: float, radius: float, center: Tuple[float, float], start_angle: float, angle_sweep: float):
         self.radius = radius
         self.center = center
@@ -28,16 +28,16 @@ class CircularCurveRoad(AbstractRoadSegment):
 
         # Calculate the angle based on s parameter and the total angle sweep
         angle = self.start_angle + (s / self.length) * self.angle_sweep
-        radius_offset = self.radius + lateral_offset
+        radius_offset = self.radius + lateral_offset * (-1 if self.angle_sweep > 0 else 1)
         x = self.center[0] + radius_offset * math.cos(angle)
         y = self.center[1] + radius_offset * math.sin(angle)
         return x, y
 
     def get_curvature_min(self, start: float, end: float) -> float:
-        return 1 / self.radius
+        return self.get_curvature_at(0)  # curvature is constant
 
     def get_curvature_max(self, start: float, end: float) -> float:
-        return 1 / self.radius
+        return self.get_curvature_at(0)  # curvature is constant
 
     def get_polygon_and_color(self) -> Tuple[List[Tuple[float, float]], str]:
         segments = 20

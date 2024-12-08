@@ -1,14 +1,16 @@
 from abc import abstractmethod
-from typing import Any, List, Tuple, NoReturn
+from typing import Any, List, Tuple, NoReturn, Callable
 import numpy as np
 import casadi as ca
 import cvxpy as cp
 
 from utils import State, ControlInput
+from roads import Road
 
 
 class AbstractVehicleModel:
-	road = None
+	road: Road = None
+	road_segment_idx: int = None
 	solver_type = None
 
 	def __init__(self, dim_state, dim_control_input, state_labels, control_input_labels, initial_state, goal_state=None):
@@ -34,6 +36,9 @@ class AbstractVehicleModel:
 	@abstractmethod
 	def plot_additional_information(self):
 		raise "plot_additional_information not implemented"
+	@abstractmethod
+	def get_v_max(self):
+		raise "get_v_max not implemented"
 
 	def convert_vec_to_control_input(self, vec) -> ControlInput:
 		self._validate__control_dimension(vec)

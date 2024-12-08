@@ -4,6 +4,9 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 
+WIDTH=20
+HEIGHT=20
+
 class VehicleObject:
     def __init__(self, position, orientation, shape):
         self.position = position
@@ -35,13 +38,13 @@ class VehicleObject:
         return transformed_points
 
 class VehiclePathVisualizer:
-    def __init__(self, interactive: bool):
+    def __init__(self, interactive: bool, title: str=''):
         self.anim = None
         self.interactive = interactive
         self.fig, self.ax = plt.subplots()
         if not interactive:
             plt.close(self.fig)  # Suppress display right after creation
-        self.setup_plot()
+        self.setup_plot(title)
 
         # Storage for paths
         self.actual_path = []
@@ -52,17 +55,17 @@ class VehiclePathVisualizer:
         self.goal_patch = None
         self.predicted_patch = None
         self.actual_patch = None
-        self.predicted_path_line, = self.ax.plot([], [], 'b-', label='Planned Path')
-        self.actual_path_line, = self.ax.plot([], [], 'k-', label='Actual Path')
+        self.predicted_path_line, = self.ax.plot([], [], 'b-')
+        self.actual_path_line, = self.ax.plot([], [], 'k-')
 
-    def setup_plot(self):
-        self.ax.set_xlim(0, 25)
-        self.ax.set_ylim(-15, 20)
+    def setup_plot(self, title):
+        self.ax.set_xlim(0, WIDTH)
+        self.ax.set_ylim(0, HEIGHT)
         self.ax.set_aspect('equal', adjustable='box')
         self.ax.grid(True)
         self.ax.set_xlabel("X Position")
         self.ax.set_ylabel("Y Position")
-        self.ax.set_title("Vehicle Path Visualization")
+        self.ax.set_title(f"Vehicle Path Visualization - {title}")
         # self.ax.legend()
 
     def init_patches(self, start, goal, predicted_car, actual_car):

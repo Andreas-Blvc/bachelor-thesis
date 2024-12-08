@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Callable
 
 
-class AbstractRoadSegment(ABC):
+class AbstractRoad(ABC):
     """
     Abstract base class for different types of roads.
     Defines a standard interface for road methods and properties.

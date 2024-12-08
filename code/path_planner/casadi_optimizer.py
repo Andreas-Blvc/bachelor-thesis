@@ -15,6 +15,7 @@ class NonConvexPathPlanner:
         # Initialize the Opti object
         self.opti = ca.Opti()
 
+        self.solve_time = None
         self.dt = dt
         self.model = model
         self.N = int(time_horizon / dt)
@@ -66,7 +67,7 @@ class NonConvexPathPlanner:
 
         # Optionally, you can set solver options here
         p_opts = {"expand": True}
-        s_opts = {"max_iter": 20000}
+        s_opts = {"max_iter": 500, "print_level": 0}
         self.opti.solver('ipopt', p_opts, s_opts)
 
     def get_optimized_trajectory(self, initial_guess=None):
@@ -81,6 +82,9 @@ class NonConvexPathPlanner:
         try:
             # Solve the optimization problem
             solution = self.opti.solve()
+
+            # Capture the solve time from the solver stats
+            self.solve_time = solution.stats()['t_mainloop']
         except RuntimeError as e:
             # Handle solver errors (e.g., infeasibility)
             print("Solver failed:", e)

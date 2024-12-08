@@ -29,14 +29,5 @@ def create_scenario():
     planner = ConvexPathPlanner(model, dt, time_horizon, objective)
     car_states, control_inputs = planner.get_optimized_trajectory()
 
-    body_fixed_controls = []
-    for j in range(len(control_inputs)):
-        body_fixed_controls.append(
-            (
-                model.to_body_fixed(car_states[j], control_inputs[j])[0],
-                model.road.get_curvature_at(car_states[j][0]) * car_states[j][2]
-            )
-        )
-
     return Scenario(dt, model, car_states, control_inputs)
 

@@ -8,13 +8,9 @@ import numpy as np
 from models import AbstractVehicleModel
 from roads import Road
 from utils import MainPaperConstraintsReduction, State, StateRanges
-from visualizer import plot_with_bounds
 
 
 class RoadAlignedModel(AbstractVehicleModel):
-
-    def plot_additional_information(self):
-        pass
 
     def __init__(self,
                  initial_state: np.ndarray,
@@ -48,12 +44,16 @@ class RoadAlignedModel(AbstractVehicleModel):
         # Params
         self.dt = dt
         self.road = road
+        self.v_x_range = v_x_range
+        self.v_y_range = v_y_range
+        self.acc_x_range = acc_x_range
+        self.acc_y_range = acc_y_range
+        self.yaw_rate_range = yaw_rate_range
+        self.yaw_acc_range = yaw_acc_range
+        self.ranges = None
+        self.prev_road_segment_idx = None
 
         # Aliases for range access
-        self.c_min = road.get_curvature_min(float(initial_state[0]), float(goal_state[0] if goal_state else road.length))
-        self.c_max = road.get_curvature_max(float(initial_state[0]), float(goal_state[0]) if goal_state else road.length)
-        self.n_min = -road.width(0)/2  # TODO
-        self.n_max = road.width(0)/2  # TODO
         self.v_x_min, self.v_x_max = v_x_range
         self.v_y_min, self.v_y_max = v_y_range
         self.acc_x_min, self.acc_x_max = acc_x_range
@@ -62,50 +62,42 @@ class RoadAlignedModel(AbstractVehicleModel):
         self.yaw_acc_min, self.yaw_acc_max = yaw_acc_range
         self.a_max = a_max
 
-        ranges = StateRanges(
-            n=(self.n_min, self.n_max),
-            c=(self.c_min, self.c_max),
-            ds=(-0.01, 0.16), # tbd: should not be necessary to set here
-            dn=v_y_range,
-            u_n=None,
-            u_t=None,
-        )
-
-        MainPaperConstraintsReduction.apply_all(
-            state_ranges=ranges,
-            v_x_range=v_x_range,
-            acc_x_range=acc_x_range,
-            acc_y_range=acc_y_range,
-            yaw_rate_range=yaw_rate_range,
-            yaw_acc_range=yaw_acc_range,
-            curvature_derivative=road.get_curvature_derivative_at(0.5)  # constant for all s
-
-        )
-
-        self.ranges = ranges
-        # print(ranges)
-
         # helper:
         self.last_orientation = 0
 
+    def _get_polytopic_constrain_set(self, C, c_min, c_max, n_min, n_max):
+        # only update self.ranges if road_segment_idx changed
+        if self.ranges is not None and self.prev_road_segment_idx == self.road_segment_idx:
+            return
 
-    def to_body_fixed(self, x_tn, u):
-        a_tn = self.g(x_tn, u)
-        s, n, ds, dn = [x_tn[i] for i in range(self.dim_state)]
-        # u_t, u_n = [u[i] for i in range(self.dim_control_input)]
-        C = self.road.get_curvature_at(s)
-        return (
-            a_tn[0] + C*ds*dn,
-            a_tn[1] - C*(ds**2)*(1-n*C),
+        self.prev_road_segment_idx = self.road_segment_idx
+        self.ranges = StateRanges(
+            n=(n_min, n_max),
+            c=(c_min, c_max),
+            ds=self.v_x_range,
+            dn=self.v_y_range,
+            u_n=None,
+            u_t=None,
+        )
+        # updates ranges in place
+        MainPaperConstraintsReduction.apply_all(
+            state_ranges=self.ranges,
+            v_x_range=self.v_x_range,
+            acc_x_range=self.acc_x_range,
+            acc_y_range=self.acc_y_range,
+            yaw_rate_range=self.yaw_rate_range,
+            yaw_acc_range=self.yaw_acc_range,
+            curvature_derivative=C(0)  # constant for all s
         )
 
-    def g(self, x_tn, u):
+
+    def g(self, x_tn, u, C, dC):
         s, n, ds, dn = [x_tn[i] for i in range(self.dim_state)]
         u_t, u_n = [u[i] for i in range(self.dim_control_input)]
         return [
-            (1 - n*self.road.get_curvature_at(s)) * u_t -
-            (2*dn*self.road.get_curvature_at(s)*ds + n*self.road.get_curvature_derivative_at(s)*ds**2),
-            u_n + self.road.get_curvature_at(s) * ds**2 * (1-n*self.road.get_curvature_at(s)),
+            (1 - n*C(s)) * u_t -
+            (2*dn*C(s)*ds + n*dC(s)*ds**2),
+            u_n + C(s) * ds**2 * (1-n*C(s)),
         ]
 
     def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
@@ -121,11 +113,18 @@ class RoadAlignedModel(AbstractVehicleModel):
 
         s, n, ds, dn = [current_state[i] for i in range(self.dim_state)]
         u_t, u_n = [control_inputs[i] for i in range(self.dim_control_input)]
-        g = self.g(current_state, control_inputs)
 
         if np.isscalar(s):
             next_state = current_state + dx_dt * self.dt
             return next_state, []
+
+        variables = self.road.get_segment_dependent_variables(s, self.solver_type == 'casadi', self.road_segment_idx)
+        C = variables.C
+        dC = variables.dC
+        c_min = variables.c_min
+        c_max = variables.c_max
+        n_min = variables.n_min
+        n_max = variables.n_max
 
         if self.solver_type == 'casadi':
             # Compute the next state based on the input accelerations
@@ -133,28 +132,31 @@ class RoadAlignedModel(AbstractVehicleModel):
                 current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)
             ])
 
+            g = self.g(current_state, control_inputs, C, dC)
+
             # Define the constraint for acceleration within limits
             constraints = [
-                # 0 <= s, s <= 1,
-                # 0 <= ds,
-                self.c_min <= self.road.get_curvature_at(s), self.road.get_curvature_at(s) <= self.c_max,
-                self.n_min <= n, n <= self.n_max,
-                self.v_x_min <= ds*(1 + n*self.road.get_curvature_at(s)),
-                ds*(1 + n*self.road.get_curvature_at(s)) <= self.v_x_max,
+                #  the next constraint is replaced by 0<=s<=road.length:
+                # self.c_min <= C(s), C(s) <= self.c_max,
+                0 <= s, s <= self.road.length,
+                n_min <= n, n <= n_max,
+                self.v_x_min <= ds*(1 + n*C(s)),
+                ds*(1 + n*C(s)) <= self.v_x_max,
                 self.v_y_min <= dn, dn <= self.v_y_max,
-                self.yaw_rate_min <= self.road.get_curvature_at(s) * ds,
-                self.road.get_curvature_at(s) * ds <= self.yaw_rate_max,
-                self.yaw_acc_min <= self.road.get_curvature_derivative_at(s) * ds**2 + self.road.get_curvature_at(s) * u_t,
-                self.road.get_curvature_derivative_at(s) * ds ** 2 + self.road.get_curvature_at(s) * u_t <= self.yaw_acc_max,
+                self.yaw_rate_min <= C(s) * ds,
+                C(s) * ds <= self.yaw_rate_max,
+                self.yaw_acc_min <= dC(s) * ds**2 + C(s) * u_t,
+                dC(s) * ds ** 2 + C(s) * u_t <= self.yaw_acc_max,
                 self.acc_x_min <= g[0], g[0] <= self.acc_x_max,
                 self.acc_y_min <= g[1], g[1] <= self.acc_y_max,
                 g[0]**2 + g[1]**2 <= self.a_max,
             ]
         elif self.solver_type == 'cvxpy':
+            self._get_polytopic_constrain_set(C, c_min, c_max, n_min, n_max) # initializes/updates self.ranges
             next_state = cp.vstack([current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)]).flatten()
             constraints = [
-                0 <= s, s <= 1,
-                self.ranges.c[0] <= self.road.get_curvature_at(s), self.road.get_curvature_at(s) <= self.ranges.c[1],
+                0 <= s, s <= self.road.length,
+                self.ranges.c[0] <= C(s), C(s) <= self.ranges.c[1],
                 self.ranges.n[0] <= n, n <= self.ranges.n[1],
                 self.ranges.ds[0] <= ds, ds <= self.ranges.ds[1],
                 self.ranges.dn[0] <= dn, dn <= self.ranges.dn[1],
@@ -172,6 +174,12 @@ class RoadAlignedModel(AbstractVehicleModel):
                        (1, -0.5),
             (-1, -0.5)
         ]
+
+    def get_v_max(self):
+        return self.v_x_max
+
+    def plot_additional_information(self):
+        print(self.ranges)
 
     def convert_vec_to_state(self, vec) -> State:
         # vec: s, n, ds, dn

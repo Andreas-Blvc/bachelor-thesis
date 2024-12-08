@@ -67,6 +67,11 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
                  goal_state: np.ndarray=None,
                  l_wb: float = 1.8,
                  ):
+        """
+            Initialize the RoadAlignedModel.
+
+            :param initial_state: Initial state vector of shape (5,) representing [s, n, xi, v, delta].
+        """
         super().__init__(
             dim_state=5,
             dim_control_input=2,
@@ -80,14 +85,9 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         self.road = road
         self.L_wb = l_wb
 
-        # Aliases
-        self.C = road.get_curvature_at
-        self.dC = road.get_curvature_derivative_at
-
         # Aliases for range access
         self.v_min, self.v_max = v_range
         self.a_min, self.a_max = acc_range
-        self.n_min, self.n_max = -road.width(0)/2, road.width(0)/2  # TODO
         self.steering_angle_min, self.steering_angle_max = steering_angle_range
         self.steering_velocity_min, self.steering_velocity_max = steering_velocity_range
 
@@ -101,34 +101,6 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         self.xi_abs_bound = 45/180 * pi
         self._mccormick_relaxations: List[Tuple[McCormickConvexRelaxation]] = []
 
-    def curvature_at(self, s):
-        if self.solver_type == 'casadi':
-            current_length = 0
-            curvature = 0
-
-            for segment in self.road.segments:
-                segment_length = segment.length
-
-                # Define the local s for this segment
-                local_s = s - current_length
-
-                # Check if `s` is in this segment
-                in_segment = ca.logic_and(current_length <= s, s <= current_length + segment_length)
-
-                # Use casadi.if_else to set the value of curvature_derivative if `s` is within this segment
-                curvature = ca.if_else(
-                    in_segment,
-                    segment.get_curvature_at(local_s),
-                    curvature
-                )
-
-                # Update current length
-                current_length += segment_length
-
-            return curvature
-        else:
-            self._raise_unsupported_solver()
-
     def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
@@ -136,9 +108,14 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         s, n, xi, v, delta = [current_state[i] for i in range(self.dim_state)]
         a_x_b, v_delta = [control_inputs[i] for i in range(self.dim_control_input)]
 
+        variables = self.road.get_segment_dependent_variables(s, self.solver_type == 'casadi', self.road_segment_idx)
+        C = variables.C
+        n_min = variables.n_min
+        n_max = variables.n_max
+
         if np.isscalar(s):
-            ds = np.cos(xi) * v / (1 - n * self.C(s))
-            d_theta = self.C(s) * ds
+            ds = np.cos(xi) * v / (1 - n * C(s))
+            d_theta = C(s) * ds
             d_phi = (v / self.L_wb) * np.tan(delta)
             next_state = np.array([
                 s + ds * self.dt,
@@ -151,8 +128,8 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
 
         constraints = []
         if self.solver_type == 'casadi':
-            ds = ca.cos(xi) * v / (1 - n * self.curvature_at(s))
-            d_theta = self.curvature_at(s) * ds
+            ds = ca.cos(xi) * v / (1 - n * C(s))
+            d_theta = C(s) * ds
             d_phi = (v / self.L_wb) * ca.tan(delta)
             next_state = ca.vertcat(*[
                 s + ds * self.dt,
@@ -163,7 +140,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             ])
         elif self.solver_type == 'cvxpy':
             # We have following non-linear terms:
-            # 1. v * cos(xi) / (1 - n * self.C(s)) (ds-term)
+            # 1. v * cos(xi) / (1 - n * C(s)) (ds-term)
             # 2. v * sin(xi) (dn-term)
             # 3. v * tan(delta) (dxi-term)
             ds_term, dn_term, dxi_term = self._convex_relax_bilinear_terms(s, n, xi, v, delta, constraints)
@@ -171,7 +148,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             next_state = cp.vstack([
                 s + ds_term * self.dt,
                 n + dn_term * self.dt,
-                xi + (1/self.L_wb * dxi_term - self.C(s) * ds_term) * self.dt,
+                xi + (1/self.L_wb * dxi_term - C(s) * ds_term) * self.dt,
                 v + a_x_b * self.dt,
                 delta + v_delta * self.dt,
             ]).flatten()
@@ -180,7 +157,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
 
         constraints += [
             0 <= s, s <= self.road.length,
-            self.n_min <= n, n <= self.n_max,
+            n_min <= n, n <= n_max,  # depends on current road segment
             self.v_min <= v, v <= self.v_max,
             self.steering_angle_min <= delta, delta <= self.steering_angle_max,
             self.steering_velocity_min <= v_delta, v_delta <= self.steering_velocity_max,
@@ -189,12 +166,12 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
 
         return next_state, constraints
 
-    def _taylor_approximate_terms(self, s, n, xi, v, delta):
+    def _taylor_approximate_terms(self, s, n, xi, v, delta, C):
         ds_term = (
-                (self.v_0 * cos(self.xi_0)) / (1 - self.C(s) * self.n_0) +
-                cos(self.xi_0) / (1 - self.C(s) * self.n_0) * (v - self.v_0) +
-                -self.v_0 * sin(self.xi_0) / (1 - self.C(s) * self.n_0) * (xi - self.xi_0) +
-                -self.v_0 * cos(self.xi_0) * self.C(s) / (1 - self.C(s) * self.n_0)**2 * (n - self.n_0)
+                (self.v_0 * cos(self.xi_0)) / (1 - C(s) * self.n_0) +
+                cos(self.xi_0) / (1 - C(s) * self.n_0) * (v - self.v_0) +
+                -self.v_0 * sin(self.xi_0) / (1 - C(s) * self.n_0) * (xi - self.xi_0) +
+                -self.v_0 * cos(self.xi_0) * C(s) / (1 - C(s) * self.n_0)**2 * (n - self.n_0)
         )
         dn_term = (
                 self.v_0 * sin(self.xi_0) +
@@ -273,6 +250,9 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             (1, -0.5),
             (-1, -0.5),
         ]
+
+    def get_v_max(self):
+        return self.v_max
 
     def convert_vec_to_state(self, vec) -> State:
         # vec: s, n, xi, v, delta

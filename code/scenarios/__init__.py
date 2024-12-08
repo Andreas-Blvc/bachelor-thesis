@@ -1,1 +1,1 @@
-from . import collection, benchmarks
+from ._scenario import Scenario

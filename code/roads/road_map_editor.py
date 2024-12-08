@@ -6,27 +6,27 @@ import dill as pickle
 from typing import List, Tuple
 
 from .road import Road
-from .road_interface import AbstractRoadSegment
+from .road_interface import AbstractRoad
 from .segments import StraightRoad, CircularCurveRoad
 
+from visualizer import HEIGHT as PATH_PLANNER_HEIGHT, WIDTH as PATH_PLANNER_WIDTH
+
 # CONSTANTS
-TK_WIDTH = 800
-TK_HEIGHT = 800
-PATH_PLANNER_HEIGHT = 20
-PATH_PLANNER_WIDTH = 20
+TK_WIDTH = 700
+TK_HEIGHT = 700
 GRID_SPACING = 20
 DATA_FOLDER = "data"
 
 def tk_to_path_coord(x: float, y: float) -> Tuple[float, float]:
     return (
         x * (PATH_PLANNER_WIDTH / TK_WIDTH),
-        -y * (PATH_PLANNER_HEIGHT / TK_HEIGHT)
+        (-y + TK_HEIGHT) * (PATH_PLANNER_HEIGHT / TK_HEIGHT)
     )
 
 def path_to_tk_coord(x: float, y: float) -> Tuple[float, float]:
     return (
         x * (TK_WIDTH / PATH_PLANNER_WIDTH),
-        -y * (TK_HEIGHT / PATH_PLANNER_HEIGHT)
+        (-y + PATH_PLANNER_HEIGHT) * (TK_HEIGHT / PATH_PLANNER_HEIGHT)
     )
 
 class RoadMapEditor:
@@ -78,7 +78,7 @@ class RoadMapEditor:
         # Event bindings for road drawing
         self.canvas.bind("<Button-1>", self.on_click)
 
-        self.roads: List[AbstractRoadSegment] = []  # Store created road segments
+        self.roads: List[AbstractRoad] = []  # Store created road segments
         self.last_endpoint = None  # Track the last endpoint of the most recent road
         self.full_road = None  # Full road composed of segments
 
@@ -133,7 +133,7 @@ class RoadMapEditor:
                 )
                 direction_angle = math.radians(direction_angle) if direction_angle else 0.0
             else:
-                direction_angle = self.roads[-1].get_tangent_angle_at(1)
+                direction_angle = self.roads[-1].get_tangent_angle_at(self.roads[-1].length)
 
             # Example: create a StraightRoad starting at last endpoint or click point
             road = StraightRoad(width=width, length=length, start_position=(x, y), direction_angle=direction_angle)
@@ -168,9 +168,9 @@ class RoadMapEditor:
             angle_sweep = math.radians(angle_sweep) if angle_sweep else math.pi / 2
 
             if start_angle is None:
-                start_angle = (1.5 if angle_sweep > 0 else 0.5) * math.pi + self.roads[-1].get_tangent_angle_at(1)
+                start_angle = (1.5 if angle_sweep > 0 else 0.5) * math.pi + self.roads[-1].get_tangent_angle_at(self.roads[-1].length)
 
-            previous_angle = self.roads[-1].get_tangent_angle_at(1) if len(self.roads) > 0 else 0
+            previous_angle = self.roads[-1].get_tangent_angle_at(self.roads[-1].length) if len(self.roads) > 0 else 0
             road = CircularCurveRoad(
                 width=width,
                 radius=radius,
@@ -261,7 +261,7 @@ class RoadMapEditor:
             self.roads = loaded_road.get_all_segments()
             for segment in self.roads:
                 self.draw_road(segment)
-            print(f"Road loaded from {filepath}.")
+            # print(f"Road loaded from {filepath}.")
         else:
             print("Invalid road file.")
 
@@ -302,11 +302,11 @@ def load_road(filepath: str =None):
         return
 
     with open(filepath, "rb") as file:
-        print(filepath)
+        # print(filepath)
         loaded_road = pickle.load(file)
 
     if isinstance(loaded_road, Road):
-        print(f"Road loaded from {filepath}.")
+        # print(f"Road loaded from {filepath}.")
         return loaded_road
     else:
         print("Invalid road file.")

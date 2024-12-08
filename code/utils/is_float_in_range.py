@@ -1,4 +1,4 @@
-def is_float_in_range(value, lower_bound, upper_bound, margin=1e-6):
+def is_float_in_range(value, lower_bound, upper_bound, margin=1e-3):
     """
     Check if a float value is within a range [lower_bound, upper_bound]
     with a specified margin of error.
