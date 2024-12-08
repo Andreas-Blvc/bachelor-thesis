@@ -8,9 +8,9 @@ from utils import State, ControlInput
 # defines a velocity in m/s
 class Velocity(Enum):
     Slow = 1
-    Medium = 10
-    Fast = 40
-    VeryFast = 100
+    Medium = 5
+    Fast = 10
+    VeryFast = 20
 
 # defines the lower and upper bound in percentage of the reference velocity
 class VelocityRange(Enum):
@@ -29,9 +29,10 @@ class LateralOffset(Enum):
     FarRight = 1
 
 class Road(Enum):
-    RightTurn = './data/right_turn_simple.pkl'
-    LeftTurn = './data/left_turn_simple.pkl'
+    S_Curve = './data/s_turn.pkl'
     FirstTransition = './data/first_transition.pkl'
+    Road_Narrowing = './data/road_narrowing.pkl'
+    Slalom = './data/slalom.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.
@@ -39,6 +40,7 @@ class TimeHoriozon(Enum):
     Short = 1
     Medium = 10
     Long = 30
+    VeryLong = 100
 
 # defines how many time steps per seconds
 class TimeDiscretization(Enum):

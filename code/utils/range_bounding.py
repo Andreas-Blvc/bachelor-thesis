@@ -56,13 +56,13 @@ def _affine_range_bounding(slope_range, intercept_range, lower_bound, upper_boun
     if slope_min == slope_max < 0:
         x_lb = (upper_bound - intercept_max) / slope_max
         x_ub = (lower_bound - intercept_min) / slope_max
-        return x_lb, x_ub if x_lb <= x_ub else (0, 0)
+        return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
 
     # 3.
     if slope_min == slope_max > 0:
         x_lb = (lower_bound - intercept_min) / slope_max
         x_ub = (upper_bound - intercept_max) / slope_max
-        return x_lb, x_ub if x_lb <= x_ub else (0, 0)
+        return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
 
     # 4.
     if slope_max < 0:
@@ -74,7 +74,7 @@ def _affine_range_bounding(slope_range, intercept_range, lower_bound, upper_boun
             x_ub = (lower_bound - intercept_min) / slope_max
         else:
             x_ub = (lower_bound - intercept_min) / slope_min
-        return x_lb, x_ub if x_lb <= x_ub else (0, 0)
+        return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
 
     # 5.
     if 0 < slope_min:
@@ -86,7 +86,7 @@ def _affine_range_bounding(slope_range, intercept_range, lower_bound, upper_boun
             x_ub = (upper_bound - intercept_max) / slope_min
         else:
             x_ub = (upper_bound - intercept_max) / slope_max
-        return x_lb, x_ub if x_lb <= x_ub else (0, 0)
+        return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
 
     #  6. 7. 8.
     # lower_bound < intercept_min and intercept_max < upper_bound:

@@ -1,4 +1,3 @@
-from math import atan
 from typing import Any, List, Tuple
 
 import casadi as ca
@@ -192,6 +191,8 @@ class RoadAlignedModel(AbstractVehicleModel):
             get_traveled_distance=lambda: vec[0] - self.initial_state[0],
             get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),
             to_string=lambda: self.state_vec_to_string(vec),
+            get_lateral_offset=lambda: vec[1],
+            get_alignment_error=lambda: 0,
             get_position_orientation=lambda: (
                 np.array(self.road.get_global_position(vec[0], vec[1])),
                 self.road.get_tangent_angle_at(vec[0]),

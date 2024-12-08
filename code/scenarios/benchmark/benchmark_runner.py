@@ -48,9 +48,9 @@ def run(config: BenchmarkConfiguration):
                     dt=dt,
                     road=road,
                     v_range=velocity_range,
-                    acc_range=(-2, 2),
-                    steering_angle_range=((-30 / 180) * np.pi, (30 / 180) * np.pi),
-                    steering_velocity_range=(-3, 3),
+                    acc_range=(-4, 4),
+                    steering_angle_range=((-45 / 180) * np.pi, (45 / 180) * np.pi),
+                    steering_velocity_range=(-1, 1),
                     l_wb=2
                 )
             case Model.RoadAlignedModel:
@@ -64,18 +64,26 @@ def run(config: BenchmarkConfiguration):
                     acc_x_range=(-2, 2),
                     acc_y_range=(-2, 2),
                     yaw_rate_range=(-1, 1),
-                    yaw_acc_range=(-0.3, 0.3),
+                    yaw_acc_range=(-0.9, 0.9),
                     a_max=4,
                 )
             case _:
                 raise ValueError('model type not supported')
-
-        planned_states, actual_states, controls, solve_time = _get_planned_trajectory(
-            vehicle_model,
-            non_convex=solver_type == SolverType.NonConvex
+        try:
+            print(f'Starting planning for {model_type.value}')
+            planned_states, actual_states, controls, solve_time = _get_planned_trajectory(
+                vehicle_model,
+                non_convex=solver_type == SolverType.NonConvex
+            )
+        except ValueError as e:
+            print(f"{model_type.value} failed")
+            print(e)
+            continue
+        print(
+            f"{model_type.value}, solve time {'(NonConvex)' if solver_type == SolverType.NonConvex else ''}: "
+            f"{solve_time * 1000:.1f}ms, "
+            f"state transitions: {len(controls)}"
         )
-        print(f"{model_type.value}, solve time {'(NonConvex)' if solver_type == SolverType.NonConvex else ''}: "
-              f"{solve_time * 1000:.1f}ms")
         if controls is not None:
             scenarios.append(
                 Scenario(

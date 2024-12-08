@@ -9,6 +9,8 @@ class State:
             get_remaining_distance,
             get_position_orientation,
             to_string,
+            get_alignment_error,
+            get_lateral_offset,
     ):
         self._vec = vec
         self.get_distance_between = get_distance_between
@@ -17,6 +19,8 @@ class State:
         self.get_traveled_distance = get_traveled_distance
         self.get_remaining_distance = get_remaining_distance
         self.get_position_orientation = get_position_orientation
+        self.get_alignment_error = get_alignment_error
+        self.get_lateral_offset = get_lateral_offset
         self.to_string = to_string
 
     def as_vector(self):

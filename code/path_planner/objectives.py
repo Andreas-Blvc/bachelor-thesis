@@ -64,3 +64,11 @@ class Objectives:
         for state in states:
             objective += state.get_offset_from_reference_path()
         return objective, Objectives.Type.MINIMIZE
+
+    @staticmethod
+    def minimize_alignment_error_and_later_offset(states: List[State], control_inputs: List[ControlInput]):
+        _validate_typs(states, control_inputs)
+        objective = 0
+        for state in states:
+            objective += state.get_lateral_offset() ** 2 + state.get_alignment_error() ** 2
+        return objective, Objectives.Type.MINIMIZE

@@ -19,8 +19,8 @@ class StraightRoad(AbstractRoad):
         return 0.0  # No change in curvature for a straight road.
 
     def get_global_position(self, s: float, lateral_offset: float) -> Tuple[float, float]:
-        if s < -1e-6 or s > self.length+1e-6:
-            raise ValueError("s_param is out of bounds. It should be between 0 and the length of the road.")
+        if s < -1e-6 or s > self.length+1e-3:
+            raise ValueError(f"s_param={s} is out of bounds. It should be between 0 and the length of the road {self.length}.")
 
         x = self.start_position[0] + s * math.cos(self.direction_angle) - lateral_offset * math.sin(self.direction_angle)
         y = self.start_position[1] + s * math.sin(self.direction_angle) + lateral_offset * math.cos(self.direction_angle)

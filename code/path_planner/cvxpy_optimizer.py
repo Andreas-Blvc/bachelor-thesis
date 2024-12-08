@@ -1,7 +1,7 @@
 import cvxpy as cp
-from debugpy.common.timestamp import current
 
 from models import AbstractVehicleModel
+from roads import AbstractRoad
 
 from .objectives import Objectives
 
@@ -29,10 +29,20 @@ class ConvexPathPlanner:
         self.x = cp.Variable((state_transitions + 1, self.model.dim_state))  # State variables matrix: (N + 1, 4)
 
         constraints = [self.x[0, :] == initial_state]
+        additional_min_objective_term = 0
 
         # Goal state constraint (only position constraints at the final state)
         if goal_state is not None:
             constraints.append(self.x[state_transitions, :] == goal_state)
+        elif (
+                self.model.road_segment_idx is not None and
+                self.model.road_segment_idx < len(getattr(self.model.road, 'segments', [self.model.road])) - 1
+        ):
+            next_segment: AbstractRoad = getattr(self.model.road, 'segments')[self.model.road_segment_idx + 1]
+            final_state = self.model.convert_vec_to_state(self.x[state_transitions, :])
+            constraints.append(final_state.get_lateral_offset() <= next_segment.width(0)/2)
+            constraints.append(final_state.get_lateral_offset() >= -next_segment.width(0)/2)
+            additional_min_objective_term += 1e3 * final_state.get_alignment_error() ** 2 + 5 * final_state.get_lateral_offset() ** 2
 
         # Dynamics constraints vectorized over time horizon
         for j in range(state_transitions):
@@ -44,14 +54,21 @@ class ConvexPathPlanner:
             constraints += model_constraints
             constraints.append(self.x[j + 1, :].T == next_state)
 
+        # constraint goal_state:
+        _, goal_state_constraints = self.model.update(
+            current_state=self.x[state_transitions, :].T,
+            control_inputs=cp.Variable((self.model.dim_control_input, 1))  # dummy control input
+        )
+        constraints += goal_state_constraints
+
         # Define the optimization problem
         states = [self.model.convert_vec_to_state(self.x[j, :]) for j in range(state_transitions + 1)]
         control_inputs = [self.model.convert_vec_to_control_input(self.u[j, :]) for j in range(state_transitions)]
         objective, objective_type = self.get_objective(states, control_inputs)
         if objective_type == Objectives.Type.MINIMIZE:
-            self.prob = cp.Problem(cp.Minimize(objective), constraints)
+            self.prob = cp.Problem(cp.Minimize(objective + additional_min_objective_term), constraints)
         else:
-            self.prob = cp.Problem(cp.Maximize(objective), constraints)
+            self.prob = cp.Problem(cp.Maximize(objective - additional_min_objective_term), constraints)
 
     def get_optimized_trajectory(self):
         max_state_transitions = int(self.time_horizon / self.dt)
@@ -60,6 +77,7 @@ class ConvexPathPlanner:
         solve_time = 0
         states = [initial_state]
         control_inputs = []
+        failed = False
         for i, segment in enumerate(getattr(self.model.road, 'segments', [self.model.road])):
             self.model.road_segment_idx = i
             while True:
@@ -70,12 +88,22 @@ class ConvexPathPlanner:
                 if state_transitions == 0:
                     break
                 else:
+                    # print(f'Planning {state_transitions} transitions on {i}')
                     self.construct_problem(state_transitions, initial_state)
-                    self.prob.solve(solver='CLARABEL', verbose=self.verbose)
+                    self.prob.solve(solver='MOSEK', verbose=self.verbose)
                     solve_time += self.prob.solver_stats.solve_time
+                    if self.x.value is None:
+                        print(
+                            'cannot drive further, final state:\n',
+                            self.model.convert_vec_to_state(states[-1]).to_string()
+                        )
+                        failed = True
+                        break
                     states += [state for state in self.x.value][1:]
                     control_inputs += [control_input for control_input in self.u.value]
                     initial_state = states[-1]
+            if failed:
+                break
             prev_segments_length += segment.length
 
 

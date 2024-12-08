@@ -4,8 +4,8 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 
-WIDTH=20
-HEIGHT=20
+WIDTH=40
+HEIGHT=40
 
 class VehicleObject:
     def __init__(self, position, orientation, shape):

@@ -171,6 +171,12 @@ class Road(AbstractRoad):
         # save result:
         self.segment_dependent_variables = SegmentDependentVariables(C, dC, c_min, c_max, n_min, n_max)
         self.prev_road_segment_idx = road_segment_idx
+        # print(
+        #     f"c_min: {self.segment_dependent_variables.c_min}, "
+        #     f"c_max: {self.segment_dependent_variables.c_max}, "
+        #     f"n_min: {self.segment_dependent_variables.n_min}, "
+        #     f"n_max: {self.segment_dependent_variables.n_max}"
+        # )
         return self.segment_dependent_variables
 
     def get_total_length(self) -> float:

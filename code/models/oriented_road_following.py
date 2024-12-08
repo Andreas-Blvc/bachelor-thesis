@@ -268,6 +268,8 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
                 np.array(self.road.get_global_position(vec[0], vec[1])),
                 self.road.get_tangent_angle_at(vec[0]) + vec[2]
             ),
+            get_lateral_offset= lambda: vec[1],
+            get_alignment_error= lambda: vec[2],
             to_string=lambda: self.state_vec_to_string(vec),
         )
 

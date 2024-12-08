@@ -23,8 +23,8 @@ class CircularCurveRoad(AbstractRoad):
 
     def get_global_position(self, s: float, lateral_offset: float) -> Tuple[float, float]:
         # Ensure that s parameter is within the valid range
-        if s < -1e-6 or s > self.length+1e-6:
-            raise ValueError("s_param is out of bounds. It should be between 0 and the length of the road.")
+        if s < -1e-6 or s > self.length+1e-3:
+            raise ValueError(f"s_param={s} is out of bounds. It should be between 0 and the length of the road {self.length}.")
 
         # Calculate the angle based on s parameter and the total angle sweep
         angle = self.start_angle + (s / self.length) * self.angle_sweep
