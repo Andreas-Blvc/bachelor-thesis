@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Path to the Reveal.js presentations folder
-presentations_dir="/var/www/html/bachelor-thesis/presentations"
+presentations_dir="/Users/andreasbelavic/bachelor-thesis/presentations"
 
 # Path to the file storing the current week number
 counter_file="$presentations_dir/data/week_counter.txt"
 
 # Path to the JavaScript file where the presentations array will be stored
-js_file="/var/www/html/bachelor-thesis/presentations/data/presentations.js"
+js_file="$presentations_dir/data/presentations.js"
 
 # Check if the counter file exists
 if [ ! -f "$counter_file" ]; then
