@@ -89,9 +89,13 @@ class ConvexPathPlanner:
                     break
                 else:
                     # print(f'Planning {state_transitions} transitions on {i}')
-                    self.construct_problem(state_transitions, initial_state)
-                    self.prob.solve(solver='MOSEK', verbose=self.verbose)
-                    solve_time += self.prob.solver_stats.solve_time
+                    try:
+                        self.construct_problem(state_transitions, initial_state)
+                        self.prob.solve(solver='MOSEK', verbose=self.verbose)
+                        solve_time += self.prob.solver_stats.solve_time
+                    except ValueError as e:
+                        print('value error', e)
+
                     if self.x.value is None:
                         print(
                             'cannot drive further, final state:\n',

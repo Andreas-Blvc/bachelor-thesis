@@ -16,17 +16,17 @@ def run(config: BenchmarkConfiguration):
     road_aligned_initial_guess = None
 
     objective = config.objective
-    dt = config.time_discretization.value
-    time_horizon = config.time_horizon.value
-    road = load_road(config.road.value)
-    start_velocity = config.start_velocity.value
+    dt = config.time_discretization
+    time_horizon = config.time_horizon
+    road = load_road(config.road)
+    start_velocity = config.start_velocity
     start_offset = (
-        (1 - config.start_offset.value) * road.width(0)/2 +
-        config.start_offset.value * -road.width(0)/2
+        (1 - config.start_offset) * road.width(0)/2 +
+        config.start_offset * -road.width(0)/2
     )
     velocity_range = (
-        start_velocity * config.velocity_range.value[0],
-        start_velocity * config.velocity_range.value[1],
+        start_velocity * config.velocity_range[0],
+        start_velocity * config.velocity_range[1],
     )
 
     def _get_planned_trajectory(model, non_convex=False, initial_guess=None):
@@ -69,14 +69,14 @@ def run(config: BenchmarkConfiguration):
                     v_y_range=(-1, 1),
                     acc_x_range=(-2, 2),
                     acc_y_range=(-2, 2),
-                    yaw_rate_range=(-1, 1),
+                    yaw_rate_range=(-1, 0),
                     yaw_acc_range=(-0.9, 0.9),
                     a_max=4,
                 )
             case _:
                 raise ValueError('model type not supported')
         try:
-            print(f'Starting planning for {model_type.value} {"(NonConvex)" if solver_type == SolverType.NonConvex else ""}')
+            print(f'Starting planning for {model_type} {"(NonConvex)" if solver_type == SolverType.NonConvex else ""}')
             planned_states, actual_states, controls, solve_time = _get_planned_trajectory(
                 vehicle_model,
                 non_convex=solver_type == SolverType.NonConvex,
@@ -84,13 +84,13 @@ def run(config: BenchmarkConfiguration):
                     else oriented_road_following_initial_guess,
             )
         except ValueError as e:
-            print(f"{model_type.value} failed")
+            print(f"{model_type} failed")
             print(e)
             continue
 
         if controls is not None:
             print(
-                f"{model_type.value}, solve time {'(NonConvex)' if solver_type == SolverType.NonConvex else ''}: "
+                f"{model_type}, solve time {'(NonConvex)' if solver_type == SolverType.NonConvex else ''}: "
                 f"{solve_time * 1000:.1f}ms, "
                 f"state transitions: {len(controls)}"
             )
@@ -108,10 +108,10 @@ def run(config: BenchmarkConfiguration):
                     planned_states,
                     controls,
                     actual_states,
-                    title=f"{model_type.value} {'(NonConvex)' if solver_type == SolverType.NonConvex else ''}"
+                    title=f"{model_type} {'(NonConvex)' if solver_type == SolverType.NonConvex else ''}"
                 )
             )
         else:
-            print(f"{model_type.value} did not found a solution")
+            print(f"{model_type} did not found a solution")
 
     return scenarios

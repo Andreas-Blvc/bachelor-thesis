@@ -61,22 +61,39 @@ class Model(Enum):
 class BenchmarkConfiguration:
     def __init__(
             self,
-            start_velocity: Velocity,
-            start_offset: LateralOffset,
-            velocity_range: VelocityRange,
-            road: Road,
-            time_horizon: TimeHoriozon,
-            time_discretization: TimeDiscretization,
+            start_velocity: Velocity | float,
+            start_offset: LateralOffset | float,
+            velocity_range: VelocityRange | Tuple[float, float],
+            road: Road | str,
+            time_horizon: TimeHoriozon | int,
+            time_discretization: TimeDiscretization | float,
             models: List[Tuple[Model, SolverType]],
             objective: Callable[[List[State], List[ControlInput]], Tuple[Any, Objectives.Type]],
-
     ):
-        self.start_velocity = start_velocity
-        self.start_offset = start_offset
-        self.velocity_range = velocity_range
-        self.road = road
-        self.time_horizon = time_horizon
-        self.time_discretization = time_discretization
+        self.start_velocity = (
+            start_velocity.value if isinstance(start_velocity, Velocity) else start_velocity
+        )
+
+        self.start_offset = (
+            start_offset.value if isinstance(start_offset, LateralOffset) else start_offset
+        )
+
+        self.velocity_range = (
+            velocity_range.value if isinstance(velocity_range, VelocityRange) else velocity_range
+        )
+
+        self.time_horizon = (
+            time_horizon.value if isinstance(time_horizon, TimeHoriozon) else time_horizon
+        )
+
+        self.time_discretization = (
+            time_discretization.value if isinstance(time_discretization, TimeDiscretization) else time_discretization
+        )
+
+        self.road = (
+            road.value if isinstance(road, Road) else road
+        )
+
         self.models = models
         self.objective = objective
 
