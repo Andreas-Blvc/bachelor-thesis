@@ -215,8 +215,8 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             dxi_term_relaxation.get_relaxation_variable()
         )
 
-    def plot_additional_information(self):
-        # We want to plot the values of the relaxation variables, their bounds and the actual value
+    def plot_additional_information(self, states, controls):
+        # We want to plot the values of the relaxation variables, their bounds, the bilinear actual value, and the exact term
         for idx, y_label in enumerate(['dn_term', 'dxi_term']):
             bounds = []
             y_values = []
@@ -237,7 +237,44 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
                 y_values_list=y_values,
                 y_labels=y_labels,
                 y_label=y_label,
+                dt=self.dt,
             )
+
+        plot_with_bounds(
+            y_values_list=[
+                [
+                    v * cos(xi) / (1 - n * self.road.get_curvature_at(s)), v
+                ] for s, n, xi, v, delta in states
+            ],
+            y_labels=['actual', 'approximation'],
+            y_label='ds_term',
+            dt=self.dt,
+            no_bounds=True,
+        )
+        plot_with_bounds(
+            y_values_list=[
+                [
+                    v * sin(xi), v * xi
+                ] for _, _, xi, v, _ in states
+            ],
+            y_labels=['actual', 'approximation'],
+            y_label='dn_term',
+            dt=self.dt,
+            no_bounds=True,
+        )
+        plot_with_bounds(
+            y_values_list=[
+                [
+                    v * tan(delta), v * delta
+                ] for _, _, _, v, delta in states
+            ],
+            y_labels=['actual', 'approximation'],
+            y_label='dxi_term',
+            dt=self.dt,
+            no_bounds=True,
+        )
+
+
 
     def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
         front_wheel_front = self._add_tuple(self._rotate((0.5, 0), float(state[-1])), (1, 0))

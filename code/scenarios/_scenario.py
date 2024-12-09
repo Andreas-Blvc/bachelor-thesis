@@ -152,10 +152,16 @@ class Scenario:
         return self.anim
 
     def plot_states(self):
-        plot_states_or_inputs(self.actual_car_states, self.state_labels, self.dt)
+        plot_states_or_inputs(self.predicted_car_states, self.state_labels, self.dt)
 
     def plot_controls(self):
         plot_states_or_inputs(self.control_inputs, self.control_input_labels, self.dt)
+
+    def plot_additional_information(self):
+        self.model.plot_additional_information(self.predicted_car_states, self.control_inputs)
+
+    def plot_combined_curvature_and_derivative(self):
+        self.model.road.plot_combined_curvature_and_derivative()
 
     def __repr__(self):
         """

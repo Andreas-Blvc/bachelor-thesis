@@ -57,7 +57,7 @@ def run(config: BenchmarkConfiguration):
                     acc_range=(-4, 4),
                     steering_angle_range=((-45 / 180) * np.pi, (45 / 180) * np.pi),
                     steering_velocity_range=(-1, 1),
-                    l_wb=2
+                    l_wb=2.5
                 )
             case Model.RoadAlignedModel:
                 vehicle_model = RoadAlignedModel(

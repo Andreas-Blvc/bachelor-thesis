@@ -177,7 +177,7 @@ class RoadAlignedModel(AbstractVehicleModel):
     def get_v_max(self):
         return self.v_x_max
 
-    def plot_additional_information(self):
+    def plot_additional_information(self, states, controls):
         print(self.ranges)
 
     def convert_vec_to_state(self, vec) -> State:

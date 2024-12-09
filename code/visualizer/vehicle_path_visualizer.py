@@ -4,8 +4,8 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 
-WIDTH=40
-HEIGHT=40
+WIDTH=200
+HEIGHT=200
 
 class VehicleObject:
     def __init__(self, position, orientation, shape):
@@ -102,6 +102,9 @@ class VehiclePathVisualizer:
         """
         Update the animation frame with new car positions.
         """
+        zoom_width = 30  # Width of the zoomed-in view
+        zoom_height = 30  # Height of the zoomed-in view
+
         # Update paths
         if actual_car is not None:
             self.actual_path.append(actual_car.position)
@@ -110,11 +113,18 @@ class VehiclePathVisualizer:
                 [p[0] for p in self.actual_path], [p[1] for p in self.actual_path]
             )
 
+        # Recenter the view around the predicted car
+        center_x, center_y = predicted_car.position
+
         self.predicted_path.append(predicted_car.position)
         self.predicted_patch.set_xy(predicted_car.polygon_coordinates())
         self.predicted_path_line.set_data(
             [p[0] for p in self.predicted_path], [p[1] for p in self.predicted_path]
         )
+
+        # Set the zoomed-in view around the car
+        self.ax.set_xlim(center_x - zoom_width / 2, center_x + zoom_width / 2)
+        self.ax.set_ylim(center_y - zoom_height / 2, center_y + zoom_height / 2)
 
         # Redraw
         return self.predicted_patch, self.actual_patch, self.predicted_path_line, self.actual_path_line

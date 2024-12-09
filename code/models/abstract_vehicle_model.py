@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, List, Tuple, NoReturn, Callable
+from typing import Any, List, Tuple, NoReturn
 import numpy as np
 import casadi as ca
 import cvxpy as cp
@@ -34,7 +34,7 @@ class AbstractVehicleModel:
 	def convert_vec_to_state(self, vec) -> State:
 		raise "convert_vec_to_state not implemented"
 	@abstractmethod
-	def plot_additional_information(self):
+	def plot_additional_information(self, states, controls):
 		raise "plot_additional_information not implemented"
 	@abstractmethod
 	def get_v_max(self):

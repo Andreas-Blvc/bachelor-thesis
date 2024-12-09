@@ -7,6 +7,7 @@ from utils import State, ControlInput
 
 # defines a velocity in m/s
 class Velocity(Enum):
+    VerySlow = 0.5
     Slow = 1
     Medium = 5
     Fast = 10
@@ -33,6 +34,7 @@ class Road(Enum):
     FirstTransition = './data/first_transition.pkl'
     Road_Narrowing = './data/road_narrowing.pkl'
     Slalom = './data/slalom.pkl'
+    Three_Right_Turns = './data/3_right_turns.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.
