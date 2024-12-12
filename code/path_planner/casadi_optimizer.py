@@ -5,10 +5,17 @@ import sys
 from models import AbstractVehicleModel
 
 from .objectives import Objectives
+from .interface import AbstractPathPlanner
 
-
-class NonConvexPathPlanner:
+class NonConvexPathPlanner(AbstractPathPlanner):
     def __init__(self, model: AbstractVehicleModel, dt, time_horizon, get_objective):
+        super().__init__(
+            model,
+            dt,
+            time_horizon,
+            get_objective
+        )
+
         # Configure others
         model.solver_type = 'casadi'
         Objectives.norm = ca.sumsqr
@@ -45,7 +52,7 @@ class NonConvexPathPlanner:
             control_inputs = self.u[j, :].T
 
             # Update the model to get next state and any additional constraints
-            next_state, constraints = model.update(current_state, control_inputs)
+            next_state, constraints = model.update(current_state, control_inputs, dt)
 
             # Add model-specific equality constraints
             if constraints:

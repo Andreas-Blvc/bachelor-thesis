@@ -5,11 +5,11 @@ import casadi as ca
 import cvxpy as cp
 
 from utils import State, ControlInput
-from roads import Road
+from roads import AbstractRoad
 
 
 class AbstractVehicleModel:
-	road: Road = None
+	road: AbstractRoad = None
 	road_segment_idx: int = None
 	solver_type = None
 
@@ -25,11 +25,8 @@ class AbstractVehicleModel:
 		self._validate__state_dimension(goal_state) if goal_state is not None else None
 
 	@abstractmethod
-	def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
+	def update(self, current_state, control_inputs, dt: float) -> Tuple[np.ndarray, List[Any]]:
 		raise 'update not implemented'
-	@abstractmethod
-	def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
-		raise "get_vehicle_polygon not implemented"
 	@abstractmethod
 	def convert_vec_to_state(self, vec) -> State:
 		raise "convert_vec_to_state not implemented"
@@ -42,7 +39,7 @@ class AbstractVehicleModel:
 
 	def convert_vec_to_control_input(self, vec) -> ControlInput:
 		self._validate__control_dimension(vec)
-		return ControlInput(vec, to_string=lambda: self.control_vec_to_string(vec))
+		return ControlInput(vec, to_string=lambda: self._control_vec_to_string(vec))
 
 	def _validate__state_dimension(self, state):
 		if state.shape != (self.dim_state,) and state.shape != (self.dim_state, 1):
@@ -56,13 +53,13 @@ class AbstractVehicleModel:
 				f"or ({self.dim_control_input}, 1), got {control.shape}")
 
 
-	def state_vec_to_string(self, state_vec):
+	def _state_vec_to_string(self, state_vec):
 		self._validate__state_dimension(state_vec)
 		if self.state_labels is None:
 			raise ValueError("state_labels not defined")
 		return "State: " + ", ".join([f"({self.state_labels[i]}: {v:.2f})" for i, v in enumerate(state_vec)])
 
-	def control_vec_to_string(self, control_vec):
+	def _control_vec_to_string(self, control_vec):
 		self._validate__control_dimension(control_vec)
 		if self.control_input_labels is None:
 			raise ValueError("control_input_labels not defined")

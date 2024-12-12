@@ -1,1 +1,3 @@
-from ._scenario import Scenario
+import warnings
+warnings.warn("the obstacle module is deprecated", DeprecationWarning,
+              stacklevel=2)

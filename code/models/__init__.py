@@ -1,4 +1,4 @@
-from .abstract_vehicle_model import AbstractVehicleModel
+from .interface import AbstractVehicleModel
 from .oriented_road_following import OrientedRoadFollowingModel
 from .point_mass_model import PointMassModel
 from .road_aligned_model import RoadAlignedModel

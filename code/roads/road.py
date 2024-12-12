@@ -3,7 +3,7 @@ import numpy as np
 from typing import List, Tuple, Callable, Any
 
 from utils import is_float_in_range
-from .road_interface import AbstractRoad
+from .interface import AbstractRoad
 
 class SegmentDependentVariables:
     def __init__(self, C: Callable[[Any], Any], dC: Callable[[Any], Any], c_min, c_max, n_min, n_max):
@@ -31,9 +31,9 @@ class Road(AbstractRoad):
                     return segment.width(local_s)
                 current_length += segment_length
             return 0.0
-        super().__init__(self.get_total_length(), width)
+        super().__init__(self._get_total_length(), width)
 
-    def compute_casadi_segment_dependent_variable(self, s, callback: Callable[[AbstractRoad, Any], Any]):
+    def _compute_casadi_segment_dependent_variable(self, s, callback: Callable[[AbstractRoad, Any], Any]):
         """
         Computes a segment-dependent variable for a given position `s` on the road
         specifically for the CasADi solver.
@@ -64,6 +64,7 @@ class Road(AbstractRoad):
 
         return segment_dependent_variable
 
+    # TODO: not part of interface, but need by the models, probably move it there
     def get_segment_dependent_variables(self, s, use_casadi: bool=False, road_segment_idx: int=None) -> SegmentDependentVariables:
         """
         Retrieves road segment-dependent variables: curvature function, curvature bounds and width bounds.
@@ -104,28 +105,28 @@ class Road(AbstractRoad):
 
         # CasADi solver case
         elif use_casadi:
-            C = lambda longitudinal_offset: self.compute_casadi_segment_dependent_variable(
+            C = lambda longitudinal_offset: self._compute_casadi_segment_dependent_variable(
                 longitudinal_offset,
                 lambda road_segment, local_s: road_segment.get_curvature_at(local_s)
             )
-            dC = lambda longitudinal_offset: self.compute_casadi_segment_dependent_variable(
+            dC = lambda longitudinal_offset: self._compute_casadi_segment_dependent_variable(
                 longitudinal_offset,
                 lambda road_segment, local_s: road_segment.get_curvature_derivative_at(local_s)
             )
-            c_min = self.compute_casadi_segment_dependent_variable(
+            c_min = self._compute_casadi_segment_dependent_variable(
                 s,
                 lambda road_segment, _: road_segment.get_curvature_min(0, road_segment.length)
             )
-            c_max = self.compute_casadi_segment_dependent_variable(
+            c_max = self._compute_casadi_segment_dependent_variable(
                 s,
                 lambda road_segment, _: road_segment.get_curvature_max(0, road_segment.length)
             )
             # width on whole segment constant:
-            n_min = self.compute_casadi_segment_dependent_variable(
+            n_min = self._compute_casadi_segment_dependent_variable(
                 s,
                 lambda road_segment, local_s: -road_segment.width(local_s) / 2
             )
-            n_max = self.compute_casadi_segment_dependent_variable(
+            n_max = self._compute_casadi_segment_dependent_variable(
                 s,
                 lambda road_segment, local_s: road_segment.width(local_s) / 2
             )
@@ -179,7 +180,7 @@ class Road(AbstractRoad):
         # )
         return self.segment_dependent_variables
 
-    def get_total_length(self) -> float:
+    def _get_total_length(self) -> float:
         return sum(segment.length for segment in self.segments)
 
     def get_all_segments(self) -> List[AbstractRoad]:

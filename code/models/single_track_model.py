@@ -1,4 +1,3 @@
-from math import cos, pi, sin
 from typing import Any, List, Tuple, Union
 
 import casadi as ca
@@ -27,7 +26,6 @@ class SingleTrackModel(AbstractVehicleModel):
         steering_angle_range: Tuple[float, float],
         velocity_range: Tuple[float, float],
         acceleration_range: Tuple[float, float],
-        dt: float,
     ):
         """
         Initialize the SingleTrackModel.
@@ -40,8 +38,6 @@ class SingleTrackModel(AbstractVehicleModel):
         :param steering_angle_range: Tuple representing the lower and upper bounds of steering angle (in radians).
         :param velocity_range: Tuple representing the lower and upper bounds of velocity.
         :param acceleration_range: Tuple representing the lower and upper bounds of acceleration.
-        :param dt: Time step for state updates.
-        :param solver_type: Type of solver to use ('cvxpy' or 'casadi').
         :raises ValueError: If invalid solver_type is provided.
         """
         super().__init__(
@@ -53,7 +49,6 @@ class SingleTrackModel(AbstractVehicleModel):
             goal_state=goal_state,
         )
         # params
-        self.dt = dt
         self.l_wb = l_wb
         self.v_s = v_s
 
@@ -147,13 +142,15 @@ class SingleTrackModel(AbstractVehicleModel):
     def update(
         self,
         current_state: np.ndarray,
-        control_inputs: np.ndarray
+        control_inputs: np.ndarray,
+        dt: float,
     ) -> Tuple[np.ndarray, List[Any]]:
         """
         Update the vehicle's state based on current state and control inputs.
 
         :param current_state: Current state vector [x_position, y_position, steering_angle, velocity, orientation].
         :param control_inputs: Control inputs [steering_velocity, acceleration].
+        :param dt: Time step for state updates.
         :return: Tuple containing the next state and list of constraints.
         :raises ValueError: If input shapes are incorrect.
         """
@@ -197,7 +194,7 @@ class SingleTrackModel(AbstractVehicleModel):
 
             # Next state
             next_state = ca.vertcat(*[
-                current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)
+                current_state[i] + dx_dt[i] * dt for i in range(self.dim_state)
             ])
 
             constraints = steering_constraints + acceleration_constraints + [
@@ -212,66 +209,6 @@ class SingleTrackModel(AbstractVehicleModel):
 
         return next_state, constraints
 
-    def accurate_acceleration_ub(self, v):
-        return self.a_max * self.v_s / np.max((v, self.v_s))
-
-    def accurate_steer(self, steering_angle, steering_velocity):
-        if ((steering_angle <= self.steering_angle_lb and steering_velocity <= 0)
-                or (steering_angle >= self.steering_angle_ub and steering_velocity >= 0)):
-            return 0
-        else:
-            return np.min((np.max((steering_velocity, self.steering_velocity_lb)), self.steering_velocity_ub))
-
-    def accurate_acc(self, velocity, acc_input):
-        if (velocity <= self.velocity_lb and acc_input <= 0) or (velocity >= self.velocity_ub and acc_input >= 0):
-            return 0
-        else:
-            return np.min((np.max((acc_input, self.acceleration_lb)), self.accurate_acceleration_ub(velocity)))
-
-    def accurate_update(
-            self,
-            current_state: np.ndarray,
-            control_inputs: np.ndarray
-    ):
-        _, _, x3, x4, x5 = current_state.flatten()
-        u1, u2 = control_inputs.flatten()
-        dx_dt = np.reshape([
-            x4 * np.cos(x5),
-            x4 * np.sin(x5),
-            self.accurate_steer(x3, u1),
-            self.accurate_acc(x4, u2),
-            (x4/self.l_wb) * np.tan(x3)
-        ], (self.dim_state,))
-
-        return current_state + dx_dt * self.dt
-
-    def get_vehicle_polygon(self, state: np.ndarray) -> List[Tuple[float, float]]:
-        front_wheel_front = self._add_tuple(self._rotate((0.5, 0), float(state[2])), (1, 0))
-        front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), float(state[2])), (1, 0))
-        return [
-            (-1, 0.5), (1, 0.5),
-                                (1, 0),
-                    front_wheel_back, front_wheel_front,
-                                (1, 0),
-                       (1, -0.5),
-            (-1, -0.5),
-        ]
-
-    @staticmethod
-    def _add_tuple(a: Tuple[float, float], b: Tuple[float, float]) -> Tuple[float, float]:
-        return (
-            a[0] + b[0],
-            a[1] + b[1],
-        )
-
-    @staticmethod
-    def _rotate(point: Tuple[float, float], theta: float) -> Tuple[float, float]:
-        x, y = point
-        return (
-            x * cos(theta) - y * sin(theta),
-            y * cos(theta) + x * sin(theta),
-        )
-
     def convert_vec_to_state(self, vec) -> State:
         # vec: x_position, y_position, steering_angle, velocity, orientation
         self._validate__state_dimension(vec)
@@ -285,5 +222,5 @@ class SingleTrackModel(AbstractVehicleModel):
             get_position_orientation=lambda: (
                 vec[:2], float(vec[4])
             ),
-            to_string=self.state_vec_to_string(vec)
+            to_string=self._state_vec_to_string(vec)
         )

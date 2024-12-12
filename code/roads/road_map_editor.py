@@ -6,16 +6,10 @@ import dill as pickle
 from typing import List, Tuple
 
 from .road import Road
-from .road_interface import AbstractRoad
+from .interface import AbstractRoad
 from .segments import StraightRoad, CircularCurveRoad
+from utils.constants import *
 
-from visualizer import HEIGHT as PATH_PLANNER_HEIGHT, WIDTH as PATH_PLANNER_WIDTH
-
-# CONSTANTS
-TK_WIDTH = 700
-TK_HEIGHT = 700
-GRID_SPACING = 20
-DATA_FOLDER = "data"
 
 def tk_to_path_coord(x: float, y: float) -> Tuple[float, float]:
     return (

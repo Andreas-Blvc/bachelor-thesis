@@ -57,7 +57,6 @@ class McCormickConvexRelaxation:
 
 class OrientedRoadFollowingModel(AbstractVehicleModel):
     def __init__(self,
-                 dt: float,
                  v_range: Tuple[float, float],
                  acc_range: Tuple[float, float],
                  steering_angle_range: Tuple[float, float],
@@ -81,7 +80,6 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             goal_state = goal_state,
         )
         # Params:
-        self.dt = dt
         self.road = road
         self.L_wb = l_wb
 
@@ -101,7 +99,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         self.xi_abs_bound = 45/180 * pi
         self._mccormick_relaxations: List[Tuple[McCormickConvexRelaxation]] = []
 
-    def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
+    def update(self, current_state, control_inputs, dt) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -118,11 +116,11 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             d_theta = C(s) * ds
             d_phi = (v / self.L_wb) * np.tan(delta)
             next_state = np.array([
-                s + ds * self.dt,
-                n + v * np.sin(xi) * self.dt,
-                xi + (d_phi - d_theta) * self.dt,
-                v + a_x_b * self.dt,
-                delta + v_delta * self.dt,
+                s + ds * dt,
+                n + v * np.sin(xi) * dt,
+                xi + (d_phi - d_theta) * dt,
+                v + a_x_b * dt,
+                delta + v_delta * dt,
             ])
             return next_state, []
 
@@ -132,11 +130,11 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             d_theta = C(s) * ds
             d_phi = (v / self.L_wb) * ca.tan(delta)
             next_state = ca.vertcat(*[
-                s + ds * self.dt,
-                n + v * ca.sin(xi) * self.dt,
-                xi + (d_phi - d_theta) * self.dt,
-                v + a_x_b * self.dt,
-                delta + v_delta * self.dt,
+                s + ds * dt,
+                n + v * ca.sin(xi) * dt,
+                xi + (d_phi - d_theta) * dt,
+                v + a_x_b * dt,
+                delta + v_delta * dt,
             ])
         elif self.solver_type == 'cvxpy':
             # We have following non-linear terms:
@@ -146,11 +144,11 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             ds_term, dn_term, dxi_term = self._convex_relax_bilinear_terms(s, n, xi, v, delta, constraints)
 
             next_state = cp.vstack([
-                s + ds_term * self.dt,
-                n + dn_term * self.dt,
-                xi + (1/self.L_wb * dxi_term - C(s) * ds_term) * self.dt,
-                v + a_x_b * self.dt,
-                delta + v_delta * self.dt,
+                s + ds_term * dt,
+                n + dn_term * dt,
+                xi + (1/self.L_wb * dxi_term - C(s) * ds_term) * dt,
+                v + a_x_b * dt,
+                delta + v_delta * dt,
             ]).flatten()
         else:
             self._raise_unsupported_solver()
@@ -237,7 +235,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
                 y_values_list=y_values,
                 y_labels=y_labels,
                 y_label=y_label,
-                dt=self.dt,
+                # dt=dt,
             )
 
         plot_with_bounds(
@@ -248,7 +246,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             ],
             y_labels=['actual', 'approximation'],
             y_label='ds_term',
-            dt=self.dt,
+            # dt=dt,
             no_bounds=True,
         )
         plot_with_bounds(
@@ -259,7 +257,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             ],
             y_labels=['actual', 'approximation'],
             y_label='dn_term',
-            dt=self.dt,
+            # dt=dt,
             no_bounds=True,
         )
         plot_with_bounds(
@@ -270,23 +268,9 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             ],
             y_labels=['actual', 'approximation'],
             y_label='dxi_term',
-            dt=self.dt,
+            # dt=dt,
             no_bounds=True,
         )
-
-
-
-    def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
-        front_wheel_front = self._add_tuple(self._rotate((0.5, 0), float(state[-1])), (1, 0))
-        front_wheel_back = self._add_tuple(self._rotate((-0.5, 0), float(state[-1])), (1, 0))
-        return [
-            (-1, 0.5), (1, 0.5),
-            (1, 0),
-            front_wheel_back, front_wheel_front,
-            (1, 0),
-            (1, -0.5),
-            (-1, -0.5),
-        ]
 
     def get_v_max(self):
         return self.v_max
@@ -307,20 +291,5 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             ),
             get_lateral_offset= lambda: vec[1],
             get_alignment_error= lambda: vec[2],
-            to_string=lambda: self.state_vec_to_string(vec),
-        )
-
-    @staticmethod
-    def _add_tuple(a: Tuple[float, float], b: Tuple[float, float]) -> Tuple[float, float]:
-        return (
-            a[0] + b[0],
-            a[1] + b[1],
-        )
-
-    @staticmethod
-    def _rotate(point: Tuple[float, float], theta: float) -> Tuple[float, float]:
-        x, y = point
-        return (
-            x * cos(theta) - y * sin(theta),
-            y * cos(theta) + x * sin(theta),
+            to_string=lambda: self._state_vec_to_string(vec),
         )

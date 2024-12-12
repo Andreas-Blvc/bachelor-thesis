@@ -4,10 +4,17 @@ from models import AbstractVehicleModel
 from roads import AbstractRoad
 
 from .objectives import Objectives
+from .interface import AbstractPathPlanner
 
-
-class ConvexPathPlanner:
+class ConvexPathPlanner(AbstractPathPlanner):
     def __init__(self, model: AbstractVehicleModel, dt, time_horizon, get_objective, verbose=False):
+        super().__init__(
+            model,
+            dt,
+            time_horizon,
+            get_objective
+        )
+
         # Configure others:
         model.solver_type = 'cvxpy'
         Objectives.norm = cp.sum_squares
@@ -50,6 +57,7 @@ class ConvexPathPlanner:
             next_state, model_constraints = self.model.update(
                 current_state=self.x[j, :].T,
                 control_inputs=self.u[j, :].T,
+                dt=self.dt,
             )
             constraints += model_constraints
             constraints.append(self.x[j + 1, :].T == next_state)

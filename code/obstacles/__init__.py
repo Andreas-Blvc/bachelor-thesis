@@ -1,5 +1,5 @@
 # Public API
-from .abstract_road import AbstractRoad
+from .interface import AbstractRoad
 from .road_collection import roads
 
 __all__ = ['AbstractRoad', 'roads']

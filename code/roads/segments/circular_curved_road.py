@@ -1,7 +1,7 @@
 from typing import Tuple, List
 import math
 
-from ..road_interface import AbstractRoad
+from ..interface import AbstractRoad
 
 
 class CircularCurveRoad(AbstractRoad):

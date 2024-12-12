@@ -13,7 +13,6 @@ class RoadAlignedModel(AbstractVehicleModel):
 
     def __init__(self,
                  initial_state: np.ndarray,
-                 dt: float,
                  road: Road,
                  v_x_range: Tuple[float, float],
                  v_y_range: Tuple[float, float],
@@ -41,7 +40,6 @@ class RoadAlignedModel(AbstractVehicleModel):
             goal_state=goal_state
         )
         # Params
-        self.dt = dt
         self.road = road
         self.v_x_range = v_x_range
         self.v_y_range = v_y_range
@@ -99,7 +97,7 @@ class RoadAlignedModel(AbstractVehicleModel):
             u_n + C(s) * ds**2 * (1-n*C(s)),
         ]
 
-    def update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
+    def update(self, current_state, control_inputs, dt) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -114,7 +112,7 @@ class RoadAlignedModel(AbstractVehicleModel):
         u_t, u_n = [control_inputs[i] for i in range(self.dim_control_input)]
 
         if np.isscalar(s):
-            next_state = current_state + dx_dt * self.dt
+            next_state = current_state + dx_dt * dt
             return next_state, []
 
         variables = self.road.get_segment_dependent_variables(s, self.solver_type == 'casadi', self.road_segment_idx)
@@ -128,7 +126,7 @@ class RoadAlignedModel(AbstractVehicleModel):
         if self.solver_type == 'casadi':
             # Compute the next state based on the input accelerations
             next_state = ca.vertcat(*[
-                current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)
+                current_state[i] + dx_dt[i] * dt for i in range(self.dim_state)
             ])
 
             g = self.g(current_state, control_inputs, C, dC)
@@ -152,7 +150,7 @@ class RoadAlignedModel(AbstractVehicleModel):
             ]
         elif self.solver_type == 'cvxpy':
             self._get_polytopic_constrain_set(C, c_min, c_max, n_min, n_max) # initializes/updates self.ranges
-            next_state = cp.vstack([current_state[i] + dx_dt[i] * self.dt for i in range(self.dim_state)]).flatten()
+            next_state = cp.vstack([current_state[i] + dx_dt[i] * dt for i in range(self.dim_state)]).flatten()
             constraints = [
                 0 <= s, s <= self.road.length,
                 self.ranges.c[0] <= C(s), C(s) <= self.ranges.c[1],
@@ -166,13 +164,6 @@ class RoadAlignedModel(AbstractVehicleModel):
             raise ValueError(f"solver_type {self.solver_type} not supported")
 
         return next_state, constraints
-
-    def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
-        return [
-            (-1, 0.5), (1, 0.5),
-                       (1, -0.5),
-            (-1, -0.5)
-        ]
 
     def get_v_max(self):
         return self.v_x_max
@@ -190,7 +181,7 @@ class RoadAlignedModel(AbstractVehicleModel):
             get_remaining_distance=lambda: self.road.length - vec[0],
             get_traveled_distance=lambda: vec[0] - self.initial_state[0],
             get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),
-            to_string=lambda: self.state_vec_to_string(vec),
+            to_string=lambda: self._state_vec_to_string(vec),
             get_lateral_offset=lambda: vec[1],
             get_alignment_error=lambda: 0,
             get_position_orientation=lambda: (
