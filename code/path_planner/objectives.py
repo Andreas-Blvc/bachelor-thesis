@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import List
 
+from pygments.lexers.objective import objective
+
 from utils import ControlInput, State
 
 
@@ -63,6 +65,16 @@ class Objectives:
         objective = 0 * states[-1].get_offset_from_reference_path()
         for state in states:
             objective += state.get_offset_from_reference_path()
+        return objective, Objectives.Type.MINIMIZE
+
+    @staticmethod
+    def minimize_inputs_and_offset(states: List[State], control_inputs: List[ControlInput]):
+        _validate_typs(states, control_inputs)
+        objective = None
+        for state in states:
+            objective = (objective or 0) + state.get_offset_from_reference_path()
+        for control in control_inputs:
+            objective += Objectives.norm(control.as_vector())
         return objective, Objectives.Type.MINIMIZE
 
     @staticmethod

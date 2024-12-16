@@ -62,22 +62,18 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
                  steering_angle_range: Tuple[float, float],
                  steering_velocity_range: Tuple[float, float],
                  road: Road,
-                 initial_state: np.ndarray,
-                 goal_state: np.ndarray=None,
                  l_wb: float = 1.8,
                  ):
         """
             Initialize the RoadAlignedModel.
 
-            :param initial_state: Initial state vector of shape (5,) representing [s, n, xi, v, delta].
+            state vector of shape (5,) representing [s, n, xi, v, delta].
         """
         super().__init__(
             dim_state=5,
             dim_control_input=2,
             control_input_labels=['a_x,b', 'v_delta'],
             state_labels=['s', 'n', 'xi', 'v', 'delta'],
-            initial_state=initial_state,
-            goal_state = goal_state,
         )
         # Params:
         self.road = road
@@ -283,7 +279,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             get_velocity=lambda: vec[3],
             get_offset_from_reference_path=lambda: self._absolute(vec[1]),
             get_remaining_distance=lambda: self.road.length - vec[0],
-            get_traveled_distance=lambda: vec[0] - self.initial_state[0],
+            get_traveled_distance=lambda: vec[0],
             get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),
             get_position_orientation=lambda: (
                 np.array(self.road.get_global_position(vec[0], vec[1])),
@@ -293,3 +289,23 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             get_alignment_error= lambda: vec[2],
             to_string=lambda: self._state_vec_to_string(vec),
         )
+
+
+    def get_state_vec_from_dsm(self, vec) -> np.ndarray:
+        x, y, delta, v, psi, dpsi, beta = vec
+        # s, n, xi, v, delta
+        s, n = self.road.get_road_position(x, y)
+        return np.array([
+            s,
+            n,
+            psi - self.road.get_tangent_angle_at(s),
+            v,
+            delta
+        ])
+
+    def get_dsm_control_from_vec(self, control_vec, state_vec):
+        a_x, v_delta = control_vec
+        return np.array([
+            v_delta,
+            a_x
+        ])

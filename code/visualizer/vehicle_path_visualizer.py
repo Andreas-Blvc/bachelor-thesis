@@ -7,6 +7,9 @@ from IPython.display import HTML
 from self_driving_cars import AbstractSelfDrivingCar
 from utils.constants import PATH_PLANNER_HEIGHT as HEIGHT, PATH_PLANNER_WIDTH as WIDTH
 
+import matplotlib as mpl
+mpl.rcParams['animation.embed_limit'] = 100
+
 def _polygon_coordinates(position, orientation, shape):
     """
     Transforms a list of points based on the car's position and orientation.
@@ -103,22 +106,18 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
     """
         RUN THE ANIMATION:
     """
-    # TODO
-    num_steps = 8
     dt = car.planner.dt
 
-    def update_frame():
+    def update_frame(car_state):
         """
         Update the animation frame with new car positions.
         """
         zoom_width = 30  # Width of the zoomed-in view
         zoom_height = 30  # Height of the zoomed-in view
 
-        car_state = next(car_states_gen)
         car_position = car.get_position(car_state)
-
         _car_polygon_coordinates = _polygon_coordinates(
-            car.get_position(car_state),
+            car_position,
             car.get_orientation(car_state),
             car.get_vehicle_polygon(car_state),
         )
@@ -139,12 +138,13 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
         # Redraw
         return car_patch, car_path_line
 
-    anim = FuncAnimation(
+    anim: FuncAnimation = FuncAnimation(
         fig,
-        lambda step: update_frame(),
-        frames=num_steps,
+        update_frame,
+        frames=car_states_gen,
+        save_count=2000,  # max frames
         interval=int(dt * 1000),  # Interval in ms
-        blit=False,
+        blit=True,
         repeat=False
     )
 

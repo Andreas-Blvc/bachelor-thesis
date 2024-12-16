@@ -26,6 +26,34 @@ class StraightRoad(AbstractRoad):
         y = self.start_position[1] + s * math.sin(self.direction_angle) + lateral_offset * math.cos(self.direction_angle)
         return x, y
 
+    def get_road_position(self, x: float, y: float) -> Tuple[float, float]:
+        # Direction vector of the road
+        dx = math.cos(self.direction_angle)
+        dy = math.sin(self.direction_angle)
+
+        # Vector from the start position to the given point
+        vx = x - self.start_position[0]
+        vy = y - self.start_position[1]
+
+        # Project the vector onto the road's direction to get the s parameter
+        s = vx * dx + vy * dy
+
+        # Check if s is within valid range
+        if s < -1e-6 or s > self.length + 1e-3:
+            raise ValueError(f"The point ({x}, {y}) is not on the road or out of bounds.")
+
+        # Perpendicular vector to the road direction
+        px = -dy
+        py = dx
+
+        # Project the vector onto the perpendicular direction to get the lateral offset
+        lateral_offset = vx * px + vy * py
+
+        if abs(lateral_offset) > self.width(s)/2:
+            raise ValueError("The given point is not on the road curve.")
+
+        return s, lateral_offset
+
     def get_curvature_min(self, start: float, end: float) -> float:
         return 0.0
 

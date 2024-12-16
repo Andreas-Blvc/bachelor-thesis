@@ -17,7 +17,7 @@ class AbstractRoad(ABC):
         Returns the curvature at a given parameter along the road.
 
         Args:
-            s_param (float): Parameter along the road (typically between 0 and 1).
+            s_param (float): Parameter along the road (typically between 0 and road.length).
 
         Returns:
             float: Curvature at the specified parameter.
@@ -30,7 +30,7 @@ class AbstractRoad(ABC):
         Returns the derivative of the curvature at a given parameter along the road.
 
         Args:
-            s_param (float): Parameter along the road (typically between 0 and 1).
+            s_param (float): Parameter along the road (typically between 0 and road.length).
 
         Returns:
             float: Curvature derivative at the specified parameter.
@@ -43,11 +43,27 @@ class AbstractRoad(ABC):
         Returns the global (x, y) position on the road for a given parameter and lateral offset.
 
         Args:
-            s_param (float): Parameter along the road (typically between 0 and 1).
+            s_param (float): Parameter along the road (typically between 0 and road.length).
             lateral_offset (float): Lateral offset from the road center.
 
         Returns:
             Tuple[float, float]: Global (x, y) coordinates.
+        """
+        pass
+
+    @abstractmethod
+    def get_road_position(self, x: float, y: float) -> Tuple[float, float]:
+        """
+        Returns the road-relative position (s, lateral_offset) for a given global (x, y) position.
+
+        Args:
+            x (float): Global x-coordinate.
+            y (float): Global y-coordinate.
+
+        Returns:
+            Tuple[float, float]: A tuple containing:
+                - s (float): Parameter along the road (typically between 0 and road.length).
+                - lateral_offset (float): Lateral offset from the road center.
         """
         pass
 
@@ -95,7 +111,7 @@ class AbstractRoad(ABC):
         Returns the angle of the tangent to the x-axis at a given parameter along the road.
 
         Args:
-            s_param (float): Parameter along the road (typically between 0 and 1).
+            s_param (float): Parameter along the road (typically between 0 and road.length).
 
         Returns:
             float: Angle of the tangent in radians with respect to the x-axis.

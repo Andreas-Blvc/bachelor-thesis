@@ -12,7 +12,6 @@ from utils import MainPaperConstraintsReduction, State, StateRanges
 class RoadAlignedModel(AbstractVehicleModel):
 
     def __init__(self,
-                 initial_state: np.ndarray,
                  road: Road,
                  v_x_range: Tuple[float, float],
                  v_y_range: Tuple[float, float],
@@ -21,14 +20,11 @@ class RoadAlignedModel(AbstractVehicleModel):
                  yaw_rate_range: Tuple[float, float],
                  yaw_acc_range: Tuple[float, float],
                  a_max,
-                 goal_state: np.ndarray=None,
                  ):
         """
         Initialize the RoadAlignedModel.
 
-        :param initial_state: Initial state vector of shape (4,) representing [s, n, ds, dn].
-        :param goal_state: Goal state vector of shape (4,) representing [s, n, ds, dn].
-        :param dt: Time step for state updates.
+        state vector of shape (4,) representing [s, n, ds, dn].
         :raises ValueError: If initial_state or goal_state do not have the correct shape.
         """
         super().__init__(
@@ -36,8 +32,6 @@ class RoadAlignedModel(AbstractVehicleModel):
             dim_control_input=2,
             state_labels=['s', 'n', 'ds', 'dn'],
             control_input_labels=['u_t', 'u_n'],
-            initial_state=initial_state,
-            goal_state=goal_state
         )
         # Params
         self.road = road
@@ -86,6 +80,8 @@ class RoadAlignedModel(AbstractVehicleModel):
             yaw_acc_range=self.yaw_acc_range,
             curvature_derivative=C(0)  # constant for all s
         )
+
+        print(self.ranges)
 
 
     def g(self, x_tn, u, C, dC):
@@ -153,12 +149,12 @@ class RoadAlignedModel(AbstractVehicleModel):
             next_state = cp.vstack([current_state[i] + dx_dt[i] * dt for i in range(self.dim_state)]).flatten()
             constraints = [
                 0 <= s, s <= self.road.length,
-                self.ranges.c[0] <= C(s), C(s) <= self.ranges.c[1],
-                self.ranges.n[0] <= n, n <= self.ranges.n[1],
-                self.ranges.ds[0] <= ds, ds <= self.ranges.ds[1],
-                self.ranges.dn[0] <= dn, dn <= self.ranges.dn[1],
-                self.ranges.u_t[0] <= u_t, u_t <= self.ranges.u_t[1],
-                self.ranges.u_n[0] <= u_n, u_n <= self.ranges.u_n[1],
+                self.ranges.c[0] - 1e-3 <= C(s), C(s) <= self.ranges.c[1] + 1e-3,
+                self.ranges.n[0] - 1e-3 <= n, n <= self.ranges.n[1] + 1e-3,
+                self.ranges.ds[0] - 1e-3 <= ds, ds <= self.ranges.ds[1] + 1e-3,
+                self.ranges.dn[0] - 1e-3 <= dn, dn <= self.ranges.dn[1] + 1e-3,
+                self.ranges.u_t[0] - 1e-3 <= u_t, u_t <= self.ranges.u_t[1] + 1e-3,
+                self.ranges.u_n[0] - 1e-3 <= u_n, u_n <= self.ranges.u_n[1] + 1e-3,
             ]
         else:
             raise ValueError(f"solver_type {self.solver_type} not supported")
@@ -179,7 +175,7 @@ class RoadAlignedModel(AbstractVehicleModel):
             get_velocity=lambda: self._sqrt(self._norm_squared(vec[2:])),
             get_offset_from_reference_path= lambda: self._absolute(vec[1]),
             get_remaining_distance=lambda: self.road.length - vec[0],
-            get_traveled_distance=lambda: vec[0] - self.initial_state[0],
+            get_traveled_distance=lambda: vec[0],
             get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),
             to_string=lambda: self._state_vec_to_string(vec),
             get_lateral_offset=lambda: vec[1],
@@ -189,3 +185,29 @@ class RoadAlignedModel(AbstractVehicleModel):
                 self.road.get_tangent_angle_at(vec[0]),
             )
         )
+
+    def get_state_vec_from_dsm(self, vec) -> np.ndarray:
+        x, y, delta, v, psi, dpsi, beta = vec
+        # s, n, ds, dn
+        s, n = self.road.get_road_position(x, y)
+        xi = psi - self.road.get_tangent_angle_at(s)
+        ds = v * np.cos(xi)
+        dn = v * np.sin(xi)
+        return np.array([
+            s, n, ds, dn
+        ])
+
+    def get_dsm_control_from_vec(self, control_vec, state_vec) -> np.ndarray:
+        s, n, ds, dn = state_vec
+        a_x_tn, a_y_tn = self.g(state_vec, control_vec, self.road.get_curvature_at, self.road.get_curvature_derivative_at)
+        xi = np.arctan(dn / (ds * (1 - n * self.road.get_curvature_at(s))))
+        v_x = ds * (1 - n * self.road.get_curvature_at(s)) / np.cos(xi)
+        dpsi = (a_y_tn - np.tan(xi) * a_x_tn) / (v_x * (np.tan(xi) * np.sin(xi) + np.cos(xi)))
+        a_x = (a_x_tn + v_x * dpsi * np.sin(xi)) / np.cos(xi)
+        # todo
+        l_wb = 0.883 + 1.508
+        v_delta = l_wb / v_x * dpsi
+        # v_delta, a_x
+        return np.array([
+            v_delta, a_x
+        ])

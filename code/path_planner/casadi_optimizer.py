@@ -20,39 +20,40 @@ class NonConvexPathPlanner(AbstractPathPlanner):
         model.solver_type = 'casadi'
         Objectives.norm = ca.sumsqr
 
+        self.opti = None
+        self.solve_time = None
+        self.x = None
+        self.u = None
+
+    def _construct_problem(self, state_transitions, initial_state, goal_state=None):
         # Initialize the Opti object
         self.opti = ca.Opti()
 
-        self.solve_time = None
-        self.dt = dt
-        self.model = model
-        self.N = int(time_horizon / dt)
-
-        x_dim = model.dim_state
-        u_dim = model.dim_control_input
+        x_dim = self.model.dim_state
+        u_dim = self.model.dim_control_input
 
         # Define CasADi Opti variables for states and controls
         # States: (N+1) x x_dim
-        self.x = self.opti.variable(self.N + 1, x_dim)
+        self.x = self.opti.variable(state_transitions + 1, x_dim)
         # Controls: N x u_dim
-        self.u = self.opti.variable(self.N, u_dim)
+        self.u = self.opti.variable(state_transitions, u_dim)
 
         # Initial state constraint (equality)
-        initial_state = np.array(model.initial_state).reshape((1, x_dim))
+        initial_state = np.array(initial_state).reshape((1, x_dim))
         self.opti.subject_to(self.x[0, :] == initial_state)
 
-        # Goal state constraint (equality) at final time step
-        if model.goal_state is not None:
-            goal_state = np.array(model.goal_state).reshape((1, x_dim))
-            self.opti.subject_to(self.x[self.N, :] == goal_state)
+        # Goal state constraint (equality) at a final time step
+        if goal_state is not None:
+            goal_state = np.array(goal_state).reshape((1, x_dim))
+            self.opti.subject_to(self.x[state_transitions, :] == goal_state)
 
-        for j in range(self.N):
+        for j in range(state_transitions):
             # Current state and control input
             current_state = self.x[j, :].T
             control_inputs = self.u[j, :].T
 
-            # Update the model to get next state and any additional constraints
-            next_state, constraints = model.update(current_state, control_inputs, dt)
+            # Update the model to get the next state and any additional constraints
+            next_state, constraints = self.model.update(current_state, control_inputs, self.dt)
 
             # Add model-specific equality constraints
             if constraints:
@@ -63,11 +64,10 @@ class NonConvexPathPlanner(AbstractPathPlanner):
             # Dynamics constraint: x[j + 1, :] == next_state
             self.opti.subject_to(self.x[j + 1, :] == next_state.T)
 
-
         # Set the objective in the Opti problem
-        states = [model.convert_vec_to_state(self.x[j, :].T) for j in range(self.N + 1)]
-        control_inputs = [model.convert_vec_to_control_input(self.u[j, :].T) for j in range(self.N)]
-        objective, objective_type = get_objective(states, control_inputs)
+        states = [self.model.convert_vec_to_state(self.x[j, :].T) for j in range(state_transitions + 1)]
+        control_inputs = [self.model.convert_vec_to_control_input(self.u[j, :].T) for j in range(state_transitions)]
+        objective, objective_type = self.get_objective(states, control_inputs)
         if objective_type == Objectives.Type.MINIMIZE:
             self.opti.minimize(objective)
         else:
@@ -78,7 +78,8 @@ class NonConvexPathPlanner(AbstractPathPlanner):
         s_opts = {"max_iter": 5000, "print_level": 0}
         self.opti.solver('ipopt', p_opts, s_opts)
 
-    def get_optimized_trajectory(self, initial_guess=None):
+    def get_optimized_trajectory(self, initial_state, initial_guess=None):
+        self._construct_problem(int(self.time_horizon/self.dt), initial_state)
         # Optionally set initial guesses for the solver
         if initial_guess is not None:
             x_guess, u_guess = initial_guess
@@ -95,7 +96,7 @@ class NonConvexPathPlanner(AbstractPathPlanner):
                 solution = self.opti.solve()
                 self.solve_time = solution.stats()['t_proc_total']
                 sys.stdout = stdout_old
-            except RuntimeError as e:
+            except RuntimeError:
                 # traceback.print_exc(file=stdout_old)
                 sys.stdout = stdout_old
                 return None, None

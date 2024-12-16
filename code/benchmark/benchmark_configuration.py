@@ -35,14 +35,17 @@ class Road(Enum):
     Road_Narrowing = './data/road_narrowing.pkl'
     Slalom = './data/slalom.pkl'
     Three_Right_Turns = './data/3_right_turns.pkl'
+    Right_Turn = './data/right_turn.pkl'
+    Left_Turn = './data/left_turn.pkl'
+    ChangeLaneTwice = './data/change_lane_twice.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.
 class TimeHoriozon(Enum):
     Short = 1
-    Medium = 10
-    Long = 30
-    VeryLong = 100
+    Medium = 3
+    Long = 5
+    VeryLong = 10
 
 # defines how many time steps per seconds
 class TimeDiscretization(Enum):

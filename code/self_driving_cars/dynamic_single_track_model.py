@@ -1,7 +1,9 @@
+from multiprocessing.managers import Value
 from typing import List, Tuple, Any
 
 import numpy as np
 from numpy import ndarray
+from sqlalchemy import false
 
 from roads import AbstractRoad
 from utils import add_coordinates, rotate_coordinates
@@ -15,12 +17,12 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
             self,
             predictive_model: AbstractVehicleModel,
             planner: AbstractPathPlanner,
-            initial_state,
             steering_range: Tuple[float, float],
             steering_velocity_range: Tuple[float, float],
             velocity_range: Tuple[float, float],
             acceleration_range: Tuple[float, float],
             road: AbstractRoad = None,
+            initial_state=None,
             goal_state=None,
             vehicle_length = 4.298,
             vehicle_width = 1.674,
@@ -33,12 +35,21 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
             cornering_stiffness_coefficient_rear = 20.89,
             friction_coefficient = 1.048,
     ):
+        """
+        State: Global Position x, Global Postion y, Steering Angle, Velocity, Orientation, Yaw Rate, Slip Angle
+        """
         self.dim_state = 7
         self.dim_control_input = 2
         self.state_labels = ['Global Position x', 'Global Postion y', 'Steering Angle', 'Velocity', 'Orientation', 'Yaw Rate', 'Slip Angle']
         self.control_input_labels = ['Steering Angle Rate', 'Longitudinal Acceleration']
         # Planning:
         self.initial_state = initial_state
+        if self.initial_state is None:
+            x, y = road.get_global_position(0, 0)
+            psi = road.get_tangent_angle_at(0)
+            self.initial_state = np.array([
+                x, y, 0, 0, psi, 0 , 0
+            ])
         self.goal_state = goal_state
         self.road = road
         self.predictive_model = predictive_model
@@ -61,15 +72,58 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         self.cornering_stiffness_coefficient_rear = cornering_stiffness_coefficient_rear
         self.friction_coefficient = friction_coefficient
 
+        # store for plotting
+        self.executed_controls = []
+        self.car_states = []
+        self.predictive_model_states = []
+        self.predictive_model_controls = []
+
+    def _on_road(self):
+        try:
+            self.road.get_road_position(float(self.current_state[0]), float(self.current_state[1]))
+            return True
+        except ValueError:
+            return False
+
     def drive(self):
         # a List of tuple: first entry: time point, second entry: control_input
-        controls: List[Tuple[float, np.ndarray]] = []
-        dummy_ctr = 0
-        while dummy_ctr < 10:
-            yield self.initial_state
-            dummy_ctr += 1
+        yield self.initial_state
+        self.controls: List[Tuple[float, np.ndarray]] = []
+        self.current_state = self.initial_state
+        current_time = 0
+        while self._on_road():
+            if len(self.controls) == 0:
+                # print('planning:', self.predictive_model.get_state_vec_from_dsm(self.current_state))
 
-    def _update(self, current_state, control_inputs) -> Tuple[np.ndarray, List[Any]]:
+                predictive_model_states, predictive_model_controls = self.planner.get_optimized_trajectory(
+                    self.predictive_model.get_state_vec_from_dsm(self.current_state)
+                )
+
+                N = 4
+                # print('planned state:', states[:N][-1])
+                self.predictive_model_states += predictive_model_states[:N]
+                self.predictive_model_controls += predictive_model_controls[:N]
+
+                self.controls = [
+                    (
+                        current_time + self.dt * i,
+                        self.predictive_model.get_dsm_control_from_vec(control, state)
+                    ) for i, (control, state) in enumerate(list(zip(predictive_model_controls, predictive_model_states))[:N])
+                ]
+
+                if len(self.controls) == 0:
+                    break
+
+                print(f'planned next {N * self.dt * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms')
+            planned_control_time, control = self.controls.pop(0)
+            self.current_state = self._update(self.current_state, control)
+            current_time = planned_control_time + self.dt
+            yield self.current_state
+
+            self.car_states.append(self.current_state)
+            self.executed_controls.append(control)
+
+    def _update(self, current_state, control_inputs) -> np.ndarray:
         l = self.vehicle_length
         w = self.vehicle_width
         m = self.total_vehicle_mass
@@ -86,6 +140,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         x1, x2, x3, x4, x5, x6, x7 = current_state.flatten()
         # v_delta, a_x
         u1, u2 = control_inputs.flatten()
+        # print('updating with inputs', u1, u2)
 
         delta_lb, delta_ub = self.steering_range
         v_delta_lb, v_delta_ub = self.steering_velocity_range
@@ -137,7 +192,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                 dx7_dt,
             ])
 
-        return current_state + dx_dt * self.dt, []
+        return current_state + dx_dt * self.dt
 
     # ============================================
     # VISUALIZATION
@@ -145,10 +200,10 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
 
     def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
         l_f = self.distance_from_center_of_gravity_to_front_axle
-        front_wheel_front = add_coordinates(rotate_coordinates((0.5, 0), float(state[2])), (l_f, 0))
-        front_wheel_back = add_coordinates(rotate_coordinates((-0.5, 0), float(state[2])), (l_f, 0))
         length = self.vehicle_length
         width = self.vehicle_width
+        front_wheel_front = add_coordinates(rotate_coordinates((0.5, 0), float(state[2])), (length/2, 0))
+        front_wheel_back = add_coordinates(rotate_coordinates((-0.5, 0), float(state[2])), (length/2, 0))
         return [
             (-length/2, width/2), (length/2, width/2),
             (length/2, 0),

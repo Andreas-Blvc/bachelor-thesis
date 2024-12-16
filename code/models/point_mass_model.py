@@ -10,14 +10,12 @@ class PointMassModel(AbstractVehicleModel):
     A point mass vehicle model implementing the VehicleModel abstract base class.
     This model represents a simple point mass with position and velocity in 2D space.
     """
-    def __init__(self, initial_state: np.ndarray, goal_state: np.ndarray, a_max: float):
+    def __init__(self, a_max: float):
         """
         Initialize the PointMassModel.
 
-        :param initial_state: Initial state vector of shape (4,) representing [x, y, vx, vy].
-        :param goal_state: Goal state vector of shape (4,) representing [x_goal, y_goal, vx_goal, vy_goal].
+        state vector of shape (4,) representing [x, y, vx, vy].
         :param a_max: Maximum allowable acceleration.
-        :param dt: Time step for state updates.
         :raises ValueError: If initial_state or goal_state do not have the correct shape.
         """
         super().__init__(
@@ -25,8 +23,6 @@ class PointMassModel(AbstractVehicleModel):
             dim_control_input=2,
             state_labels=['x', 'y', 'v_x', 'v_y'],
             control_input_labels=['Longitude Acceleration', 'Latitude Acceleration'],
-            initial_state=initial_state,
-            goal_state=goal_state,
         )
         # params
         self.a_max = a_max

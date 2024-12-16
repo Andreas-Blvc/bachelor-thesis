@@ -64,10 +64,10 @@ class Road(AbstractRoad):
 
         return segment_dependent_variable
 
-    # TODO: not part of interface, but need by the models, probably move it there
+    # TODO: not part of interface, but needed by the models, probably move it there
     def get_segment_dependent_variables(self, s, use_casadi: bool=False, road_segment_idx: int=None) -> SegmentDependentVariables:
         """
-        Retrieves road segment-dependent variables: curvature function, curvature bounds and width bounds.
+        Retrieves road segment-dependent variables: curvature function, curvature bounds, and width bounds.
 
         Parameters:
         - s: float or other type depending on solver requirements
@@ -86,7 +86,7 @@ class Road(AbstractRoad):
         Raises:
         - ValueError: If no road segments are defined.
         - NotImplementedError: If the case cannot be handled
-          (e.g., multiple segments convex solver without predefined road segment index).
+          (e.g., multiple segments convex solver without a predefined road segment index).
         """
 
         # Validate road and segments
@@ -95,7 +95,7 @@ class Road(AbstractRoad):
 
         # Scalar input case
         if np.isscalar(s):
-            # do not consider whole segment, just the position at s
+            # do not consider a whole segment, just the position at s
             C = self.get_curvature_at
             dC = self.get_curvature_derivative_at
             c_min = c_max = self.get_curvature_at(s)
@@ -230,6 +230,17 @@ class Road(AbstractRoad):
                 return segment.get_global_position(local_s, lateral_offset)
             current_length += segment_length
         return 0.0, 0.0
+
+    def get_road_position(self, x: float, y: float) -> Tuple[float, float]:
+        prev_segments_total_length = 0
+        for segment in self.segments:
+            try:
+                local_s, local_n = segment.get_road_position(x, y)
+                return prev_segments_total_length + local_s, local_n
+            except ValueError:
+                prev_segments_total_length += segment.length
+                continue
+        raise ValueError("The given point is not on the road.")
 
     def get_curvature_min(self, start: float, end: float, road_segment_idx=None) -> float:
         if road_segment_idx is not None:

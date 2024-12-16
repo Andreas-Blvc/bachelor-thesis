@@ -13,16 +13,16 @@ class AbstractVehicleModel:
 	road_segment_idx: int = None
 	solver_type = None
 
-	def __init__(self, dim_state, dim_control_input, state_labels, control_input_labels, initial_state, goal_state=None):
+	def __init__(self, dim_state, dim_control_input, state_labels, control_input_labels):
 		self.dim_state = dim_state
 		self.dim_control_input = dim_control_input
 		self.state_labels = state_labels
 		self.control_input_labels = control_input_labels
-		self.initial_state = initial_state
-		self.goal_state = goal_state
+		# self.initial_state = initial_state
+		# self.goal_state = goal_state
 
-		self._validate__state_dimension(initial_state)
-		self._validate__state_dimension(goal_state) if goal_state is not None else None
+		# self._validate__state_dimension(initial_state)
+		# self._validate__state_dimension(goal_state) if goal_state is not None else None
 
 	@abstractmethod
 	def update(self, current_state, control_inputs, dt: float) -> Tuple[np.ndarray, List[Any]]:
@@ -36,6 +36,12 @@ class AbstractVehicleModel:
 	@abstractmethod
 	def get_v_max(self):
 		raise "get_v_max not implemented"
+	@abstractmethod
+	def get_state_vec_from_dsm(self, vec) -> np.ndarray:
+		raise "get_state_vec_from_dsm not implemented"
+	@abstractmethod
+	def get_dsm_control_from_vec(self, control_vec, state_vec) -> np.ndarray:
+		raise "get_dsm_control_from_vec not implemented"
 
 	def convert_vec_to_control_input(self, vec) -> ControlInput:
 		self._validate__control_dimension(vec)

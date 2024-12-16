@@ -46,31 +46,29 @@ def run(config: BenchmarkConfiguration):
     #     return planned_car_states, actual_car_states, control_inputs, planner.solve_time
 
     benchmarks = []
+    steering_velocity_range = (-2, 2)
+    steering_range = ((-45 / 180) * np.pi, (45 / 180) * np.pi)
 
     for model_type, solver_type in config.models:
         match model_type:
             case Model.OrientedRoadFollowingModel:
                 predictive_model = OrientedRoadFollowingModel(
-                    initial_state=np.array([0, start_offset, 0, start_velocity, 0]),
-                    goal_state=None if solver_type != SolverType.NonConvex else oriented_road_following_possible_goal_state,
                     road=road,
                     v_range=velocity_range,
                     acc_range=(-4, 4),
-                    steering_angle_range=((-30 / 180) * np.pi, (30 / 180) * np.pi),
-                    steering_velocity_range=(-1, 1),
-                    l_wb=2.5
+                    steering_angle_range=steering_range,
+                    steering_velocity_range=steering_velocity_range,
+                    l_wb=0.883+1.508
                 )
             case Model.RoadAlignedModel:
                 predictive_model = RoadAlignedModel(
-                    initial_state=np.array([0, start_offset, start_velocity, 0]),
-                    goal_state=None if solver_type != SolverType.NonConvex else road_aligned_possible_goal_state,
                     road=road,
                     v_x_range=velocity_range,
-                    v_y_range=(-1, 1),
+                    v_y_range=(-2, 2),
                     acc_x_range=(-2, 2),
                     acc_y_range=(-2, 2),
-                    yaw_rate_range=(-1, 0),
-                    yaw_acc_range=(-0.9, 0.9),
+                    yaw_rate_range=(-2, 2),
+                    yaw_acc_range=(-2, 2),
                     a_max=4,
                 )
             case _:
@@ -83,27 +81,27 @@ def run(config: BenchmarkConfiguration):
             case _:
                 raise ValueError('solver type not supported')
 
-        (x, y), _ = predictive_model.convert_vec_to_state(predictive_model.initial_state).get_position_orientation()
+        x, y = road.get_global_position(0, start_offset)
+        psi = road.get_tangent_angle_at(0)
         self_driving_car = DynamicSingleTrackModel(
             predictive_model=predictive_model,
+            initial_state=np.array([
+                x, y, 0, start_velocity, psi, 0, 0
+            ]),
             planner=planner,
-            initial_state=[x, y, 0, 0, 0, 0, 0],
-            steering_range=(0, 0),
-            steering_velocity_range=(0, 0),
-            velocity_range=(0, 0),
-            acceleration_range=(0, 0),
+            velocity_range=velocity_range,
+            acceleration_range=(-4, 4),
+            steering_range=steering_range,
+            steering_velocity_range=steering_velocity_range,
             road=road,
         )
 
-        animation = None
-        try:
-            animation = animate(self_driving_car, interactive=False)
-        except StopIteration as e:
-            print('done')
+        animation = animate(self_driving_car, interactive=False)
 
         benchmarks.append(
             Benchmark(
                 animation=animation,
+                car=self_driving_car,
             )
         )
 

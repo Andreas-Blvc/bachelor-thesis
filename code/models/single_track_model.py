@@ -18,8 +18,6 @@ class SingleTrackModel(AbstractVehicleModel):
     """
     def __init__(
         self,
-        initial_state: Union[List[float], np.ndarray],
-        goal_state: Union[List[float], np.ndarray],
         l_wb: float,
         v_s: float,
         steering_velocity_range: Tuple[float, float],
@@ -30,8 +28,7 @@ class SingleTrackModel(AbstractVehicleModel):
         """
         Initialize the SingleTrackModel.
 
-        :param initial_state: Initial state vector [x_position, y_position, steering_angle, velocity, orientation].
-        :param goal_state: Goal state vector [x_position, y_position, steering_angle, velocity, orientation].
+        state vector [x_position, y_position, steering_angle, velocity, orientation].
         :param l_wb: Wheelbase length of the vehicle.
         :param v_s: Scaling velocity.
         :param steering_velocity_range: Tuple representing the lower and upper bounds of steering velocity.
@@ -45,8 +42,6 @@ class SingleTrackModel(AbstractVehicleModel):
             dim_control_input=2,
             state_labels=['x_position', 'y_position', 'steering_angle', 'velocity', 'orientation'],
             control_input_labels=['Steering Velocity', 'Acceleration Input'],
-            initial_state=initial_state,
-            goal_state=goal_state,
         )
         # params
         self.l_wb = l_wb

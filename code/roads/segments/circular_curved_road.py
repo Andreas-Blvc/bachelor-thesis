@@ -33,6 +33,38 @@ class CircularCurveRoad(AbstractRoad):
         y = self.center[1] + radius_offset * math.sin(angle)
         return x, y
 
+    def get_road_position(self, x: float, y: float) -> Tuple[float, float]:
+        # Calculate the vector from the center to the given point
+        dx = x - self.center[0]
+        dy = y - self.center[1]
+
+        # Calculate the distance from the center to the point
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+
+        # Determine the angle of the point relative to the center
+        angle = math.atan2(dy, dx)
+
+        # Normalize the angle to the range [0, 2π)
+        if self.angle_sweep > 0:
+            angle = (angle - self.start_angle) % (2 * math.pi)
+        else:
+            angle = (self.start_angle - angle) % (2 * math.pi)
+
+        # Ensure the angle lies within the swept range
+        if angle > abs(self.angle_sweep):
+            raise ValueError("The given point is not on the road curve.")
+
+        # Calculate the s parameter
+        s = angle / abs(self.angle_sweep) * self.length
+
+        # Calculate the lateral offset
+        lateral_offset = (distance - self.radius) * (-1 if self.angle_sweep > 0 else 1)
+
+        if abs(lateral_offset) > self.width(s)/2:
+            raise ValueError("The given point is not on the road curve.")
+
+        return s, lateral_offset
+
     def get_curvature_min(self, start: float, end: float) -> float:
         return self.get_curvature_at(0)  # curvature is constant
 
@@ -51,4 +83,11 @@ class CircularCurveRoad(AbstractRoad):
         return polygon, "blue"
 
     def get_tangent_angle_at(self, s: float) -> float:
-        return (0.5 if self.angle_sweep > 0 else 1.5) * math.pi + self.start_angle + (s / self.length) * self.angle_sweep
+        if self.angle_sweep > 0:
+            return ((
+                    (math.pi/2 + self.start_angle + self.angle_sweep * (s / self.length))
+            ) + math.pi) % (2 * math.pi) - math.pi
+        else:
+            return ((
+                    -math.pi/2 + self.start_angle +  self.angle_sweep * (s / self.length)
+            ) + math.pi) % (2 * math.pi) - math.pi
