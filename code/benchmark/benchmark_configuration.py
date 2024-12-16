@@ -68,7 +68,7 @@ class BenchmarkConfiguration:
             start_offset: LateralOffset | float,
             velocity_range: VelocityRange | Tuple[float, float],
             road: Road | str,
-            time_horizon: TimeHoriozon | int,
+            time_horizon: TimeHoriozon | float,
             time_discretization: TimeDiscretization | float,
             models: List[Tuple[Model, SolverType]],
             objective: Callable[[List[State], List[ControlInput]], Tuple[Any, Objectives.Type]],

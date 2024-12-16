@@ -99,7 +99,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                     self.predictive_model.get_state_vec_from_dsm(self.current_state)
                 )
 
-                N = 4
+                N = 2
                 # print('planned state:', states[:N][-1])
                 self.predictive_model_states += predictive_model_states[:N]
                 self.predictive_model_controls += predictive_model_controls[:N]

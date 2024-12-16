@@ -1,4 +1,5 @@
 import cvxpy as cp
+from cvxpy import SolverError
 
 from models import AbstractVehicleModel
 from roads import AbstractRoad
@@ -98,7 +99,9 @@ class ConvexPathPlanner(AbstractPathPlanner):
                         solve_time += self.prob.solver_stats.solve_time
                     except ValueError as e:
                         print('value error', e)
-                        raise e
+                        break
+                    except SolverError as e:
+                        print('value error', e)
                         break
 
                     if self.x.value is None:

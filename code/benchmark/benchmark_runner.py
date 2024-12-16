@@ -66,7 +66,7 @@ def run(config: BenchmarkConfiguration):
                     v_x_range=velocity_range,
                     v_y_range=(-2, 2),
                     acc_x_range=(-2, 2),
-                    acc_y_range=(-2, 2),
+                    acc_y_range=(-3, 3),
                     yaw_rate_range=(-2, 2),
                     yaw_acc_range=(-2, 2),
                     a_max=4,

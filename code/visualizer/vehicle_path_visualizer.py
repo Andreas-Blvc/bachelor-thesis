@@ -149,6 +149,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
     )
 
     if not interactive:
+        anim.save('anim.mp4')
         centered_html = f"""
                 <div style="display: flex; justify-content: center; align-items: center;">
                     {anim.to_jshtml()}
