@@ -1,9 +1,8 @@
-from multiprocessing.managers import Value
 from typing import List, Tuple, Any
-
+import time
+import math
+import matplotlib.pyplot as plt
 import numpy as np
-from numpy import ndarray
-from sqlalchemy import false
 
 from roads import AbstractRoad
 from utils import add_coordinates, rotate_coordinates
@@ -38,6 +37,9 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         """
         State: Global Position x, Global Postion y, Steering Angle, Velocity, Orientation, Yaw Rate, Slip Angle
         """
+        # Metrics for plotting
+        self.calculation_times = []  # Store time for planning
+
         self.dim_state = 7
         self.dim_control_input = 2
         self.state_labels = ['Global Position x', 'Global Postion y', 'Steering Angle', 'Velocity', 'Orientation', 'Yaw Rate', 'Slip Angle']
@@ -86,21 +88,22 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
             return False
 
     def drive(self):
-        # a List of tuple: first entry: time point, second entry: control_input
         yield self.initial_state
         self.controls: List[Tuple[float, np.ndarray]] = []
         self.current_state = self.initial_state
         current_time = 0
+        N = 4
         while self._on_road():
             if len(self.controls) == 0:
-                # print('planning:', self.predictive_model.get_state_vec_from_dsm(self.current_state))
+                start_time = time.time()
 
                 predictive_model_states, predictive_model_controls = self.planner.get_optimized_trajectory(
                     self.predictive_model.get_state_vec_from_dsm(self.current_state)
                 )
 
-                N = 2
-                # print('planned state:', states[:N][-1])
+                calculation_time = time.time() - start_time
+                self.calculation_times.append(calculation_time)
+
                 self.predictive_model_states += predictive_model_states[:N]
                 self.predictive_model_controls += predictive_model_controls[:N]
 
@@ -114,14 +117,37 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                 if len(self.controls) == 0:
                     break
 
-                print(f'planned next {N * self.dt * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms')
+                # print(f'planned next {N * self.dt * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms')
             planned_control_time, control = self.controls.pop(0)
             self.current_state = self._update(self.current_state, control)
             current_time = planned_control_time + self.dt
+            s = self.road.get_road_position(float(self.current_state[0]), float(self.current_state[1]))[0]
+            print(f"\rProgress: [{'█' * math.floor(s) + '-' * math.ceil(self.road.length-s)}] {(s/self.road.length)*100:.2f}%  "
+                  f"of the Road Complete (Segment {self.predictive_model.road_segment_idx}), "
+                  f"planned next {N * self.dt * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms{' ' * 10}", end='')
             yield self.current_state
 
             self.car_states.append(self.current_state)
             self.executed_controls.append(control)
+        print()
+
+    # Method to plot metrics
+    def plot_metrics(self):
+        # Create two subplots: calculation time and driving time
+        plt.figure(figsize=(10, 6))
+
+        # Plot calculation times
+        plt.subplot(2, 1, 1)
+        plt.plot(self.calculation_times, label="Calculation Time (s)", marker='o')
+        plt.xlabel("Iteration")
+        plt.ylabel("Time (s)")
+        plt.title("Calculation Time per Iteration")
+        plt.grid(True)
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
 
     def _update(self, current_state, control_inputs) -> np.ndarray:
         l = self.vehicle_length
@@ -217,7 +243,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
     def get_start(self) -> np.ndarray:
         return self.initial_state
 
-    def get_goal(self) -> ndarray | None:
+    def get_goal(self) -> np.ndarray | None:
         return self.goal_state
 
     def get_road(self) -> AbstractRoad | None:

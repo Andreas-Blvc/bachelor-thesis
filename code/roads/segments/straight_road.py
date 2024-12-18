@@ -69,4 +69,4 @@ class StraightRoad(AbstractRoad):
         return [(x1, y1), (x2, y2), (x3, y3), (x4, y4)], "gray"
 
     def get_tangent_angle_at(self, s_param: float) -> float:
-        return self.direction_angle
+        return (self.direction_angle + math.pi) % (2 * math.pi) - math.pi

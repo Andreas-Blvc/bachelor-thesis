@@ -75,7 +75,7 @@ def run(config: BenchmarkConfiguration):
                 raise ValueError('model type not supported')
         match solver_type:
             case SolverType.Convex:
-                planner = ConvexPathPlanner(predictive_model, dt, time_horizon, objective)
+                planner = ConvexPathPlanner(predictive_model, dt, time_horizon, objective, verbose=True)
             case SolverType.NonConvex:
                 planner = NonConvexPathPlanner(predictive_model, dt, time_horizon, objective)
             case _:

@@ -81,8 +81,6 @@ class RoadAlignedModel(AbstractVehicleModel):
             curvature_derivative=C(0)  # constant for all s
         )
 
-        print(self.ranges)
-
 
     def g(self, x_tn, u, C, dC):
         s, n, ds, dn = [x_tn[i] for i in range(self.dim_state)]

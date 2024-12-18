@@ -36,7 +36,6 @@ def _polygon_coordinates(position, orientation, shape):
 
 
 def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
-    car_states_gen = car.drive()
     fig, ax = plt.subplots()
     if not interactive:
         plt.close(fig)  # Suppress display right after creation
@@ -82,11 +81,10 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
     ax.add_patch(start_patch)
 
     # Car Patch, which will get updated
-    initial_car_state = next(car_states_gen)
     car_polygon_coordinates = _polygon_coordinates(
-        car.get_position(initial_car_state),
-        car.get_orientation(initial_car_state),
-        car.get_vehicle_polygon(initial_car_state),
+        start_pos,
+        start_orientation,
+        start_polygon_coordinates,
     )
     car_patch = patches.Polygon(
         np.array(car_polygon_coordinates), closed=True, facecolor='cyan', edgecolor='blue', label='Predicted'
@@ -109,9 +107,6 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
     dt = car.planner.dt
 
     def update_frame(car_state):
-        """
-        Update the animation frame with new car positions.
-        """
         zoom_width = 30  # Width of the zoomed-in view
         zoom_height = 30  # Height of the zoomed-in view
 
@@ -122,7 +117,6 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
             car.get_vehicle_polygon(car_state),
         )
 
-        # Recenter the view around the predicted car
         center_x, center_y = car_position
 
         car_path.append(car_position)
@@ -131,202 +125,32 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
             [p[0] for p in car_path], [p[1] for p in car_path]
         )
 
-        # Set the zoomed-in view around the car
         ax.set_xlim(center_x - zoom_width / 2, center_x + zoom_width / 2)
         ax.set_ylim(center_y - zoom_height / 2, center_y + zoom_height / 2)
-
-        # Redraw
         return car_patch, car_path_line
+
+    frames = list(car.drive())  # Convert to list to prevent exhaustion
 
     anim: FuncAnimation = FuncAnimation(
         fig,
         update_frame,
-        frames=car_states_gen,
-        save_count=2000,  # max frames
+        frames=frames,
         interval=int(dt * 1000),  # Interval in ms
         blit=True,
         repeat=False
     )
 
+    # SAVING FEATURE
+    save_path = "animation.mp4"  # Default save path
+    anim.save(save_path, writer='ffmpeg', fps=30)
+    car_path = []
+
     if not interactive:
-        anim.save('anim.mp4')
         centered_html = f"""
-                <div style="display: flex; justify-content: center; align-items: center;">
-                    {anim.to_jshtml()}
-                </div>
-                """
+        <div style="display: flex; justify-content: center; align-items: center;">
+            {anim.to_jshtml()}
+        </div>
+        """
         return HTML(centered_html)
     else:
         plt.show()
-
-
-# class VehiclePathVisualizer:
-#     def __init__(self, car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
-#         self.anim = None
-#         self.car = car
-#         self.car_states_gen = self.car.drive()
-#         self.interactive = interactive
-#         self.fig, self.ax = plt.subplots()
-#         if not interactive:
-#             plt.close(self.fig)  # Suppress display right after creation
-#         self._setup_plot(title)
-#         self._initialize_car_dependent_attributes(car)
-#
-#         # Storage for paths
-#         self.actual_path = []
-#         self.predicted_path = []
-#
-#         # Patches for dynamic updates
-#         self.start_patch = None
-#         self.goal_patch = None
-#         self.predicted_patch = None
-#         self.actual_patch = None
-#         self.predicted_path_line, = self.ax.plot([], [], 'b-')
-#         self.actual_path_line, = self.ax.plot([], [], 'k-')
-#
-#     def _setup_plot(self, title):
-#         self.ax.set_xlim(0, WIDTH)
-#         self.ax.set_ylim(0, HEIGHT)
-#         self.ax.set_aspect('equal', adjustable='box')
-#         self.ax.grid(True)
-#         self.ax.set_xlabel("X Position")
-#         self.ax.set_ylabel("Y Position")
-#         self.ax.set_title(f"Vehicle Path Visualization - {title}")
-#         # self.ax.legend()
-#
-#     def _init_patches(self, start, goal, predicted_car, actual_car):
-#         """
-#         Initialize the car patches for the animation.
-#         """
-#         # START
-#         self.start_patch = patches.Polygon(
-#             start.polygon_coordinates(), closed=True, facecolor='lightgreen', edgecolor='green', label='Start'
-#         )
-#         self.ax.add_patch(self.start_patch)
-#
-#         # PREDICTED CAR-STATE
-#         self.predicted_patch = patches.Polygon(
-#             predicted_car.polygon_coordinates(), closed=True, facecolor='cyan', edgecolor='blue', label='Predicted'
-#         )
-#         self.ax.add_patch(self.predicted_patch)
-#
-#         if goal is not None:
-#             self.goal_patch = patches.Polygon(
-#                 goal.polygon_coordinates(), closed=True, facecolor='lightcoral', edgecolor='red', label='Goal'
-#             )
-#             self.ax.add_patch(self.goal_patch)
-#
-#         if actual_car is not None:
-#             self.actual_patch = patches.Polygon(
-#                 actual_car.polygon_coordinates(), closed=True, facecolor='grey', edgecolor='black', label='Actual'
-#             )
-#             self.ax.add_patch(self.actual_patch)
-#
-#         self.ax.legend()
-#
-#     def _initialize_car_dependent_attributes(self, car: AbstractSelfDrivingCar):
-#         """
-#         Initialize attributes derived from the car, such as start and goal positions.
-#         """
-#         # Start attributes
-#         start: np.ndarray = car.get_start()
-#         self.start_pos, self.start_orientation = car.get_position(start), car.get_orientation(start)
-#         self.start_shape = car.get_vehicle_polygon(start)
-#
-#         # Goal attributes
-#         goal: np.ndarray | None = car.get_goal()
-#         if goal is not None:
-#             self.goal_pos, self.goal_orientation = car.get_position(goal), car.get_orientation(goal)
-#             self.goal_shape = car.get_vehicle_polygon(goal)
-#         else:
-#             self.goal_pos, self.goal_orientation, self.goal_shape = None, None, None
-#
-#         # Model-dependent methods and attributes
-#         self.to_string = lambda state_vec, control_vec: (
-#                 ", ".join([f'{label}: {state}' for label, state in zip(car.state_labels, state_vec)]) + "\n" +
-#                 ", ".join([f'{label}: {control}' for label, control in zip(car.control_input_labels, control_vec)])
-#         )
-#
-#     def update_frame(self):
-#         """
-#         Update the animation frame with new car positions.
-#         """
-#         zoom_width = 30  # Width of the zoomed-in view
-#         zoom_height = 30  # Height of the zoomed-in view
-#
-#         car_state = next(self.car_states_gen)
-#
-#         vehicle_object = VehicleObject(
-#             self.car.get_position(car_state),
-#             self.car.get_orientation(car_state),
-#             self.car.get_vehicle_polygon(car_state),
-#         )
-#
-#         # Recenter the view around the predicted car
-#         center_x, center_y = vehicle_object.position
-#
-#         self.predicted_path.append(vehicle_object.position)
-#         self.predicted_patch.set_xy(vehicle_object.polygon_coordinates())
-#         self.predicted_path_line.set_data(
-#             [p[0] for p in self.predicted_path], [p[1] for p in self.predicted_path]
-#         )
-#
-#         # Set the zoomed-in view around the car
-#         self.ax.set_xlim(center_x - zoom_width / 2, center_x + zoom_width / 2)
-#         self.ax.set_ylim(center_y - zoom_height / 2, center_y + zoom_height / 2)
-#
-#         # Redraw
-#         return self.predicted_patch, self.actual_patch, self.predicted_path_line, self.actual_path_line
-#
-#     def animate(self):
-#         """
-#         Run the animation.
-#         """
-#         # TODO
-#         num_steps = 1000
-#
-#         # Assign the animation to a variable to prevent garbage collection
-#         initial_car_state = next(self.car_states_gen)
-#
-#         if getattr(self.car, "road", None):  # Draw road only once
-#             shape, color = self.car.road.get_polygon_and_color()
-#             road_patch = patches.Polygon(np.array(shape), closed=True, facecolor=color, edgecolor='black')
-#             self.ax.add_patch(road_patch)
-#
-#         self._init_patches(
-#             start= VehicleObject(self.start_pos, self.start_orientation, self.start_shape),
-#             goal= (
-#                 VehicleObject(self.goal_pos, self.goal_orientation, self.goal_shape)
-#                 if self.goal_orientation is not None
-#                 else None
-#             ),
-#             predicted_car=VehicleObject(
-#                 self.car.get_position(initial_car_state),
-#                 self.car.get_orientation(initial_car_state),
-#                 self.car.get_vehicle_polygon(initial_car_state),
-#             ),
-#             actual_car=None,
-#         )
-#
-#         self.anim = FuncAnimation(
-#             self.fig,
-#             lambda step: self.update_frame(),
-#             frames=num_steps,
-#             interval=int(self.dt * 1000),  # Interval in ms
-#             blit=False,
-#             repeat=False
-#         )
-#
-#         if not self.interactive:
-#             centered_html = f"""
-#             <div style="display: flex; justify-content: center; align-items: center;">
-#                 {self.anim.to_jshtml()}
-#             </div>
-#             """
-#             return HTML(centered_html)
-#         else:
-#             self.show()
-#
-#     @staticmethod
-#     def show():
-#         plt.show()

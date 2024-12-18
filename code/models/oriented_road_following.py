@@ -295,10 +295,11 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         x, y, delta, v, psi, dpsi, beta = vec
         # s, n, xi, v, delta
         s, n = self.road.get_road_position(x, y)
+        xi = (psi - self.road.get_tangent_angle_at(s) + np.pi) % (2 * np.pi) - np.pi
         return np.array([
             s,
             n,
-            psi - self.road.get_tangent_angle_at(s),
+            xi,
             v,
             delta
         ])
