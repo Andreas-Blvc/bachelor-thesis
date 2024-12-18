@@ -47,4 +47,7 @@ class AbstractSelfDrivingCar(ABC):
     @abstractmethod
     def get_orientation(self, state) -> float:
         pass
+    @abstractmethod
+    def get_speed(self, state) -> float:
+        pass
 

@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any
+from typing import List, Tuple
 import time
 import math
 import matplotlib.pyplot as plt
@@ -92,7 +92,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         self.controls: List[Tuple[float, np.ndarray]] = []
         self.current_state = self.initial_state
         current_time = 0
-        N = 4
+        N = 2
         while self._on_road():
             if len(self.controls) == 0:
                 start_time = time.time()
@@ -117,7 +117,6 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                 if len(self.controls) == 0:
                     break
 
-                # print(f'planned next {N * self.dt * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms')
             planned_control_time, control = self.controls.pop(0)
             self.current_state = self._update(self.current_state, control)
             current_time = planned_control_time + self.dt
@@ -151,7 +150,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
 
     def _update(self, current_state, control_inputs) -> np.ndarray:
         l = self.vehicle_length
-        w = self.vehicle_width
+        # w = self.vehicle_width
         m = self.total_vehicle_mass
         I_z = self.moment_of_inertia
         l_f = self.distance_from_center_of_gravity_to_front_axle
@@ -225,7 +224,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
     # ============================================
 
     def get_vehicle_polygon(self, state) -> List[Tuple[float, float]]:
-        l_f = self.distance_from_center_of_gravity_to_front_axle
+        # l_f = self.distance_from_center_of_gravity_to_front_axle
         length = self.vehicle_length
         width = self.vehicle_width
         front_wheel_front = add_coordinates(rotate_coordinates((0.5, 0), float(state[2])), (length/2, 0))
@@ -258,6 +257,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
     def get_orientation(self, state) -> float:
         return state[4]
 
-
+    def get_speed(self, state) -> float:
+        return state[3]
 
 

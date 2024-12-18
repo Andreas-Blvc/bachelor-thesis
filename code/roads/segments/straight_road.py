@@ -1,14 +1,21 @@
 from typing import Tuple, List
 import math
 
-from ..interface import AbstractRoad
+from ..interface import AbstractRoad, LateralOffsetBound
 
 class StraightRoad(AbstractRoad):
     """
     s goes from 0 to length
     """
-    def __init__(self, width: float, length: float, start_position: Tuple[float, float], direction_angle: float):
-        super().__init__(length, lambda _: width)
+    def __init__(
+            self,
+            n_min: LateralOffsetBound,
+            n_max: LateralOffsetBound,
+            length: float,
+            start_position: Tuple[float, float],
+            direction_angle: float
+    ):
+        super().__init__(length, n_min, n_max)
         self.start_position = start_position
         self.direction_angle = direction_angle  # angle in radians with respect to x-axis
 
@@ -49,7 +56,7 @@ class StraightRoad(AbstractRoad):
         # Project the vector onto the perpendicular direction to get the lateral offset
         lateral_offset = vx * px + vy * py
 
-        if abs(lateral_offset) > self.width(s)/2:
+        if not self.n_min(s) <= lateral_offset <= self.n_max(s):
             raise ValueError("The given point is not on the road curve.")
 
         return s, lateral_offset
@@ -61,12 +68,15 @@ class StraightRoad(AbstractRoad):
         return 0.0
 
     def get_polygon_and_color(self) -> Tuple[List[Tuple[float, float]], str]:
-        # Approximate the road as a rectangle
-        x1, y1 = self.get_global_position(0, self.width(0) / 2)
-        x2, y2 = self.get_global_position(self.length, self.width(self.length) / 2)
-        x3, y3 = self.get_global_position(self.length, -self.width(self.length) / 2)
-        x4, y4 = self.get_global_position(0, -self.width(0) / 2)
-        return [(x1, y1), (x2, y2), (x3, y3), (x4, y4)], "gray"
+        segments = 20
+        polygon = []
+        for i in range(segments + 1):
+            s = i / segments * self.length
+            polygon.append(self.get_global_position(s, self.n_max(s)))
+        for i in range(segments, -1, -1):
+            s = i / segments * self.length
+            polygon.append(self.get_global_position(s, self.n_min(s)))
+        return polygon, "gray"
 
     def get_tangent_angle_at(self, s_param: float) -> float:
         return (self.direction_angle + math.pi) % (2 * math.pi) - math.pi

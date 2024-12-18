@@ -46,8 +46,8 @@ class ConvexPathPlanner(AbstractPathPlanner):
         ):
             next_segment: AbstractRoad = getattr(self.model.road, 'segments')[self.model.road_segment_idx + 1]
             final_state = self.model.convert_vec_to_state(x[state_transitions, :])
-            constraints.append(final_state.get_lateral_offset() <= next_segment.width(0)/2)
-            constraints.append(final_state.get_lateral_offset() >= -next_segment.width(0)/2)
+            constraints.append(final_state.get_lateral_offset() <= next_segment.n_max(0))
+            constraints.append(final_state.get_lateral_offset() >= next_segment.n_min(0))
             # additional_min_objective_term += 1e3 * final_state.get_alignment_error() ** 2 + 5 * final_state.get_lateral_offset() ** 2
 
         # Dynamics constraints vectorized over a time horizon
@@ -93,7 +93,7 @@ class ConvexPathPlanner(AbstractPathPlanner):
                 distance_til_next_segment = prev_segments_length + segment.length - traveled_distance
                 min_time_to_reach_next_segment = distance_til_next_segment / self.model.get_v_max()
                 state_transitions = min(max_state_transitions - len(control_inputs), int(min_time_to_reach_next_segment / self.dt))
-                if state_transitions * self.dt <= .100:
+                if state_transitions * self.dt <= .010:
                     break
                 else:
                     # print(f'Planning {state_transitions} transitions on {i}')
@@ -114,10 +114,6 @@ class ConvexPathPlanner(AbstractPathPlanner):
                         break
 
                     if x.value is None:
-                        print(
-                            '\ncannot drive further, final state:\n',
-                            self.model.convert_vec_to_state(states[-1]).to_string()
-                        )
                         failed = True
                         break
                     states += [state for state in x.value][1:]
@@ -132,5 +128,10 @@ class ConvexPathPlanner(AbstractPathPlanner):
         # print("Solve time:", f"{self.prob.solver_stats.solve_time:.3f}s")
         self.solve_time = solve_time
         # Return optimized state and control trajectories
+        if len(control_inputs) == 0:
+            print(
+                '\ncannot drive further, final state:\n',
+                self.model.convert_vec_to_state(states[-1]).to_string()
+            )
         return states, control_inputs
 

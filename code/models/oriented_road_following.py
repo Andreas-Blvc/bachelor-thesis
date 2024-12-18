@@ -151,7 +151,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
 
         constraints += [
             0 <= s, s <= self.road.length,
-            n_min <= n, n <= n_max,  # depends on current road segment
+            n_min(s) <= n, n <= n_max(s),  # depends on current road segment
             self.v_min <= v, v <= self.v_max,
             self.steering_angle_min <= delta, delta <= self.steering_angle_max,
             self.steering_velocity_min <= v_delta, v_delta <= self.steering_velocity_max,
@@ -277,7 +277,10 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         return State(
             vec=vec,
             get_velocity=lambda: vec[3],
-            get_offset_from_reference_path=lambda: self._absolute(vec[1]),
+            get_offset_from_reference_path=lambda: cp.maximum(
+                (vec[1] - self.road.n_max(vec[0], self.road_segment_idx)),
+                (self.road.n_min(vec[0], self.road_segment_idx) - vec[1])
+            ),
             get_remaining_distance=lambda: self.road.length - vec[0],
             get_traveled_distance=lambda: vec[0],
             get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),

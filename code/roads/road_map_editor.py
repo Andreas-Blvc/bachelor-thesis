@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import Canvas, Frame, Button, TOP, LEFT, simpledialog, Label, filedialog
+from tkinter import Canvas, Frame, Button, TOP, LEFT, simpledialog, Label, filedialog, messagebox
 import math
 import os
 import dill as pickle
-from typing import List, Tuple
+from typing import List, Tuple, Literal
+import sympy as sp
 
 from .road import Road
 from .interface import AbstractRoad
@@ -22,6 +23,44 @@ def path_to_tk_coord(x: float, y: float) -> Tuple[float, float]:
         x * (TK_WIDTH / PATH_PLANNER_WIDTH),
         (-y + PATH_PLANNER_HEIGHT) * (TK_HEIGHT / PATH_PLANNER_HEIGHT)
     )
+
+
+def get_function(prompt, concavity_check: Literal["convex", "concave"]):
+    x = sp.symbols('x')
+    while True:
+        # Ask for a mathematical expression
+        width_expression = simpledialog.askstring(
+            "Input", prompt + " (e.g., '5 - 0.5*x'):")
+
+        if not width_expression:
+            print("No input provided. Exiting.")
+            return None
+
+        try:
+            # Parse the function
+            width_func = sp.sympify(width_expression)
+            second_derivative = sp.diff(width_func, x, x)
+
+            # Check concavity or convexity
+            if concavity_check == "concave" and not second_derivative.is_nonpositive:
+                messagebox.showerror(
+                    "Invalid Function",
+                    "The function must be concave (second derivative must be <= 0)."
+                )
+                continue
+            elif concavity_check == "convex" and not second_derivative.is_nonnegative:
+                messagebox.showerror(
+                    "Invalid Function",
+                    "The function must be convex (second derivative must be >= 0)."
+                )
+                continue
+
+            # Function is valid
+            return sp.lambdify(x, width_func, "numpy")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Error", f"Invalid input: {e}. Please enter a valid function.")
 
 class RoadMapEditor:
     def __init__(self, tk_root):
@@ -119,7 +158,12 @@ class RoadMapEditor:
         if self.selected_road_type.get() == "StraightRoad":
             # Get parameters for the StraightRoad from the user
             length = simpledialog.askfloat("Input", "Enter the length of the Straight Road:", minvalue=.01)
-            width = simpledialog.askfloat("Input", "Enter the width of the Straight Road:", minvalue=.01)
+            n_min = get_function(
+                "Enter n_min as convex function of the Straight Road:", "convex"
+            )
+            n_max = get_function(
+                "Enter n_max as concave function of the Straight Road:", "concave"
+            )
             if len(self.roads) == 0:
                 direction_angle = simpledialog.askfloat(
                     "Input",
@@ -130,7 +174,7 @@ class RoadMapEditor:
                 direction_angle = self.roads[-1].get_tangent_angle_at(self.roads[-1].length)
 
             # Example: create a StraightRoad starting at last endpoint or click point
-            road = StraightRoad(width=width, length=length, start_position=(x, y), direction_angle=direction_angle)
+            road = StraightRoad(n_min=n_min, n_max=n_max, length=length, start_position=(x, y), direction_angle=direction_angle)
             self.roads.append(road)
             self.draw_road(road)
 
@@ -143,9 +187,11 @@ class RoadMapEditor:
                 "Input",
                 "Enter the radius of the Circular Curve Road:", minvalue=.01
             )
-            width = simpledialog.askfloat(
-                "Input",
-                "Enter the width of the Circular Curve Road:", minvalue=.01
+            n_min = get_function(
+                "Enter n_min as convex function of the Circular Curve Road:", "convex"
+            )
+            n_max = get_function(
+                "Enter n_max as concave function of the Circular Curve Road:", "concave"
             )
             start_angle = None
             if len(self.roads) == 0:
@@ -166,7 +212,8 @@ class RoadMapEditor:
 
             previous_angle = self.roads[-1].get_tangent_angle_at(self.roads[-1].length) if len(self.roads) > 0 else 0
             road = CircularCurveRoad(
-                width=width,
+                n_min=n_min,
+                n_max=n_max,
                 radius=radius,
                 center=(
                     x + math.cos(math.pi/2 + previous_angle) * radius * (1 if angle_sweep > 0 else -1),
@@ -212,7 +259,7 @@ class RoadMapEditor:
         """Deletes the last added road segment."""
         if self.roads:
             # Remove the last road segment
-            last_segment = self.roads.pop()
+            self.roads.pop()
             self.last_endpoint = self.calculate_endpoint(self.roads[-1]) if self.roads else None
             self.canvas.delete("all")
             self.draw_grid()
@@ -263,7 +310,8 @@ class RoadMapEditor:
     def calculate_endpoint(road):
         """
         Calculate the endpoint of a road-based on its type and geometry.
-        This is a placeholder implementation. Adjust according to actual road geometry.
+        This is a placeholder implementation.
+        Adjust, according to actual road geometry.
         """
         if isinstance(road, StraightRoad):
             x_start, y_start = road.start_position
@@ -282,7 +330,7 @@ class RoadMapEditor:
 
 def launch_editor():
     root = tk.Tk()
-    app = RoadMapEditor(root)
+    RoadMapEditor(root)
     root.mainloop()
 
 

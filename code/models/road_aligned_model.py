@@ -171,7 +171,9 @@ class RoadAlignedModel(AbstractVehicleModel):
         return State(
             vec=vec,
             get_velocity=lambda: self._sqrt(self._norm_squared(vec[2:])),
-            get_offset_from_reference_path= lambda: self._absolute(vec[1]),
+            get_offset_from_reference_path=lambda: self._absolute(
+                vec[1] - self.road.n_max(vec[0], self.road_segment_idx) - self.road.n_min(vec[0],
+                                                                                          self.road_segment_idx)),
             get_remaining_distance=lambda: self.road.length - vec[0],
             get_traveled_distance=lambda: vec[0],
             get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),
@@ -197,6 +199,7 @@ class RoadAlignedModel(AbstractVehicleModel):
 
     def get_dsm_control_from_vec(self, control_vec, state_vec) -> np.ndarray:
         s, n, ds, dn = state_vec
+        control_vec[1] = 0
         a_x_tn, a_y_tn = self.g(state_vec, control_vec, self.road.get_curvature_at, self.road.get_curvature_derivative_at)
         xi = np.arctan(dn / (ds * (1 - n * self.road.get_curvature_at(s))))
         v_x = ds * (1 - n * self.road.get_curvature_at(s)) / np.cos(xi)

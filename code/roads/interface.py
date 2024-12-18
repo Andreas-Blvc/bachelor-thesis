@@ -1,5 +1,27 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, Protocol, Any
+
+
+class LateralOffsetBound(Protocol):
+    def __call__(self, s: Any, road_segment_idx: int = None) -> float: ...
+
+
+class SegmentDependentVariables:
+    def __init__(
+            self,
+            C: Callable[[Any], Any],
+            dC: Callable[[Any], Any],
+            c_min,
+            c_max,
+            n_min: LateralOffsetBound,
+            n_max: LateralOffsetBound
+    ):
+        self.C = C
+        self.dC = dC
+        self.c_min = c_min
+        self.c_max = c_max
+        self.n_min = n_min
+        self.n_max = n_max
 
 
 class AbstractRoad(ABC):
@@ -7,9 +29,10 @@ class AbstractRoad(ABC):
     Abstract base class for different types of roads.
     Defines a standard interface for road methods and properties.
     """
-    def __init__(self, length: float, width: Callable[[float], float]):
+    def __init__(self, length: float, n_min: LateralOffsetBound, n_max: LateralOffsetBound):
         self.length = length
-        self.width = width
+        self.n_min = n_min
+        self.n_max = n_max
 
     @abstractmethod
     def get_curvature_at(self, s_param: float) -> float:

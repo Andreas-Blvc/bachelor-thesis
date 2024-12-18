@@ -23,8 +23,8 @@ def run(config: BenchmarkConfiguration):
     road = load_road(config.road)
     start_velocity = config.start_velocity
     start_offset = (
-        (1 - config.start_offset) * road.width(0)/2 +
-        config.start_offset * -road.width(0)/2
+        (1 - config.start_offset) * road.n_max(0) +
+        config.start_offset * road.n_min(0)
     )
     velocity_range = (
         start_velocity * config.velocity_range[0],
@@ -46,8 +46,8 @@ def run(config: BenchmarkConfiguration):
     #     return planned_car_states, actual_car_states, control_inputs, planner.solve_time
 
     benchmarks = []
-    steering_velocity_range = (-2, 2)
-    steering_range = ((-45 / 180) * np.pi, (45 / 180) * np.pi)
+    steering_velocity_range = (-8, 8)
+    steering_range = ((-40 / 180) * np.pi, (40 / 180) * np.pi)
 
     for model_type, solver_type in config.models:
         match model_type:
@@ -55,7 +55,7 @@ def run(config: BenchmarkConfiguration):
                 predictive_model = OrientedRoadFollowingModel(
                     road=road,
                     v_range=velocity_range,
-                    acc_range=(-4, 4),
+                    acc_range=(-6, 3),
                     steering_angle_range=steering_range,
                     steering_velocity_range=steering_velocity_range,
                     l_wb=0.883+1.508
@@ -64,11 +64,11 @@ def run(config: BenchmarkConfiguration):
                 predictive_model = RoadAlignedModel(
                     road=road,
                     v_x_range=velocity_range,
-                    v_y_range=(-2, 2),
-                    acc_x_range=(-2, 2),
-                    acc_y_range=(-3, 3),
-                    yaw_rate_range=(-2, 2),
-                    yaw_acc_range=(-2, 2),
+                    v_y_range=(0, 0),
+                    acc_x_range=(-4, 4),
+                    acc_y_range=(-4, 4),
+                    yaw_rate_range=(-4, 4),
+                    yaw_acc_range=(-4, 4),
                     a_max=4,
                 )
             case _:

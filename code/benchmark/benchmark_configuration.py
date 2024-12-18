@@ -20,6 +20,7 @@ class VelocityRange(Enum):
     Medium = (2/3, 4/3)
     Large = (0.4, 1.6)
     ZeroToVelocity = (0, 1)
+    VelocityToTripled = (1, 3)
 
 # (1 - value) * left_width + value * right_width
 class LateralOffset(Enum):
@@ -38,6 +39,8 @@ class Road(Enum):
     Right_Turn = './data/right_turn.pkl'
     Left_Turn = './data/left_turn.pkl'
     ChangeLaneTwice = './data/change_lane_twice.pkl'
+    Straight_Road = './data/straight_road.pkl'
+    ElchTest_One = './data/elchtest_1.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.

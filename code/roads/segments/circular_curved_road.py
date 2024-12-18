@@ -1,16 +1,24 @@
 from typing import Tuple, List
 import math
 
-from ..interface import AbstractRoad
+from ..interface import AbstractRoad, LateralOffsetBound
 
 
 class CircularCurveRoad(AbstractRoad):
-    def __init__(self, width: float, radius: float, center: Tuple[float, float], start_angle: float, angle_sweep: float):
+    def __init__(
+            self,
+            n_min: LateralOffsetBound,
+            n_max: LateralOffsetBound,
+            radius: float,
+            center: Tuple[float, float],
+            start_angle: float,
+            angle_sweep: float
+    ):
         self.radius = radius
         self.center = center
         self.start_angle = start_angle  # Starting angle of the arc
         self.angle_sweep = angle_sweep  # Sweep of the curve in radians
-        super().__init__(self.get_road_length(), lambda _: width)
+        super().__init__(self.get_road_length(), n_min, n_max)
 
     def get_road_length(self) -> float:
         return abs(self.radius * self.angle_sweep)
@@ -60,7 +68,7 @@ class CircularCurveRoad(AbstractRoad):
         # Calculate the lateral offset
         lateral_offset = (distance - self.radius) * (-1 if self.angle_sweep > 0 else 1)
 
-        if abs(lateral_offset) > self.width(s)/2:
+        if not self.n_min(s) <= lateral_offset <= self.n_max(s):
             raise ValueError("The given point is not on the road curve.")
 
         return s, lateral_offset
@@ -76,10 +84,10 @@ class CircularCurveRoad(AbstractRoad):
         polygon = []
         for i in range(segments + 1):
             s = i / segments * self.length
-            polygon.append(self.get_global_position(s, self.width(s) / 2))
+            polygon.append(self.get_global_position(s, self.n_max(s)))
         for i in range(segments, -1, -1):
             s = i / segments * self.length
-            polygon.append(self.get_global_position(s, -self.width(s) / 2))
+            polygon.append(self.get_global_position(s, self.n_min(s)))
         return polygon, "blue"
 
     def get_tangent_angle_at(self, s: float) -> float:

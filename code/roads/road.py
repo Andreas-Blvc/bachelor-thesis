@@ -1,18 +1,11 @@
 import casadi as ca
 import numpy as np
-from typing import List, Tuple, Callable, Any
+from typing import List, Tuple, Callable, Any, Protocol
 
 from utils import is_float_in_range
-from .interface import AbstractRoad
+from .interface import AbstractRoad, SegmentDependentVariables
 
-class SegmentDependentVariables:
-    def __init__(self, C: Callable[[Any], Any], dC: Callable[[Any], Any], c_min, c_max, n_min, n_max):
-        self.C = C
-        self.dC = dC
-        self.c_min = c_min
-        self.c_max = c_max
-        self.n_min = n_min
-        self.n_max = n_max
+
 
 class Road(AbstractRoad):
     def __init__(self, segments: List[AbstractRoad]):
@@ -22,16 +15,31 @@ class Road(AbstractRoad):
         if len(segments) == 0:
             raise ValueError('No segments provided')
         self.segments = segments
-        def width(s):
+        def n_min(s, road_segment_idx=None):
+            if road_segment_idx is not None:
+                return self.segments[road_segment_idx].n_min(s - self._get_prev_length(road_segment_idx))
             current_length = 0
             for segment in self.segments:
                 segment_length = segment.length
                 if is_float_in_range(s, current_length, current_length + segment_length):
                     local_s = s - current_length
-                    return segment.width(local_s)
+                    return segment.n_min(local_s)
                 current_length += segment_length
             return 0.0
-        super().__init__(self._get_total_length(), width)
+
+        def n_max(s, road_segment_idx=None):
+            if road_segment_idx is not None:
+                return self.segments[road_segment_idx].n_max(s - self._get_prev_length(road_segment_idx))
+            current_length = 0
+            for segment in self.segments:
+                segment_length = segment.length
+                if is_float_in_range(s, current_length, current_length + segment_length):
+                    local_s = s - current_length
+                    return segment.n_max(local_s)
+                current_length += segment_length
+            return 0.0
+
+        super().__init__(self._get_total_length(), n_min, n_max)
 
     def _compute_casadi_segment_dependent_variable(self, s, callback: Callable[[AbstractRoad, Any], Any]):
         """
@@ -79,8 +87,8 @@ class Road(AbstractRoad):
             - dC: A function to compute the curvature derivative at a given longitudinal offset.
             - c_min: The minimum curvature bound of the segment at the given position `s`.
             - c_max: The maximum curvature bound of the segment at the given position `s`.
-            - n_min: The minimum width bound of the segment at the given position `s`.
-            - n_max: The maximum width bound of the segment at the given position `s`.
+            - n_min: A function to compute the minimum width bound at the given position `s`.
+            - n_max: A function to compute the maximum width bound at the given position `s`.
 
 
         Raises:
@@ -99,9 +107,8 @@ class Road(AbstractRoad):
             C = self.get_curvature_at
             dC = self.get_curvature_derivative_at
             c_min = c_max = self.get_curvature_at(s)
-            width = self.width(s)
-            n_min = -width / 2
-            n_max = width / 2
+            n_min = self.n_min
+            n_max = self.n_max
 
         # CasADi solver case
         elif use_casadi:
@@ -124,11 +131,11 @@ class Road(AbstractRoad):
             # width on whole segment constant:
             n_min = self._compute_casadi_segment_dependent_variable(
                 s,
-                lambda road_segment, local_s: -road_segment.width(local_s) / 2
+                lambda road_segment, local_s: road_segment.n_min(local_s)
             )
             n_max = self._compute_casadi_segment_dependent_variable(
                 s,
-                lambda road_segment, local_s: road_segment.width(local_s) / 2
+                lambda road_segment, local_s: road_segment.n_max(local_s)
             )
 
         # from here on, segment_dependent_variables only changes if road_segment_idx did change
@@ -142,10 +149,8 @@ class Road(AbstractRoad):
             segment = self.segments[0]
             c_min = segment.get_curvature_min(0, segment.length)
             c_max = segment.get_curvature_max(0, segment.length)
-            #  width on whole segment constant:
-            width = segment.width(0)
-            n_min = -width / 2
-            n_max = width / 2
+            n_min = lambda longitudinal_offset: self.n_min(longitudinal_offset, 0)
+            n_max = lambda longitudinal_offset: self.n_max(longitudinal_offset, 0)
 
         # Multiple segments with specified road segment index
         elif road_segment_idx is not None:
@@ -161,9 +166,8 @@ class Road(AbstractRoad):
             c_min = segment.get_curvature_min(0, segment.length)
             c_max = segment.get_curvature_max(0, segment.length)
             # width on whole segment constant:
-            width = segment.width(0)
-            n_min = -width / 2
-            n_max = width / 2
+            n_min = lambda longitudinal_offset: self.n_min(longitudinal_offset, road_segment_idx)
+            n_max = lambda longitudinal_offset: self.n_max(longitudinal_offset, road_segment_idx)
 
         # Unsupported case
         else:

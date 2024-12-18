@@ -101,9 +101,12 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
 
     ax.legend()
 
-    """
-        RUN THE ANIMATION:
-    """
+    # Info box
+    info_box = ax.text(
+        0.02, 0.98, "", transform=ax.transAxes, fontsize=10, va="top", ha="left",
+        bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
+    )
+
     dt = car.planner.dt
 
     def update_frame(car_state):
@@ -111,9 +114,12 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
         zoom_height = 30  # Height of the zoomed-in view
 
         car_position = car.get_position(car_state)
+        car_orientation = car.get_orientation(car_state)
+        car_speed = car.get_speed(car_state)
+
         _car_polygon_coordinates = _polygon_coordinates(
             car_position,
-            car.get_orientation(car_state),
+            car_orientation,
             car.get_vehicle_polygon(car_state),
         )
 
@@ -125,9 +131,16 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
             [p[0] for p in car_path], [p[1] for p in car_path]
         )
 
+        # Update info box text
+        info_box.set_text(
+            f"Position: ({car_position[0]:.2f}, {car_position[1]:.2f})\n"
+            f"Orientation: {np.degrees(car_orientation):.2f}°\n"
+            f"Speed: {car_speed:.2f} m/s"
+        )
+
         ax.set_xlim(center_x - zoom_width / 2, center_x + zoom_width / 2)
         ax.set_ylim(center_y - zoom_height / 2, center_y + zoom_height / 2)
-        return car_patch, car_path_line
+        return car_patch, car_path_line, info_box
 
     frames = list(car.drive())  # Convert to list to prevent exhaustion
 
@@ -142,7 +155,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
 
     # SAVING FEATURE
     save_path = "animation.mp4"  # Default save path
-    anim.save(save_path, writer='ffmpeg', fps=30)
+    anim.save(save_path, writer='ffmpeg', fps=1/dt)
     car_path = []
 
     if not interactive:

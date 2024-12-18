@@ -1,8 +1,6 @@
 from enum import Enum
 from typing import List
 
-from pygments.lexers.objective import objective
-
 from utils import ControlInput, State
 
 
@@ -75,6 +73,14 @@ class Objectives:
             objective = (objective or 0) + state.get_offset_from_reference_path()
         for control in control_inputs:
             objective += Objectives.norm(control.as_vector())
+        return objective, Objectives.Type.MINIMIZE
+
+    @staticmethod
+    def minimize_alignment_error(states: List[State], control_inputs: List[ControlInput]):
+        _validate_typs(states, control_inputs)
+        objective = 0
+        for idx, state in enumerate(states):
+            objective += idx * state.get_alignment_error() ** 2
         return objective, Objectives.Type.MINIMIZE
 
     @staticmethod
