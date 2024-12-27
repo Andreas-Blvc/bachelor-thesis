@@ -25,7 +25,7 @@ class AbstractVehicleModel:
 		# self._validate__state_dimension(goal_state) if goal_state is not None else None
 
 	@abstractmethod
-	def update(self, current_state, control_inputs, dt: float) -> Tuple[np.ndarray, List[Any]]:
+	def update(self, current_state, control_inputs, dt: float, convexify_ref_state=None) -> Tuple[np.ndarray, List[Any]]:
 		raise 'update not implemented'
 	@abstractmethod
 	def convert_vec_to_state(self, vec) -> State:

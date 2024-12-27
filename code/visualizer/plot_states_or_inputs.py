@@ -60,9 +60,9 @@ def plot_states_or_inputs(
             negative_values = np.where(data[:] < -delta, data[:], np.nan)
             zero_values = np.where((np.abs(data[:]) <= delta), data[:], np.nan)
 
-        ax.plot(time_steps, positive_values, color='blue', label=f"{labels[i]} (Positive)")
-        ax.plot(time_steps, negative_values, color='red', label=f"{labels[i]} (Negative)")
-        ax.plot(time_steps, zero_values, color='green', label=f"{labels[i]} (Zero)")
+        ax.plot(time_steps, positive_values, color='blue', label="> 0")
+        ax.plot(time_steps, negative_values, color='red', label="< 0")
+        ax.plot(time_steps, zero_values, color='green', label="= 0")
 
         ax.set_xlabel("Time [s]")
         ax.set_ylabel(labels[i])

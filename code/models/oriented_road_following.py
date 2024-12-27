@@ -95,7 +95,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         self.xi_abs_bound = 45/180 * pi
         self._mccormick_relaxations: List[Tuple[McCormickConvexRelaxation]] = []
 
-    def update(self, current_state, control_inputs, dt) -> Tuple[np.ndarray, List[Any]]:
+    def update(self, current_state, control_inputs, dt, convexify_ref_state=None) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -133,14 +133,18 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
                 delta + v_delta * dt,
             ])
         elif self.solver_type == 'cvxpy':
-            # We have following non-linear terms:
-            # 1. v * cos(xi) / (1 - n * C(s)) (ds-term)
-            # 2. v * sin(xi) (dn-term)
-            # 3. v * tan(delta) (dxi-term)
+            # We have the following non-linear terms:
+            # 1. (ds-term):  v * cos(xi) / (1 - n * C(s)) ≈ v * cos(xi)
+            # 2. (dn-term):  v * sin(xi)
+            # 3. (dxi-term): v * tan(delta)
+            # Taylor Approximation:
+            # cos(x) ≈ cos(a) - sin(a) (x-a)
+            # sin(x) ≈ sin(a) + cos(a) (x-a)
+            # tan(x) ≈ tan(a) + 1/cos(a)^2 (x-a)
             ds_term, dn_term, dxi_term = self._convex_relax_bilinear_terms(s, n, xi, v, delta, constraints)
 
             next_state = cp.vstack([
-                s + ds_term * dt,
+                s + ds_term * dt,                                                                                            
                 n + dn_term * dt,
                 xi + (1/self.L_wb * dxi_term - C(s) * ds_term) * dt,
                 v + a_x_b * dt,
