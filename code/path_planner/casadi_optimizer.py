@@ -19,9 +19,10 @@ class NonConvexPathPlanner(AbstractPathPlanner):
         # Configure others
         model.solver_type = 'casadi'
         Objectives.norm = ca.sumsqr
+        Objectives.max = lambda x, y: ca.fmax(x, y)
 
         self.opti = None
-        self.solve_time = None
+        self.solve_time = 0.0
         self.x = None
         self.u = None
 
@@ -99,10 +100,13 @@ class NonConvexPathPlanner(AbstractPathPlanner):
             except RuntimeError:
                 # traceback.print_exc(file=stdout_old)
                 sys.stdout = stdout_old
-                return None, None
+                return [], []
 
         # Extract the optimized states and controls
         x_opt = solution.value(self.x)
         u_opt = solution.value(self.u)
 
-        return x_opt, u_opt
+        if x_opt is None or u_opt is None:
+            return [], []
+        else:
+            return x_opt, u_opt

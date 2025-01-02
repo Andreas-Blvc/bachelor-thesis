@@ -16,6 +16,7 @@ def _validate_typs(states, control_inputs):
 
 class Objectives:
     norm = lambda x: (_ for _ in ()).throw(NotImplementedError('Norm was not set by Optimizer!'))
+    max = lambda x, y: (_ for _ in ()).throw(NotImplementedError('Max was not set by Optimizer!'))
     class Type(Enum):
         MAXIMIZE = 0
         MINIMIZE = 1
@@ -90,3 +91,32 @@ class Objectives:
         for state in states:
             objective += state.get_lateral_offset() ** 2 + state.get_alignment_error() ** 2
         return objective, Objectives.Type.MINIMIZE
+
+    @staticmethod
+    def slow_down(road_length, start_velocity):
+        def ret(states: List[State], control_inputs: List[ControlInput]):
+            _validate_typs(states, control_inputs)
+            objective = None
+            for state in states:
+                ref_velocity = start_velocity * (road_length - state.get_traveled_distance()) / road_length
+                if objective is None:
+                    objective = (state.get_velocity() - ref_velocity) ** 2
+                else:
+                    objective += (state.get_velocity() - ref_velocity) ** 2
+            return objective, Objectives.Type.MINIMIZE
+        return ret
+
+    @staticmethod
+    def speed_up(road_length, start_velocity, max_velocity):
+        def ret(states: List[State], control_inputs: List[ControlInput]):
+            _validate_typs(states, control_inputs)
+            objective = None
+            for state in states:
+                ref_velocity = start_velocity + (max_velocity - start_velocity) * state.get_traveled_distance() / road_length
+                if objective is None:
+                    objective = (state.get_velocity() - ref_velocity) ** 2
+                else:
+                    objective += (state.get_velocity() - ref_velocity) ** 2
+            return objective, Objectives.Type.MINIMIZE
+        return ret
+

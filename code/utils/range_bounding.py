@@ -13,6 +13,7 @@
 
 from itertools import product
 from typing import Tuple
+import cvxpy as cp
 
 from .state_ranges import StateRanges
 
@@ -24,7 +25,7 @@ def _affine_range_bounding(slope_range, intercept_range, lower_bound, upper_boun
     """
     slope_min, slope_max = slope_range
     intercept_min, intercept_max = intercept_range
-    if slope_min > slope_max or intercept_min > intercept_max:
+    if slope_min >= slope_max + 1e-3 or intercept_min >= intercept_max + 1e-3:
         raise ValueError(f"invalid range: slope_min, slope_max = {slope_min, slope_max}; "
                          f"intercept_min, intercept_max = {intercept_min, intercept_max} ")
 
@@ -153,7 +154,10 @@ def _calculate_product_range(*ranges: Tuple[float, float]) -> Tuple[float, float
         for num in combo:
             product_val *= num
         products.append(product_val)
-    return min(products), max(products)
+    try:
+        return min(products), max(products)
+    except NotImplementedError:
+        return cp.min(cp.hstack(products)), cp.max(cp.hstack(products))
 
 
 class MainPaperConstraintsReduction:

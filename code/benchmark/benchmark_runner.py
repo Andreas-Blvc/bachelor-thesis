@@ -5,23 +5,18 @@ from path_planner import ConvexPathPlanner, NonConvexPathPlanner
 from roads import load_road
 from self_driving_cars import DynamicSingleTrackModel
 from visualizer.vehicle_path_visualizer import animate
-from .benchmark import Benchmark
 
+from .benchmark import Benchmark
 from .benchmark_configuration import *
 
 
 def run(config: BenchmarkConfiguration):
-    # store for non-convex case
-    oriented_road_following_possible_goal_state = None
-    oriented_road_following_initial_guess = None
-    road_aligned_possible_goal_state = None
-    road_aligned_initial_guess = None
-
-    objective = config.objective
     dt = config.time_discretization
     time_horizon = config.time_horizon
     road = load_road(config.road)
     start_velocity = config.start_velocity
+    objective = config.objective(road.length, start_velocity, start_velocity * config.velocity_range[1])
+    # objective = config.objective
     start_offset = (
         (1 - config.start_offset) * road.n_max(0) +
         config.start_offset * road.n_min(0)
@@ -30,20 +25,6 @@ def run(config: BenchmarkConfiguration):
         start_velocity * config.velocity_range[0],
         start_velocity * config.velocity_range[1],
     )
-
-    # def _get_planned_trajectory(model, non_convex=False, initial_guess=None):
-    #     if non_convex:
-    #         planner = NonConvexPathPlanner(model, dt, time_horizon, objective)
-    #         planned_car_states, control_inputs = planner.get_optimized_trajectory(initial_guess)
-    #     else:
-    #         planner = ConvexPathPlanner(model, dt, time_horizon, objective)
-    #         planned_car_states, control_inputs = planner.get_optimized_trajectory()
-    #     actual_car_states = [model.initial_state]
-    #     if control_inputs is not None:
-    #         for u in control_inputs:
-    #             next_state, _ = model.update(actual_car_states[-1], u)
-    #             actual_car_states.append(next_state)
-    #     return planned_car_states, actual_car_states, control_inputs, planner.solve_time
 
     benchmarks = []
     steering_velocity_range = (-8, 8)
@@ -58,18 +39,18 @@ def run(config: BenchmarkConfiguration):
                     acc_range=(-6, 3),
                     steering_angle_range=steering_range,
                     steering_velocity_range=steering_velocity_range,
-                    l_wb=0.883+1.508
+                    l_wb=0.883+1.508,
                 )
             case Model.RoadAlignedModel:
                 predictive_model = RoadAlignedModel(
                     road=road,
                     v_x_range=velocity_range,
-                    v_y_range=(0, 0),
+                    v_y_range=(-4, 4),
                     acc_x_range=(-4, 4),
                     acc_y_range=(-4, 4),
                     yaw_rate_range=(-4, 4),
                     yaw_acc_range=(-4, 4),
-                    a_max=4,
+                    a_max=8,
                 )
             case _:
                 raise ValueError('model type not supported')
@@ -104,6 +85,5 @@ def run(config: BenchmarkConfiguration):
                 car=self_driving_car,
             )
         )
-
 
     return benchmarks

@@ -1,5 +1,5 @@
+import math
 from typing import Any, List, Tuple
-
 import casadi as ca
 import cvxpy as cp
 import numpy as np
@@ -91,7 +91,7 @@ class RoadAlignedModel(AbstractVehicleModel):
             u_n + C(s) * ds**2 * (1-n*C(s)),
         ]
 
-    def update(self, current_state, control_inputs, dt) -> Tuple[np.ndarray, List[Any]]:
+    def update(self, current_state, control_inputs, dt, convexify_ref_state=None) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -143,7 +143,13 @@ class RoadAlignedModel(AbstractVehicleModel):
                 g[0]**2 + g[1]**2 <= self.a_max,
             ]
         elif self.solver_type == 'cvxpy':
-            self._get_polytopic_constrain_set(C, c_min, c_max, n_min, n_max) # initializes/updates self.ranges
+            self._get_polytopic_constrain_set(
+                C,
+                c_min,
+                c_max,
+                min(n_min(x) for x in np.linspace(0, 1, 1000)),
+                max(n_max(x) for x in np.linspace(0, 1, 1000)),
+            ) # initializes/updates self.ranges
             next_state = cp.vstack([current_state[i] + dx_dt[i] * dt for i in range(self.dim_state)]).flatten()
             constraints = [
                 0 <= s, s <= self.road.length,
@@ -158,9 +164,6 @@ class RoadAlignedModel(AbstractVehicleModel):
             raise ValueError(f"solver_type {self.solver_type} not supported")
 
         return next_state, constraints
-
-    def get_v_max(self):
-        return self.v_x_max
 
     def plot_additional_information(self, states, controls):
         print(self.ranges)
@@ -197,9 +200,18 @@ class RoadAlignedModel(AbstractVehicleModel):
             s, n, ds, dn
         ])
 
-    def get_dsm_control_from_vec(self, control_vec, state_vec) -> np.ndarray:
+    def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None) -> np.ndarray:
+        if dt is None:
+            raise ValueError("dt must be specified")
         s, n, ds, dn = state_vec
-        control_vec[1] = 0
+        # control_vec[1] = 0
+        u_0, u_1 = control_vec
+        v_0 = math.sqrt(ds ** 2 + dn ** 2)
+        v_1 = math.sqrt((ds + u_0 * dt) ** 2 + (dn + u_1 * dt) ** 2)
+        a = (v_1 - v_0) / dt
+
+
+
         a_x_tn, a_y_tn = self.g(state_vec, control_vec, self.road.get_curvature_at, self.road.get_curvature_derivative_at)
         xi = np.arctan(dn / (ds * (1 - n * self.road.get_curvature_at(s))))
         v_x = ds * (1 - n * self.road.get_curvature_at(s)) / np.cos(xi)

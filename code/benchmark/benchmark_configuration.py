@@ -31,16 +31,12 @@ class LateralOffset(Enum):
     FarRight = 1
 
 class Road(Enum):
-    S_Curve = './data/s_turn.pkl'
-    FirstTransition = './data/first_transition.pkl'
-    Road_Narrowing = './data/road_narrowing.pkl'
-    Slalom = './data/slalom.pkl'
-    Three_Right_Turns = './data/3_right_turns.pkl'
+    ElchTest_One = './data/elchtest_1.pkl'
     Right_Turn = './data/right_turn.pkl'
     Left_Turn = './data/left_turn.pkl'
-    ChangeLaneTwice = './data/change_lane_twice.pkl'
-    Straight_Road = './data/straight_road.pkl'
-    ElchTest_One = './data/elchtest_1.pkl'
+    Left_Turn_Small = './data/left_turn_small.pkl'
+    Straight = './data/straight.pkl'
+    Lane_Change = './data/lane_change.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.

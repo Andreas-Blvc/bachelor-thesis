@@ -272,9 +272,6 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             no_bounds=True,
         )
 
-    def get_v_max(self):
-        return self.v_max
-
     def convert_vec_to_state(self, vec) -> State:
         # vec: s, n, xi, v, delta
         self._validate__state_dimension(vec)
@@ -311,7 +308,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             delta
         ])
 
-    def get_dsm_control_from_vec(self, control_vec, state_vec):
+    def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None):
         a_x, v_delta = control_vec
         return np.array([
             v_delta,

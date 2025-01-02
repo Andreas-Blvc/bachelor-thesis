@@ -39,6 +39,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         """
         # Metrics for plotting
         self.calculation_times = []  # Store time for planning
+        self.solve_times = []
 
         self.dim_state = 7
         self.dim_control_input = 2
@@ -104,8 +105,8 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                 calculation_time = time.time() - start_time
                 self.calculation_times.append(calculation_time)
 
-                self.predictive_model_states += predictive_model_states[:N]
-                self.predictive_model_controls += predictive_model_controls[:N]
+                self.predictive_model_states += list(predictive_model_states[:N])
+                self.predictive_model_controls += list(predictive_model_controls[:N])
 
                 self.controls = [
                     (
@@ -120,10 +121,14 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
             planned_control_time, control = self.controls.pop(0)
             self.current_state = self._update(self.current_state, control)
             current_time = planned_control_time + self.dt
-            s = self.road.get_road_position(float(self.current_state[0]), float(self.current_state[1]))[0]
-            print(f"\rProgress: [{'█' * math.floor(s) + '-' * math.ceil(self.road.length-s)}] {(s/self.road.length)*100:.2f}%  "
-                  f"of the Road Complete (Segment {self.predictive_model.road_segment_idx}), "
-                  f"planned next {N * self.dt * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms{' ' * 10}", end='')
+            self.solve_times.append(self.planner.solve_time)
+            try:
+                s = self.road.get_road_position(float(self.current_state[0]), float(self.current_state[1]))[0]
+                print(f"\rProgress: [{'█' * math.floor(s) + '-' * math.ceil(self.road.length-s)}] {(s/self.road.length)*100:.2f}%  "
+                      f"of the Road Complete, current state: {', '.join(f'{label}: {val:.2f}' for label, val in zip(self.state_labels, self.current_state))}, "
+                      f"planned next {N * self.dt * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms{' ' * 10}", end='')
+            except ValueError:
+                break
             yield self.current_state
 
             self.car_states.append(self.current_state)
@@ -141,6 +146,16 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         plt.xlabel("Iteration")
         plt.ylabel("Time (s)")
         plt.title("Calculation Time per Iteration")
+        plt.grid(True)
+        plt.legend()
+
+        # Plot solver times (second subplot)
+        plt.subplot(2, 1, 2)
+        plt.plot(self.solve_times, label="Solver Time (s)", marker='o')  # Assuming 'self.driving_times' exists
+        plt.axhline(y=self.dt, color='red', linestyle='--', label=f"distance between two time discretations")
+        plt.xlabel("Solver Iteration")
+        plt.ylabel("Time (s)")
+        plt.title("Solver Time per Iteration")
         plt.grid(True)
         plt.legend()
 

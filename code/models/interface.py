@@ -34,13 +34,10 @@ class AbstractVehicleModel:
 	def plot_additional_information(self, states, controls):
 		raise "plot_additional_information not implemented"
 	@abstractmethod
-	def get_v_max(self):
-		raise "get_v_max not implemented"
-	@abstractmethod
 	def get_state_vec_from_dsm(self, vec) -> np.ndarray:
 		raise "get_state_vec_from_dsm not implemented"
 	@abstractmethod
-	def get_dsm_control_from_vec(self, control_vec, state_vec) -> np.ndarray:
+	def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None) -> np.ndarray:
 		raise "get_dsm_control_from_vec not implemented"
 
 	def convert_vec_to_control_input(self, vec) -> ControlInput:
