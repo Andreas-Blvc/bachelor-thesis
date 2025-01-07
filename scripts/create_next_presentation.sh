@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Path to the Reveal.js presentations folder
-presentations_dir="/Users/andreasbelavic/bachelor-thesis/presentations"
+presentations_dir="/var/www/html/bachelor-thesis/presentations"
 
 # Path to the file storing the current week number
 counter_file="$presentations_dir/data/week_counter.txt"
