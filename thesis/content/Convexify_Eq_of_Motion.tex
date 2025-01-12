@@ -1,0 +1,43 @@
+\chapter{Convexify Equations of Motion}
+
+\[
+	x_{tn} = \begin{bmatrix}
+		s          \\
+		n          \\
+		\xi        \\
+		\dot{s}    \\
+		\dot{n}    \\
+		\dot{\psi} \\
+	\end{bmatrix}
+\]
+
+\[
+	\dot{x}_{tn} = \begin{bmatrix}
+		\dot{s}                                    \\
+		\dot{n}                                    \\
+		\dot{\psi} - C(s)\dot{s}                   \\
+		\frac{
+			a_{x, tn} + 2\dot{n}
+		C(s)\dot{s} + nC'(s)\dot{s}^2 }{ 1-nC(s) } \\ a_{y,tn}-C(s)\dot{s}^2(1-nC(s)) \\ a_{\psi}\end{bmatrix} \]
+
+1.
+Equation
+
+\[ \xi_{n+1} = \xi_n + (\dot{\psi} - C(s)\dot{s}) dt \]
+
+Since $dt$ is a constant, one only has to
+approximate $C(s)\dot{s}$ with a affine linear term.
+This can be done by guessing $s$ using a reference velocity and evalutaing the curvature at this position, this would make $C(s)$ a constant in
+planning.
+
+2.
+Equation
+
+\[ \dot{s}_{n+1} = \dot{s}_n + \frac{ a_{x, tn} + 2\dot{n} C(s)\dot{s} + nC'(s)\dot{s}^2 }{ 1-nC(s) } dt \]
+
+\begin{itemize}
+	\item One can assume that $nC(s)$ is close to Zero: $\frac{1}{1-nC(s)}\approx1$.
+	\item We can again make $C(s)$ a constant, that will be close to the true value.
+	\item Use McCormick for $\dot{s}\dot{n}$
+	\item Hardest Part: $n\dot{s}^2$: Use McCormick twice
+\end{itemize}
