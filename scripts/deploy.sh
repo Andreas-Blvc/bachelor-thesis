@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /Users/andreasbelavic/bachelor-thesis/
+cd /var/www/html/bachelor-thesis/
 week_ctr=$(cat presentations/data/week_counter.txt)
 week_ctr=$((week_ctr - 1))
 git add presentations
