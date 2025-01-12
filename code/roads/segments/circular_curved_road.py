@@ -80,7 +80,7 @@ class CircularCurveRoad(AbstractRoad):
         return self.get_curvature_at(0)  # curvature is constant
 
     def get_polygon_and_color(self) -> Tuple[List[Tuple[float, float]], str]:
-        segments = 20
+        segments = 100
         polygon = []
         for i in range(segments + 1):
             s = i / segments * self.length

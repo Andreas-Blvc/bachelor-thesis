@@ -50,4 +50,7 @@ class AbstractSelfDrivingCar(ABC):
     @abstractmethod
     def get_speed(self, state) -> float:
         pass
+    @abstractmethod
+    def get_steering_angle(self, state) -> float:
+        pass
 

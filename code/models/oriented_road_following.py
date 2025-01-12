@@ -1,5 +1,5 @@
 from math import cos, pi, sin, tan
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Callable
 import casadi as ca
 import cvxpy as cp
 import numpy as np
@@ -85,17 +85,14 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         self.steering_angle_min, self.steering_angle_max = steering_angle_range
         self.steering_velocity_min, self.steering_velocity_max = steering_velocity_range
 
-        # First Order Taylor Approximation:
-        self.n_0 = 0
-        self.xi_0 = 10 / 180 * pi
-        self.delta_0 = self.steering_angle_max / 4
-        self.v_0 = self.v_max / 4
-
         # Artificial Variables Approximation:
         self.xi_abs_bound = 45/180 * pi
-        self._mccormick_relaxations: List[Tuple[McCormickConvexRelaxation]] = []
+        self._mccormick_relaxations:  List[Tuple[McCormickConvexRelaxation]] = []
 
-    def update(self, current_state, control_inputs, dt, convexify_ref_state=None) -> Tuple[np.ndarray, List[Any]]:
+        self.steering_angle_bounds: List[Tuple[float, float]] = []
+        self.velocity_bounds: List[Tuple[float, float]] = []
+
+    def update(self, current_state, control_inputs, dt, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -141,7 +138,18 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             # cos(x) ≈ cos(a) - sin(a) (x-a)
             # sin(x) ≈ sin(a) + cos(a) (x-a)
             # tan(x) ≈ tan(a) + 1/cos(a)^2 (x-a)
-            ds_term, dn_term, dxi_term = self._convex_relax_bilinear_terms(s, n, xi, v, delta, constraints)
+            ds_term, dn_term, dxi_term = self._convex_relax_bilinear_terms(
+                dt,
+                xi,
+                v,
+                delta,
+                constraints,
+                xi_0=convexify_ref_state[2] if convexify_ref_state is not None else None,
+                delta_0=convexify_ref_state[4] if convexify_ref_state is not None else None,
+                v_0=convexify_ref_state[3] if convexify_ref_state is not None else None,
+                curvature=C(s),
+                amount_prev_planning_states=amount_prev_planning_states,
+            )
 
             next_state = cp.vstack([
                 s + ds_term * dt,                                                                                            
@@ -164,113 +172,142 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
 
         return next_state, constraints
 
-    def _taylor_approximate_terms(self, s, n, xi, v, delta, C):
-        ds_term = (
-                (self.v_0 * cos(self.xi_0)) / (1 - C(s) * self.n_0) +
-                cos(self.xi_0) / (1 - C(s) * self.n_0) * (v - self.v_0) +
-                -self.v_0 * sin(self.xi_0) / (1 - C(s) * self.n_0) * (xi - self.xi_0) +
-                -self.v_0 * cos(self.xi_0) * C(s) / (1 - C(s) * self.n_0)**2 * (n - self.n_0)
-        )
-        dn_term = (
-                self.v_0 * sin(self.xi_0) +
-                sin(self.xi_0) * (v - self.v_0) +
-                self.v_0 * cos(self.xi_0) * (xi - self.xi_0)
-        )
-        dxi_term = (
-                self.v_0 * tan(self.delta_0) +
-                tan(self.delta_0) * (v - self.v_0) +
-                self.v_0 / cos(self.delta_0) ** 2 * (delta - self.delta_0)
-        )
-        return ds_term, dn_term, dxi_term
-
-    def _convex_relax_bilinear_terms(self, s, n, xi, v, delta, constraints):
+    def _convex_relax_bilinear_terms(self, dt, xi, v, delta, constraints, xi_0=None, delta_0=None, v_0=None, curvature=None, amount_prev_planning_states=None):
         if self.solver_type != 'cvxpy':
             raise NotImplementedError('artificial_variables_approximation only for cvxpy solver')
 
         # Define variable bounds
-        v_min = self.v_min
-        v_max = self.v_max
         xi_min = -self.xi_abs_bound
         xi_max = self.xi_abs_bound
-        delta_min = self.steering_angle_min
-        delta_max = self.steering_angle_max
 
-        ds_term_relaxation = v
-        dn_term_relaxation = McCormickConvexRelaxation(v, xi, v_min, v_max, xi_min, xi_max)
-        dxi_term_relaxation = McCormickConvexRelaxation(v, delta, v_min, v_max, delta_min, delta_max)
+        if v_0 is not None:
+            v_min = max(v_0 + self.a_min * dt * amount_prev_planning_states, self.v_min)
+            v_max = min(v_0 + self.a_max * dt * amount_prev_planning_states, self.v_max)
+        else:
+            v_min = self.v_min
+            v_max = self.v_max
+        if delta_0 is not None:
+            delta_min = max(delta_0 + self.steering_velocity_min * dt * amount_prev_planning_states, self.steering_angle_min)
+            delta_max = min(delta_0 + self.steering_velocity_max * dt * amount_prev_planning_states, self.steering_angle_max)
+        else:
+            delta_min = self.steering_angle_min
+            delta_max = self.steering_angle_max
+        # if xi_0 is not None:
+        #     xi_max = 1/self.L_wb * v_max * tan(delta_max) -
 
-        self._mccormick_relaxations += [(dn_term_relaxation, dxi_term_relaxation)]
+        if amount_prev_planning_states < 2:
+            self.steering_angle_bounds.append((delta_min, delta_max))
+            self.velocity_bounds.append((v_min, v_max))
+
+        v_times_xi_relaxation = McCormickConvexRelaxation(v, xi, v_min, v_max, xi_min, xi_max)
+        v_times_delta_relaxation = McCormickConvexRelaxation(v, delta, v_min, v_max, delta_min, delta_max)
+
+        self._mccormick_relaxations += [(v_times_xi_relaxation, v_times_delta_relaxation)]
 
         # McCormick envelopes for dn_term = v * xi
-        constraints += dn_term_relaxation.get_envelopes()
+        constraints += v_times_xi_relaxation.get_envelopes()
 
         # McCormick envelopes for dxi_term = v * delta
-        constraints += dxi_term_relaxation.get_envelopes()
+        constraints += v_times_delta_relaxation.get_envelopes()
+
+        if xi_0 is None:
+            xi_0 = 0
+        if delta_0 is None:
+            delta_0 = 0
+
+        ds_term = (
+            v * (cos(xi_0) + sin(xi_0) * xi_0) -
+            sin(xi_0) * v_times_xi_relaxation.get_relaxation_variable()
+        )
+        dn_term = (
+            v * (sin(xi_0) - cos(xi_0) * xi_0) +
+            cos(xi_0) * v_times_xi_relaxation.get_relaxation_variable()
+        )
+        dxi_term = (
+            v * (tan(delta_0) - delta_0 * (1/cos(delta_0)) ** 2) +
+            (1 / cos(delta_0)) ** 2 * v_times_delta_relaxation.get_relaxation_variable()
+        )
+        ds_term = (
+                v
+        )
 
         return (
-            ds_term_relaxation,
-            dn_term_relaxation.get_relaxation_variable(),
-            dxi_term_relaxation.get_relaxation_variable()
+            ds_term,
+            dn_term,
+            dxi_term,
         )
 
     def plot_additional_information(self, states, controls):
         # We want to plot the values of the relaxation variables, their bounds, the bilinear actual value, and the exact term
-        for idx, y_label in enumerate(['dn_term', 'dxi_term']):
-            bounds = []
-            y_values = []
-            for mccormick_relaxation_tuple in self._mccormick_relaxations:
-                mccormick_relaxation = mccormick_relaxation_tuple[idx]
-                bounds.append(mccormick_relaxation.get_lower_upper_bound())
-                y_values.append([
-                    mccormick_relaxation.get_relaxation_variable().value,
-                    mccormick_relaxation.get_bilinear_value()
-                ])
-            y_labels = [
-                'Relaxation Variable Value',
-                'Actual Bilinear Value',
-                'Actual Bilinear Value',
-            ]
-            plot_with_bounds(
-                bounds=bounds,
-                y_values_list=y_values,
-                y_labels=y_labels,
-                y_label=y_label,
-                # dt=dt,
-            )
+        plot_with_bounds(
+            bounds=self.velocity_bounds,
+            y_values_list=[[]]  * len(self.velocity_bounds),
+            y_labels=[],
+            y_label='Velocity Bounds',
+        )
+        plot_with_bounds(
+            bounds=self.steering_angle_bounds,
+            y_values_list=[[]] * len(self.steering_angle_bounds),
+            y_labels=[],
+            y_label='Steering Angle Bounds',
+        )
 
-        plot_with_bounds(
-            y_values_list=[
-                [
-                    v * cos(xi) / (1 - n * self.road.get_curvature_at(s)), v
-                ] for s, n, xi, v, delta in states
-            ],
-            y_labels=['actual', 'approximation'],
-            y_label='ds_term',
-            # dt=dt,
-            no_bounds=True,
-        )
-        plot_with_bounds(
-            y_values_list=[
-                [
-                    v * sin(xi), v * xi
-                ] for _, _, xi, v, _ in states
-            ],
-            y_labels=['actual', 'approximation'],
-            y_label='dn_term',
-            # dt=dt,
-            no_bounds=True,
-        )
-        plot_with_bounds(
-            y_values_list=[
-                [
-                    v * tan(delta), v * delta
-                ] for _, _, _, v, delta in states
-            ],
-            y_labels=['actual', 'approximation'],
-            y_label='dxi_term',
-            # dt=dt,
-            no_bounds=True,
-        )
+        # for idx, y_label in enumerate(['dn_term', 'dxi_term']):
+        #     bounds = []
+        #     y_values = []
+        #     for mccormick_relaxation_tuple in self._mccormick_relaxations:
+        #         mccormick_relaxation = mccormick_relaxation_tuple[idx]
+        #         bounds.append(mccormick_relaxation.get_lower_upper_bound())
+        #         y_values.append([
+        #             mccormick_relaxation.get_relaxation_variable().value,
+        #             mccormick_relaxation.get_bilinear_value()
+        #         ])
+        #     y_labels = [
+        #         'Relaxation Variable Value',
+        #         'Actual Bilinear Value',
+        #         'Actual Bilinear Value',
+        #     ]
+        #     plot_with_bounds(
+        #         bounds=bounds,
+        #         y_values_list=y_values,
+        #         y_labels=y_labels,
+        #         y_label=y_label,
+        #         # dt=dt,
+        #     )
+        #
+        # plot_with_bounds(
+        #     y_values_list=[
+        #         [
+        #             v * cos(xi) / (1 - n * self.road.get_curvature_at(s)), v
+        #         ] for s, n, xi, v, delta in states
+        #     ],
+        #     y_labels=['actual', 'approximation'],
+        #     y_label='ds_term',
+        #     # dt=dt,
+        #     no_bounds=True,
+        # )
+        # plot_with_bounds(
+        #     y_values_list=[
+        #         [
+        #             v * sin(xi), v * xi
+        #         ] for _, _, xi, v, _ in states
+        #     ],
+        #     y_labels=['actual', 'approximation'],
+        #     y_label='dn_term',
+        #     # dt=dt,
+        #     no_bounds=True,
+        # )
+        # plot_with_bounds(
+        #     y_values_list=[
+        #         [
+        #             v * tan(delta), v * delta
+        #         ] for _, _, _, v, delta in states
+        #     ],
+        #     y_labels=['actual', 'approximation'],
+        #     y_label='dxi_term',
+        #     # dt=dt,
+        #     no_bounds=True,
+        # )
 
     def convert_vec_to_state(self, vec) -> State:
         # vec: s, n, xi, v, delta

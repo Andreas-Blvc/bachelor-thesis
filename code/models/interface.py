@@ -18,14 +18,9 @@ class AbstractVehicleModel:
 		self.dim_control_input = dim_control_input
 		self.state_labels = state_labels
 		self.control_input_labels = control_input_labels
-		# self.initial_state = initial_state
-		# self.goal_state = goal_state
-
-		# self._validate__state_dimension(initial_state)
-		# self._validate__state_dimension(goal_state) if goal_state is not None else None
 
 	@abstractmethod
-	def update(self, current_state, control_inputs, dt: float, convexify_ref_state=None) -> Tuple[np.ndarray, List[Any]]:
+	def update(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
 		raise 'update not implemented'
 	@abstractmethod
 	def convert_vec_to_state(self, vec) -> State:
@@ -37,7 +32,7 @@ class AbstractVehicleModel:
 	def get_state_vec_from_dsm(self, vec) -> np.ndarray:
 		raise "get_state_vec_from_dsm not implemented"
 	@abstractmethod
-	def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None) -> np.ndarray:
+	def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None, cur_steering_angle=None) -> np.ndarray:
 		raise "get_dsm_control_from_vec not implemented"
 
 	def convert_vec_to_control_input(self, vec) -> ControlInput:
@@ -73,16 +68,22 @@ class AbstractVehicleModel:
 		raise ValueError(f"solver_type {self.solver_type} not supported")
 
 	def _norm_squared(self, vec):
+		if np.isscalar(vec[0]):
+			return vec.dot(vec)
 		sv_type = self.solver_type
 		err =self._raise_unsupported_solver
 		return ca.sumsqr(vec) if sv_type == 'casadi' else cp.sum_squares(vec) if sv_type == 'cvxpy' else err()
 
 	def _absolute(self, val):
+		if np.isscalar(val):
+			return abs(val)
 		sv_type = self.solver_type
 		err =self._raise_unsupported_solver
 		return ca.fabs(val) if sv_type == 'casadi' else cp.abs(val) if sv_type == 'cvxpy' else err()
 
 	def _sqrt(self, val):
+		if np.isscalar(val):
+			return np.sqrt(val)
 		sv_type = self.solver_type
 		err =self._raise_unsupported_solver
 		return ca.sqrt(val) if sv_type == 'casadi' else cp.sqrt(val) if sv_type == 'cvxpy' else err()

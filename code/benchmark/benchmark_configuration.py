@@ -37,6 +37,7 @@ class Road(Enum):
     Left_Turn_Small = './data/left_turn_small.pkl'
     Straight = './data/straight.pkl'
     Lane_Change = './data/lane_change.pkl'
+    Slalom = './data/slalom.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.

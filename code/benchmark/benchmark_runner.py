@@ -15,8 +15,9 @@ def run(config: BenchmarkConfiguration):
     time_horizon = config.time_horizon
     road = load_road(config.road)
     start_velocity = config.start_velocity
-    objective = config.objective(road.length, start_velocity, start_velocity * config.velocity_range[1])
-    # objective = config.objective
+    # objective = config.objective(road.length, start_velocity)
+    # objective = config.objective(road.length, start_velocity, start_velocity * config.velocity_range[1])
+    objective = config.objective
     start_offset = (
         (1 - config.start_offset) * road.n_max(0) +
         config.start_offset * road.n_min(0)

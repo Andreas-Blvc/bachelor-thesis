@@ -3,6 +3,7 @@ from typing import Any, List, Tuple
 import casadi as ca
 import cvxpy as cp
 import numpy as np
+from sympy.abc import delta
 
 from models import AbstractVehicleModel
 from roads import Road
@@ -33,7 +34,7 @@ class RoadAlignedModel(AbstractVehicleModel):
             state_labels=['s', 'n', 'ds', 'dn'],
             control_input_labels=['u_t', 'u_n'],
         )
-        # Params
+        # ParamsNone
         self.road = road
         self.v_x_range = v_x_range
         self.v_y_range = v_y_range
@@ -54,6 +55,9 @@ class RoadAlignedModel(AbstractVehicleModel):
         self.a_max = a_max
 
         # helper:
+        self.last_dxi = None
+        self.last_delta = None
+        self.delta_cur = 0  # current assumption: initial steering is 0
         self.last_orientation = 0
 
     def _get_polytopic_constrain_set(self, C, c_min, c_max, n_min, n_max):
@@ -91,7 +95,9 @@ class RoadAlignedModel(AbstractVehicleModel):
             u_n + C(s) * ds**2 * (1-n*C(s)),
         ]
 
-    def update(self, current_state, control_inputs, dt, convexify_ref_state=None) -> Tuple[np.ndarray, List[Any]]:
+
+
+    def update(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -173,10 +179,11 @@ class RoadAlignedModel(AbstractVehicleModel):
         self._validate__state_dimension(vec)
         return State(
             vec=vec,
-            get_velocity=lambda: self._sqrt(self._norm_squared(vec[2:])),
-            get_offset_from_reference_path=lambda: self._absolute(
-                vec[1] - self.road.n_max(vec[0], self.road_segment_idx) - self.road.n_min(vec[0],
-                                                                                          self.road_segment_idx)),
+            get_velocity=lambda: vec[2],
+            get_offset_from_reference_path=lambda: cp.maximum(
+                (vec[1] - self.road.n_max(vec[0], self.road_segment_idx)),
+                (self.road.n_min(vec[0], self.road_segment_idx) - vec[1])
+            ),
             get_remaining_distance=lambda: self.road.length - vec[0],
             get_traveled_distance=lambda: vec[0],
             get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),
@@ -194,33 +201,109 @@ class RoadAlignedModel(AbstractVehicleModel):
         # s, n, ds, dn
         s, n = self.road.get_road_position(x, y)
         xi = psi - self.road.get_tangent_angle_at(s)
-        ds = v * np.cos(xi)
+        ds = v * np.cos(xi) / (1 - n * self.road.get_curvature_at(s))
         dn = v * np.sin(xi)
         return np.array([
             s, n, ds, dn
         ])
 
-    def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None) -> np.ndarray:
+    def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None, cur_steering_angle=None, planned_psi_2=None, cur_psi=None) -> np.ndarray:
         if dt is None:
             raise ValueError("dt must be specified")
-        s, n, ds, dn = state_vec
-        # control_vec[1] = 0
-        u_0, u_1 = control_vec
-        v_0 = math.sqrt(ds ** 2 + dn ** 2)
-        v_1 = math.sqrt((ds + u_0 * dt) ** 2 + (dn + u_1 * dt) ** 2)
-        a = (v_1 - v_0) / dt
-
-
-
-        a_x_tn, a_y_tn = self.g(state_vec, control_vec, self.road.get_curvature_at, self.road.get_curvature_derivative_at)
-        xi = np.arctan(dn / (ds * (1 - n * self.road.get_curvature_at(s))))
-        v_x = ds * (1 - n * self.road.get_curvature_at(s)) / np.cos(xi)
-        dpsi = (a_y_tn - np.tan(xi) * a_x_tn) / (v_x * (np.tan(xi) * np.sin(xi) + np.cos(xi)))
-        a_x = (a_x_tn + v_x * dpsi * np.sin(xi)) / np.cos(xi)
-        # todo
+        if cur_steering_angle is None:
+            raise ValueError("cur_steering_angle must be specified")
         l_wb = 0.883 + 1.508
-        v_delta = l_wb / v_x * dpsi
-        # v_delta, a_x
+        # =========
+        # Approach 2, based on forward euler
+        # =========
+        if cur_psi is None or planned_psi_2 is None:
+            raise ValueError("cur_psi and planned_psi_2 must be specified")
+        # Aliases
+        s_0, n_0, ds_0, dn_0 = state_vec
+        u_t, u_n = control_vec
+        s_1, n_1, ds_1, dn_1 = (
+            s_0 + ds_0 * dt,
+            n_0 + dn_0 * dt,
+            ds_0 + u_t * dt,
+            dn_0 + u_n * dt,
+        )
+        v_0 = np.sqrt(ds_0 ** 2 + dn_0 ** 2)
+        v_1 = np.sqrt(ds_1 ** 2 + dn_1 ** 2)
+
+        # DSM-Controls
+        a = (v_1 - v_0) /dt
+        v_delta = np.arctan(l_wb * (planned_psi_2 - (cur_psi + 1/l_wb * v_0 * np.tan(cur_steering_angle) * dt)) / (v_1 * dt)) / dt
         return np.array([
-            v_delta, a_x
+            v_delta, a
         ])
+
+
+        # =========
+        # Approach 0
+        # =========
+        # s_0, n_0, ds_0, dn_0 = state_vec
+        # u_t, u_n = control_vec
+        # s_1, n_1, ds_1, dn_1 = (
+        #     s_0 + ds_0 * dt,
+        #     n_0 + dn_0 * dt,
+        #     ds_0 + u_t * dt,
+        #     dn_0 + u_n * dt,
+        # )
+        # v_0 = np.sqrt(ds_0 ** 2 + dn_0 ** 2)
+        # v_1 = np.sqrt(ds_1 ** 2 + dn_1 ** 2)
+        # a = (v_1 - v_0) / dt
+        #
+        # xi_0 = np.arctan(dn_0 / ds_0)
+        # xi_1 = np.arctan(dn_1 / ds_1)
+        # psi_0 = xi_0 + self.road.get_tangent_angle_at(s_0)
+        # psi_1 = xi_1 + self.road.get_tangent_angle_at(s_1)
+        # dpsi = (psi_1 - psi_0) / dt
+        #
+        # v_delta = (np.arctan(l_wb * dpsi / v_1) - self.delta_cur) / dt
+        # self.delta_cur = np.arctan(l_wb * dpsi / v_1)
+        #
+        # # print(f'control_vec  u_t, u_n: {control_vec} and state_vec s_0, n_0, ds_0, dn_0: {state_vec} -> car_control v_delta, a: {v_delta}, {a}' )
+        # print(v_delta, a)
+        #
+        # return np.array([
+        #     v_delta, a
+        # ])
+
+        # =========
+        # Approach 1
+        # =========
+        # s, n, ds, dn = state_vec
+        # # a_x_tn, a_y_tn = self.g(state_vec, control_vec, self.road.get_curvature_at, self.road.get_curvature_derivative_at)
+        # a_x_tn, a_y_tn = control_vec
+        # xi = np.arctan(dn / (ds * (1 - n * self.road.get_curvature_at(s))))
+        # v_x = np.sqrt(ds **2 + dn ** 2)
+        # dpsi = (a_y_tn - np.tan(xi) * a_x_tn) / (v_x * (np.tan(xi) * np.sin(xi) + np.cos(xi)))
+        # a_x = (a_x_tn + v_x * dpsi * np.sin(xi)) / np.cos(xi)
+        # dC = (self.road.get_curvature_at(s + ds * dt) - self.road.get_curvature_at(s)) /dt
+        # dxi = 1 / (1 + (dn / (ds * (1 - n * self.road.get_curvature_at(s)))) ** 2) * (
+        #         a_y_tn * ds * (1 - n * self.road.get_curvature_at(s)) - dn * (a_x_tn - self.road.get_curvature_at(s) * (a_x_tn * n + ds * dn) - dC * ds * n)
+        # ) / (ds * (1 - n * self.road.get_curvature_at(s))) ** 2
+        # if self.last_delta is None:
+        #     self.last_delta = cur_steering_angle
+        # delta = np.arctan((dxi + self.road.get_curvature_at(s) * ds) * l_wb / v_x)
+        # v_delta = max(min((delta - self.last_delta) / dt, 8), -8)
+        # self.last_delta = self.last_delta + v_delta * dt
+        # print(v_delta, a_x)
+        #
+        # # print()
+        # # print('cur_state', s, n, ds, dn)
+        # # print('xi', xi, 'dxi', dxi * dt)
+        # # print('dpsi', dpsi * dt)
+        # # print("theta", self.road.get_tangent_angle_at(s))
+        # # print('v', v_x, 'a_x', a_x * dt)
+        # # print('delta', np.arctan((dxi + self.road.get_curvature_at(s) * ds) * l_wb / v_x), 'v_delta', v_delta)
+        #
+        # # axi = (dxi - self.last_dxi if self.last_dxi is not None else dxi)/dt
+        # # self.last_dxi = dxi
+        # # v_delta = 1 / (1 + ((dxi + self.road.get_curvature_at(s) * ds) * l_wb / v_x) ** 2) * (
+        # #     (axi + self.road.get_curvature_at(s) * a_x_tn + dC * ds ** 2) * v_x + (dxi + self.road.get_curvature_at(s) * ds) * a_x
+        # # ) / v_x ** 2
+        # # v_delta, a_x
+        # return np.array([
+        #     v_delta, a_x
+        # ])

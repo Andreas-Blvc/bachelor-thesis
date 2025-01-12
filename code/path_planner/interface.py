@@ -6,6 +6,7 @@ from models import AbstractVehicleModel
 
 class AbstractPathPlanner(ABC):
     solve_time: float
+    setup_time: float
     def __init__(self, model: AbstractVehicleModel, dt, time_horizon, get_objective):
         self.model = model
         self.dt = dt

@@ -87,7 +87,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
         start_polygon_coordinates,
     )
     car_patch = patches.Polygon(
-        np.array(car_polygon_coordinates), closed=True, facecolor='cyan', edgecolor='blue', label='Predicted'
+        np.array(car_polygon_coordinates), closed=True, facecolor='cyan', edgecolor='blue', label='Vehicle'
     )
     ax.add_patch(car_patch)
 
@@ -116,6 +116,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
         car_position = car.get_position(car_state)
         car_orientation = car.get_orientation(car_state)
         car_speed = car.get_speed(car_state)
+        car_steering_angle = car.get_steering_angle(car_state)
 
         _car_polygon_coordinates = _polygon_coordinates(
             car_position,
@@ -135,6 +136,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
         info_box.set_text(
             f"Position: ({car_position[0]:.2f}, {car_position[1]:.2f})\n"
             f"Orientation: {np.degrees(car_orientation):.2f}°\n"
+            f"Steering Angle: {np.degrees(car_steering_angle):.2f}°\n"
             f"Speed: {car_speed:.2f} m/s"
         )
 
