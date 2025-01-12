@@ -1,5 +1,5 @@
 from math import cos, pi, sin, tan
-from typing import Any, List, Tuple, Callable
+from typing import Any, List, Tuple
 import casadi as ca
 import cvxpy as cp
 import numpy as np
@@ -72,7 +72,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         super().__init__(
             dim_state=5,
             dim_control_input=2,
-            control_input_labels=['a_x,b', 'v_delta'],
+            control_input_labels=['a\_x,b', 'v\_delta'],
             state_labels=['s', 'n', 'xi', 'v', 'delta'],
         )
         # Params:
@@ -92,7 +92,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         self.steering_angle_bounds: List[Tuple[float, float]] = []
         self.velocity_bounds: List[Tuple[float, float]] = []
 
-    def update(self, current_state, control_inputs, dt, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
+    def forward_euler_step(self, current_state, control_inputs, dt, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -345,7 +345,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             delta
         ])
 
-    def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None):
+    def get_dsm_control_from_vec(self, control_vec, state_vec, dynamics, dt=None, remaining_predictive_model_states:List[np.ndarray]=None, car_cur_state: AbstractVehicleModel.CarState=None):
         a_x, v_delta = control_vec
         return np.array([
             v_delta,

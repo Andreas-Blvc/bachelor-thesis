@@ -67,7 +67,7 @@ class BenchmarkConfiguration:
             start_velocity: Velocity | float,
             start_offset: LateralOffset | float,
             velocity_range: VelocityRange | Tuple[float, float],
-            road: Road | str,
+            roads: List[Road] | List[str],
             time_horizon: TimeHoriozon | float,
             time_discretization: TimeDiscretization | float,
             models: List[Tuple[Model, SolverType]],
@@ -93,9 +93,11 @@ class BenchmarkConfiguration:
             time_discretization.value if isinstance(time_discretization, TimeDiscretization) else time_discretization
         )
 
-        self.road = (
-            road.value if isinstance(road, Road) else road
-        )
+        self.roads = []
+        for road in roads:
+            self.roads.append(
+                road.value if isinstance(road, Road) else road
+            )
 
         self.models = models
         self.objective = objective

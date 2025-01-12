@@ -40,7 +40,7 @@ def create_scenario(v_min=None, v_max=None, v_start=None, n_start=0, n_end=0):
 
     actual_car_states = [model.initial_state]
     for u in control_inputs:
-        next_state, _ = model.update(actual_car_states[-1], u)
+        next_state, _ = model.forward_euler_step(actual_car_states[-1], u)
         actual_car_states.append(next_state)
 
     return Scenario(dt, model, car_states, control_inputs, actual_car_states)

@@ -37,7 +37,7 @@ class PointMassModel(AbstractVehicleModel):
         self.B[2, 0] = 1  # dvx/dt = ax
         self.B[3, 1] = 1  # dvy/dt = ay
 
-    def update(self, current_state: np.ndarray, control_inputs: np.ndarray, dt):
+    def forward_euler_step(self, current_state: np.ndarray, control_inputs: np.ndarray, dt):
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 

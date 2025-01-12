@@ -1,6 +1,7 @@
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
+from datetime import datetime
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 
@@ -35,7 +36,7 @@ def _polygon_coordinates(position, orientation, shape):
     return transformed_points
 
 
-def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
+def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_only: bool=False, path:str=''):
     fig, ax = plt.subplots()
     if not interactive:
         plt.close(fig)  # Suppress display right after creation
@@ -156,9 +157,12 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str=''):
     )
 
     # SAVING FEATURE
-    save_path = "animation.mp4"  # Default save path
+    save_path = f"{path}animation.mp4"  # Default save path
     anim.save(save_path, writer='ffmpeg', fps=1/dt)
     car_path = []
+
+    if save_only:
+        return
 
     if not interactive:
         centered_html = f"""

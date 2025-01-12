@@ -1,4 +1,5 @@
 from typing import List, Tuple, Callable
+from scipy.integrate import solve_ivp
 import time
 import math
 import matplotlib.pyplot as plt
@@ -94,7 +95,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         self.controls: List[Tuple[float, Callable[[], np.ndarray]]] = []
         self.current_state = self.initial_state
         current_time = 0
-        N = 2
+        N = 5
         while self._on_road():
             if len(self.controls) == 0:
                 start_time = time.time()
@@ -116,18 +117,19 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                             control,
                             state,
                             dt=self.dt,
-                            cur_steering_angle=self.current_state[2],
-                            planned_psi_2=np.arctan(predictive_model_states[i+2][3]/predictive_model_states[i+2][2]) + self.road.get_tangent_angle_at(predictive_model_states[i+2][0]),
-                            cur_psi=self.current_state[4],
+                            dynamics=lambda u1, u2: self._dynamics(self.current_state, np.array([float(u1), u2])),
+                            remaining_predictive_model_states=predictive_model_controls[i+1:],
+                            car_cur_state=AbstractVehicleModel.CarState(self.current_state[2], self.current_state[4])
                         )
-                    ) for i, (control, state) in enumerate(list(zip(predictive_model_controls, predictive_model_states))[:N])
+                    ) for i, (control, state) in enumerate(list(zip(predictive_model_controls[:-2], predictive_model_states[:-2]))[:N])
                 ]
 
                 if len(self.controls) == 0:
                     break
 
-            planned_control_time, control = self.controls.pop(0)
-            self.current_state = self._update(self.current_state, control())
+            planned_control_time, lazy_control = self.controls.pop(0)
+            control = lazy_control()
+            self.current_state = self._update(self.current_state, control)
             current_time = planned_control_time + self.dt
             self.solve_times.append(self.planner.solve_time)
             self.setup_times.append(self.planner.setup_time)
@@ -145,7 +147,30 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         print()
 
     # Method to plot metrics
-    def plot_metrics(self):
+    def plot_metrics(self, store_as_pgf=False, pgf_name="metrics_plot.pgf"):
+        """
+        Plots the calculation times, solver times, and setup times, and optionally saves the plot as a .pgf file.
+
+        Parameters:
+        - store_as_pgf: Whether to save the plot as a .pgf file (default: False).
+        - pgf_name: Name of the .pgf file (default: "metrics_plot.pgf").
+        """
+        # Update matplotlib settings for .pgf output if needed
+        if store_as_pgf:
+            plt.rcParams.update({
+                "text.usetex": True,  # Use LaTeX for rendering text
+                "font.family": "serif",  # Use a serif font to match LaTeX
+                "font.serif": ["Palatino"],  # Use Palatino to match your LaTeX document
+                "pgf.texsystem": "pdflatex",  # Use pdflatex for .pgf output
+                "pgf.rcfonts": False,  # Prevent matplotlib from overriding LaTeX fonts
+                "font.size": 11,  # Set the font size to match your LaTeX document
+                "axes.titlesize": 11,  # Title font size to match the document
+                "axes.labelsize": 11,  # Axis label font size
+                "xtick.labelsize": 9,  # X-tick label size
+                "ytick.labelsize": 9,  # Y-tick label size
+                "legend.fontsize": 10,  # Legend font size
+            })
+
         # Create three subplots: calculation time, solver time, and setup time
         plt.figure(figsize=(10, 9))
 
@@ -161,7 +186,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         # Plot solver times (second subplot)
         plt.subplot(3, 1, 2)
         plt.plot(self.solve_times, label="Solver Time (s)", marker='o')
-        plt.axhline(y=self.dt, color='red', linestyle='--', label=f"distance between two time discretizations")
+        plt.axhline(y=self.dt, color='red', linestyle='--', label="Distance between two time discretizations")
         plt.xlabel("Solver Iteration")
         plt.ylabel("Time (s)")
         plt.title("Solver Time per Iteration")
@@ -170,8 +195,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
 
         # Plot error values (third subplot)
         plt.subplot(3, 1, 3)
-        plt.plot(self.setup_times, label="Setup Time (S)", marker='o',
-                 color='green')
+        plt.plot(self.setup_times, label="Setup Time (S)", marker='o', color='green')
         plt.xlabel("Iteration")
         plt.ylabel("Time (s)")
         plt.title("Setup Time per Iteration")
@@ -179,9 +203,26 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         plt.legend()
 
         plt.tight_layout()
-        plt.show()
+
+        # Save as .pgf if specified
+        if store_as_pgf:
+            plt.savefig(pgf_name, bbox_inches='tight')
+            plt.close()  # Close the figure to prevent display
+        else:
+            plt.show()
 
     def _update(self, current_state, control_inputs) -> np.ndarray:
+        t_span = (0, self.dt)
+
+        # Wrap dynamics to pass control input as argument
+        def dyn(t, x): return self._dynamics(x, control_inputs)
+
+        # Solve it over one time step
+        result = solve_ivp(dyn, t_span, current_state, method='BDF')
+
+        return np.array(result.y[:, -1])
+
+    def _dynamics(self, current_state, control_inputs) -> np.ndarray:
         l = self.vehicle_length
         # w = self.vehicle_width
         m = self.total_vehicle_mass
@@ -250,7 +291,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                 dx7_dt,
             ])
 
-        return current_state + dx_dt * self.dt
+        return dx_dt
 
     # ============================================
     # VISUALIZATION

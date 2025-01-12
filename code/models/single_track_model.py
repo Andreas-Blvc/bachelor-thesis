@@ -134,7 +134,7 @@ class SingleTrackModel(AbstractVehicleModel):
 
         return acc_output, constraints
 
-    def update(
+    def forward_euler_step(
         self,
         current_state: np.ndarray,
         control_inputs: np.ndarray,

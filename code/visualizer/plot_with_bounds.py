@@ -91,4 +91,6 @@ def plot_with_bounds(
     plt.grid(True, linestyle=":", color="gray", alpha=0.7)
     if store_as_pgf:
         plt.savefig(pgf_name, bbox_inches='tight')
-    plt.show()
+        plt.close()
+    else:
+        plt.show()

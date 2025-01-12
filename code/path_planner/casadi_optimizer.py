@@ -54,7 +54,7 @@ class NonConvexPathPlanner(AbstractPathPlanner):
             control_inputs = self.u[j, :].T
 
             # Update the model to get the next state and any additional constraints
-            next_state, constraints = self.model.update(current_state, control_inputs, self.dt)
+            next_state, constraints = self.model.forward_euler_step(current_state, control_inputs, self.dt)
 
             # Add model-specific equality constraints
             if constraints:

@@ -51,7 +51,7 @@ class ConvexPathPlanner(AbstractPathPlanner):
             road_segment_idx = next((i for i, x in enumerate(state_transitions_on_segment) if x > 0), None)
             state_transitions_on_segment[road_segment_idx] -= 1
             self.model.road_segment_idx = road_segment_idx
-            next_state, model_constraints = self.model.update(
+            next_state, model_constraints = self.model.forward_euler_step(
                 current_state=x[j, :].T,
                 control_inputs=u[j, :].T,
                 dt=self.dt,
@@ -62,7 +62,7 @@ class ConvexPathPlanner(AbstractPathPlanner):
             constraints.append(x[j + 1, :].T == next_state)
 
         # constraint goal_state:
-        _, goal_state_constraints = self.model.update(
+        _, goal_state_constraints = self.model.forward_euler_step(
             current_state=x[N, :].T,
             control_inputs=cp.Variable((self.model.dim_control_input, 1)),  # dummy control input
             dt=self.dt,

@@ -3,6 +3,7 @@ from typing import Any, List, Tuple, NoReturn
 import numpy as np
 import casadi as ca
 import cvxpy as cp
+from jedi.inference.gradual.typing import Callable
 
 from utils import State, ControlInput
 from roads import AbstractRoad
@@ -20,7 +21,7 @@ class AbstractVehicleModel:
 		self.control_input_labels = control_input_labels
 
 	@abstractmethod
-	def update(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
+	def forward_euler_step(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
 		raise 'update not implemented'
 	@abstractmethod
 	def convert_vec_to_state(self, vec) -> State:
@@ -31,8 +32,12 @@ class AbstractVehicleModel:
 	@abstractmethod
 	def get_state_vec_from_dsm(self, vec) -> np.ndarray:
 		raise "get_state_vec_from_dsm not implemented"
+	class CarState:
+		def __init__(self, steering_angle, orientation):
+			self.steering_angle = steering_angle
+			self.orientation = orientation
 	@abstractmethod
-	def get_dsm_control_from_vec(self, control_vec, state_vec, dt=None, cur_steering_angle=None) -> np.ndarray:
+	def get_dsm_control_from_vec(self, control_vec, state_vec, dynamics, dt=None, remaining_predictive_model_states:List[np.ndarray]=None, car_cur_state: CarState=None) -> np.ndarray:
 		raise "get_dsm_control_from_vec not implemented"
 
 	def convert_vec_to_control_input(self, vec) -> ControlInput:
