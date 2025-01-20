@@ -54,7 +54,7 @@ class NonConvexPathPlanner(AbstractPathPlanner):
             control_inputs = self.u[j, :].T
 
             # Update the model to get the next state and any additional constraints
-            next_state, constraints = self.model.forward_euler_step(current_state, control_inputs, self.dt)
+            next_state, constraints, _ = self.model.forward_euler_step(current_state, control_inputs, self.dt(j))
 
             # Add model-specific equality constraints
             if constraints:
@@ -80,7 +80,7 @@ class NonConvexPathPlanner(AbstractPathPlanner):
         self.opti.solver('ipopt', p_opts, s_opts)
 
     def get_optimized_trajectory(self, initial_state, initial_guess=None):
-        self._construct_problem(int(self.time_horizon/self.dt), initial_state)
+        self._construct_problem(self.get_state_transitions(self.time_horizon), initial_state)
         # Optionally set initial guesses for the solver
         if initial_guess is not None:
             x_guess, u_guess = initial_guess

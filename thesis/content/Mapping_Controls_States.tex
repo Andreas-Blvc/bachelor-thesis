@@ -133,7 +133,83 @@ $u_t$, $u_n$ artificial control inputs, which can be mapped ($a_{s}$, $a_{n}$) A
 	\end{bmatrix}
 \]
 \\
-For control input we additional require the current state $x_0 = [s_0, n_0, \dot{s}_0, \dot{n}_0]^T$ of the planning model and we need to store the current steering angle of the car $\delta_{cur}$:
+For control input we additional require the current state $x = [s, n, \dot{s}, \dot{n}]^T$ of the planning model and we need to store the current steering angle of the car $\delta_{cur}$:
+
+\subsection{Approach 1}
+
+\[
+	\xi = \arctan(\frac{\dot{n}}{\dot{s} (1 - n C(s))})
+\]
+\[
+	v = \sqrt{(\dot{s} (1 - n C(s)))^2 + \dot{n}^2}
+\]
+\[
+	\dot{\psi} = \frac{u_n - \tan(\xi) u_t}{v (\tan(\xi) \sin(\xi) + \cos(\xi))}
+\]
+
+\[
+	a = \frac{u_t + v \dot{\psi} \sin(\xi)}{\cos(\xi)}
+\]
+\[
+	\dot{C} = \dot{C}(s) = C'(s)\dot{s} \approx \frac{C(s + \dot{s} \Delta t) - C(s)}{\Delta t}
+\]
+\[
+	\dot{\xi} = \frac{1}{1 + (\frac{\dot{n}}{\dot{s} (1 - n C(s))})^2} \frac{u_n \dot{s} (1 - n C(s)) - \dot{n} (u_t - C(s) (u_t n + \dot{s} \dot{n}) - \dot{C} \dot{s} n)}{(\dot{s} (1 - n C(s)))^2}
+\]
+\[
+	\delta = \arctan((\dot{\xi} + C(s) \dot{s}) \frac{l_{wb}}{v})
+\]
+\[
+	v_\delta = \max(\min(\frac{\delta - \delta_{cur}}{\Delta t}, \overline{v_\delta}), \underline{v_\delta})
+\]
+
+\[
+	u_{planning}, x_{planning} \mapsto \begin{bmatrix}
+		v_\delta \\
+		a        \\
+	\end{bmatrix} = \begin{bmatrix}
+		\dot{\delta} \\
+		a            \\
+	\end{bmatrix}
+\]
+
+\subsection{Approach 2}
+
+\[
+	[s_0, n_0, \dot{s}_0, \dot{n}_0]^T := [s, n, \dot{s}, \dot{n}]^T
+\]
+
+\[
+	[s _1, n _1, \dot{s} _1, \dot{n} _1]^T := \begin{bmatrix}
+		s_0       \\
+		n_0       \\
+		\dot{s}_0 \\
+		\dot{n}_0 \\
+	\end{bmatrix} + \Delta t \begin{bmatrix}
+		\dot{s}_0 \\
+		\dot{n}_0 \\
+		u_n       \\
+		u_t       \\
+	\end{bmatrix}
+\]
+
+\[
+	v_0 = \sqrt(\dot{s}_0^2 + \dot{n}_0^2)
+\]
+
+\[
+	v_1 = \sqrt(\dot{s}_1^2 + \dot{n}_1^2)
+\]
+
+\[
+	a = \frac{v_1 - v_0}{\Delta t}
+\]
+
+\[
+	v_\delta = \arctan(l_{wb} (planned_psi_2 - (cur_psi + 1/l_wb * v_0 * np.tan(cur_steering_angle) * dt)) / (v_1 * dt)) / dt
+\]
+
+\pagebreak
 
 \[
 	x_1 = \begin{bmatrix}
@@ -184,7 +260,4 @@ For control input we additional require the current state $x_0 = [s_0, n_0, \dot
 		a            \\
 	\end{bmatrix}
 \]
-\\
-The result for this mapping shows that $a$ is quite accurate.
-However, $\frac{l_{wb}}{v_x}\dot{\psi}$ does not account for the forces involved and represents a simplification.
-Consequently, $\dot{\delta}$ fails to produce the desired orientation change.
+

@@ -47,17 +47,17 @@ def run(config: BenchmarkConfiguration):
                         road=road,
                         v_x_range=velocity_range,
                         v_y_range=(-4, 4),
-                        acc_x_range=(-4, 4),
-                        acc_y_range=(-4, 4),
+                        acc_x_range=(-6, 3),
+                        acc_y_range=(-16, 16),
                         yaw_rate_range=(-4, 4),
-                        yaw_acc_range=(-4, 4),
+                        yaw_acc_range=(-8, 8),
                         a_max=8,
                     )
                 case _:
                     raise ValueError('model type not supported')
             match solver_type:
                 case SolverType.Convex:
-                    planner = ConvexPathPlanner(predictive_model, dt, time_horizon, objective, verbose=True)
+                    planner = ConvexPathPlanner(predictive_model, dt, time_horizon, objective, verbose=True, use_param=model_type == Model.RoadAlignedModel)
                 case SolverType.NonConvex:
                     planner = NonConvexPathPlanner(predictive_model, dt, time_horizon, objective)
                 case _:

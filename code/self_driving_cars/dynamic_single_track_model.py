@@ -41,7 +41,6 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         # Metrics for plotting
         self.calculation_times = []  # Store time for planning
         self.solve_times = []
-        self.setup_times = []
 
         self.dim_state = 7
         self.dim_control_input = 2
@@ -77,11 +76,10 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         self.cornering_stiffness_coefficient_rear = cornering_stiffness_coefficient_rear
         self.friction_coefficient = friction_coefficient
 
-        # store for plotting
-        self.executed_controls = []
-        self.car_states = []
-        self.predictive_model_states = []
-        self.predictive_model_controls = []
+        self.executed_controls: List[Tuple[np.ndarray, float]] = []
+        self.car_states: List[Tuple[np.ndarray, float]] = []
+        self.predictive_model_states: List[Tuple[np.ndarray, float]] = []
+        self.predictive_model_controls: List[Tuple[np.ndarray, float]] = []
 
     def _on_road(self):
         try:
@@ -96,29 +94,24 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         self.current_state = self.initial_state
         current_time = 0
         N = 5
+        cur_control_queue_size = 0
         while self._on_road():
             if len(self.controls) == 0:
                 start_time = time.time()
-
                 predictive_model_states, predictive_model_controls = self.planner.get_optimized_trajectory(
                     self.predictive_model.get_state_vec_from_dsm(self.current_state)
                 )
-
                 calculation_time = time.time() - start_time
-                self.calculation_times.append(calculation_time)
-
-                self.predictive_model_states += list(predictive_model_states[:N])
-                self.predictive_model_controls += list(predictive_model_controls[:N])
 
                 self.controls = [
                     (
-                        current_time + self.dt * i,
+                        current_time + sum([self.dt(j) for j in range(i)]),
                         lambda: self.predictive_model.get_dsm_control_from_vec(
                             control,
                             state,
-                            dt=self.dt,
+                            dt=self.dt(i),
                             dynamics=lambda u1, u2: self._dynamics(self.current_state, np.array([float(u1), u2])),
-                            remaining_predictive_model_states=predictive_model_controls[i+1:],
+                            remaining_predictive_model_states=predictive_model_states[i+1:],
                             car_cur_state=AbstractVehicleModel.CarState(self.current_state[2], self.current_state[4])
                         )
                     ) for i, (control, state) in enumerate(list(zip(predictive_model_controls[:-2], predictive_model_states[:-2]))[:N])
@@ -127,23 +120,36 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                 if len(self.controls) == 0:
                     break
 
+                cur_control_queue_size = len(self.controls)
+                # Store:
+                self.calculation_times.append(calculation_time)
+                self.solve_times.append(self.planner.solve_time)
+                self.predictive_model_states += list(zip(
+                    predictive_model_states[:cur_control_queue_size],
+                    [current_time + sum([self.dt(j) for j in range(i + 1)]) for i in range(cur_control_queue_size)]
+                ))
+                self.predictive_model_controls += list(zip(
+                    predictive_model_controls[:cur_control_queue_size],
+                    [current_time + sum([self.dt(j) for j in range(i)]) for i in range(cur_control_queue_size)]
+                ))
+
+            cur_dt = self.dt(cur_control_queue_size - len(self.controls))
             planned_control_time, lazy_control = self.controls.pop(0)
             control = lazy_control()
-            self.current_state = self._update(self.current_state, control)
-            current_time = planned_control_time + self.dt
-            self.solve_times.append(self.planner.solve_time)
-            self.setup_times.append(self.planner.setup_time)
+            self.current_state = self._update(self.current_state, control, cur_dt)
+            current_time = planned_control_time + cur_dt
+
             try:
                 s = self.road.get_road_position(float(self.current_state[0]), float(self.current_state[1]))[0]
                 print(f"\rProgress: [{'█' * math.floor(s) + '-' * math.ceil(self.road.length-s)}] {(s/self.road.length)*100:.2f}%  "
                       f"of the Road Complete, current state: {', '.join(f'{label}: {val:.2f}' for label, val in zip(self.state_labels, self.current_state))}, "
-                      f"planned next {N * self.dt * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms{' ' * 10}", end='')
+                      f"planned next {sum(self.dt(i) for i in range(cur_control_queue_size)) * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms{' ' * 10}", end='')
             except ValueError:
                 break
             yield self.current_state
-
-            self.car_states.append(self.current_state)
-            self.executed_controls.append(control)
+            # Store:
+            self.car_states.append((self.current_state, current_time))
+            self.executed_controls.append((control, current_time - cur_dt))
         print()
 
     # Method to plot metrics
@@ -172,10 +178,10 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
             })
 
         # Create three subplots: calculation time, solver time, and setup time
-        plt.figure(figsize=(10, 9))
+        plt.figure(figsize=(12, 8))
 
         # Plot calculation times (first subplot)
-        plt.subplot(3, 1, 1)
+        plt.subplot(2, 1, 1)
         plt.plot(self.calculation_times, label="Calculation Time (s)", marker='o')
         plt.xlabel("Iteration")
         plt.ylabel("Time (s)")
@@ -184,21 +190,12 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         plt.legend()
 
         # Plot solver times (second subplot)
-        plt.subplot(3, 1, 2)
+        plt.subplot(2, 1, 2)
         plt.plot(self.solve_times, label="Solver Time (s)", marker='o')
-        plt.axhline(y=self.dt, color='red', linestyle='--', label="Distance between two time discretizations")
+        plt.axhline(y=self.dt(0), color='red', linestyle='--', label="Distance between first two time discretizations")
         plt.xlabel("Solver Iteration")
         plt.ylabel("Time (s)")
         plt.title("Solver Time per Iteration")
-        plt.grid(True)
-        plt.legend()
-
-        # Plot error values (third subplot)
-        plt.subplot(3, 1, 3)
-        plt.plot(self.setup_times, label="Setup Time (S)", marker='o', color='green')
-        plt.xlabel("Iteration")
-        plt.ylabel("Time (s)")
-        plt.title("Setup Time per Iteration")
         plt.grid(True)
         plt.legend()
 
@@ -211,18 +208,18 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         else:
             plt.show()
 
-    def _update(self, current_state, control_inputs) -> np.ndarray:
-        t_span = (0, self.dt)
+    def _update(self, current_state, control_inputs, dt) -> np.ndarray:
+        t_span = (0, dt)
 
         # Wrap dynamics to pass control input as argument
-        def dyn(t, x): return self._dynamics(x, control_inputs)
+        def dyn(t, x): return self._dynamics(x, control_inputs, dt)
 
         # Solve it over one time step
         result = solve_ivp(dyn, t_span, current_state, method='BDF')
 
         return np.array(result.y[:, -1])
 
-    def _dynamics(self, current_state, control_inputs) -> np.ndarray:
+    def _dynamics(self, current_state, control_inputs, dt) -> np.ndarray:
         l = self.vehicle_length
         # w = self.vehicle_width
         m = self.total_vehicle_mass
@@ -239,7 +236,6 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         x1, x2, x3, x4, x5, x6, x7 = current_state.flatten()
         # v_delta, a_x
         u1, u2 = control_inputs.flatten()
-        # print('updating with inputs', u1, u2)
 
         delta_lb, delta_ub = self.steering_range
         v_delta_lb, v_delta_ub = self.steering_velocity_range
@@ -287,7 +283,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                 f_steer(x3, u1),
                 f_acc(x4, u2),
                 x4 * np.cos(x7) / l_wb * np.tan(x3),
-                1/l_wb * (f_acc(x4, u2) * np.cos(x7) * np.tan(x3) - x4 * np.sin(x7) * np.tan(x3) * dx7_dt * self.dt + x4 * np.cos(x7) / (np.cos(x3) ** 2) * f_steer(x3, u1)),
+                1/l_wb * (f_acc(x4, u2) * np.cos(x7) * np.tan(x3) - x4 * np.sin(x7) * np.tan(x3) * dx7_dt * dt + x4 * np.cos(x7) / (np.cos(x3) ** 2) * f_steer(x3, u1)),
                 dx7_dt,
             ])
 

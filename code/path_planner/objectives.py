@@ -36,7 +36,7 @@ class Objectives:
     @staticmethod
     def maximize_distance(states: List[State], control_inputs: List[ControlInput]):
         _validate_typs(states, control_inputs)
-        objective = states[-1].get_traveled_distance() - states[-1].get_offset_from_reference_path()
+        objective = states[-1].get_traveled_distance() - 1e4 * states[-1].get_offset_from_reference_path()
         return objective, Objectives.Type.MAXIMIZE
 
 
@@ -62,16 +62,17 @@ class Objectives:
     def minimize_offset_from_reference_path(states: List[State], control_inputs: List[ControlInput]):
         _validate_typs(states, control_inputs)
         objective = 0 * states[-1].get_offset_from_reference_path()
-        for state in states:
+        for i, state in enumerate(states):
             objective += state.get_offset_from_reference_path()
         return objective, Objectives.Type.MINIMIZE
+
 
     @staticmethod
     def minimize_inputs_and_offset(states: List[State], control_inputs: List[ControlInput]):
         _validate_typs(states, control_inputs)
-        objective = None
+        objective =  0 * states[-1].get_offset_from_reference_path()
         for state in states:
-            objective = (objective or 0) + state.get_offset_from_reference_path()
+            objective += 10 * state.get_offset_from_reference_path()
         for control in control_inputs:
             objective += Objectives.norm(control.as_vector())
         return objective, Objectives.Type.MINIMIZE

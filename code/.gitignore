@@ -4,5 +4,6 @@ venv
 .ipynb_checkpoints
 __pycache__
 */__pycache__
+benchmark-results
 jupyter_token.txt
 solver_output.txt

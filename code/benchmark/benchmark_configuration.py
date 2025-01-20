@@ -49,9 +49,12 @@ class TimeHoriozon(Enum):
 
 # defines how many time steps per seconds
 class TimeDiscretization(Enum):
-    Fine = 1/60
-    Medium = 1/30
-    Coarse = 1/10
+    Constant = lambda h: lambda _: h
+    Linear = lambda a, b: lambda i: a * i + b
+    PlateauLinear = lambda a, b, threshold: lambda i: a * (i-threshold) + b if i > threshold else b
+
+    def __call__(self, *args):
+        return self.value(*args)
 
 class SolverType(Enum):
     Convex = 1
@@ -69,7 +72,7 @@ class BenchmarkConfiguration:
             velocity_range: VelocityRange | Tuple[float, float],
             roads: List[Road] | List[str],
             time_horizon: TimeHoriozon | float,
-            time_discretization: TimeDiscretization | float,
+            time_discretization: Callable[[int], float],
             models: List[Tuple[Model, SolverType]],
             objective: Callable[[List[State], List[ControlInput]], Tuple[Any, Objectives.Type]],
     ):
@@ -90,7 +93,7 @@ class BenchmarkConfiguration:
         )
 
         self.time_discretization = (
-            time_discretization.value if isinstance(time_discretization, TimeDiscretization) else time_discretization
+           time_discretization
         )
 
         self.roads = []

@@ -2,14 +2,14 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, FFMpegWriter
 from IPython.display import HTML
 
 from self_driving_cars import AbstractSelfDrivingCar
 from utils.constants import PATH_PLANNER_HEIGHT as HEIGHT, PATH_PLANNER_WIDTH as WIDTH
 
 import matplotlib as mpl
-mpl.rcParams['animation.embed_limit'] = 100
+mpl.rcParams['animation.embed_limit'] = 500
 
 def _polygon_coordinates(position, orientation, shape):
     """
@@ -151,17 +151,17 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
         fig,
         update_frame,
         frames=frames,
-        interval=int(dt * 1000),  # Interval in ms
+        interval=int(dt(0) * 1000),  # Interval in ms
         blit=True,
         repeat=False
     )
 
-    # SAVING FEATURE
-    save_path = f"{path}animation.mp4"  # Default save path
-    anim.save(save_path, writer='ffmpeg', fps=1/dt)
-    car_path = []
 
     if save_only:
+        # SAVING FEATURE
+        save_path = f"{path}animation.mp4"  # Default save path
+        writer = FFMpegWriter(fps=1 / dt(0), metadata={'artist': 'Me'}, bitrate=1800)
+        anim.save(save_path, writer=writer)
         return
 
     if not interactive:

@@ -17,11 +17,13 @@ class Road(AbstractRoad):
         self.segments = segments
         def n_min(s, road_segment_idx=None):
             if road_segment_idx is not None:
+                # todo: return self.segments[road_segment_idx].n_min(s + self._get_prev_length(road_segment_idx))
                 return self.segments[road_segment_idx].n_min(s - self._get_prev_length(road_segment_idx))
             current_length = 0
             for segment in self.segments:
                 segment_length = segment.length
                 if is_float_in_range(s, current_length, current_length + segment_length):
+                    # todo: return segment.n_min(s)
                     local_s = s - current_length
                     return segment.n_min(local_s)
                 current_length += segment_length
@@ -29,11 +31,13 @@ class Road(AbstractRoad):
 
         def n_max(s, road_segment_idx=None):
             if road_segment_idx is not None:
+                # todo return self.segments[road_segment_idx].n_max(s + self._get_prev_length(road_segment_idx))
                 return self.segments[road_segment_idx].n_max(s - self._get_prev_length(road_segment_idx))
             current_length = 0
             for segment in self.segments:
                 segment_length = segment.length
                 if is_float_in_range(s, current_length, current_length + segment_length):
+                    # todo: return segment.n_max(s)
                     local_s = s - current_length
                     return segment.n_max(local_s)
                 current_length += segment_length

@@ -6,7 +6,7 @@ import numpy as np
 
 from models import AbstractVehicleModel
 from roads import Road
-from utils import MainPaperConstraintsReduction, State, StateRanges
+from utils import MainPaperConstraintsReduction, State, StateRanges, lazy_setdefault, optimal_range_bound
 
 
 class RoadAlignedModel(AbstractVehicleModel):
@@ -41,8 +41,6 @@ class RoadAlignedModel(AbstractVehicleModel):
         self.acc_y_range = acc_y_range
         self.yaw_rate_range = yaw_rate_range
         self.yaw_acc_range = yaw_acc_range
-        self.ranges = None
-        self.prev_road_segment_idx = None
 
         # Aliases for range access
         self.v_x_min, self.v_x_max = v_x_range
@@ -54,18 +52,11 @@ class RoadAlignedModel(AbstractVehicleModel):
         self.a_max = a_max
 
         # helper:
-        self.last_dxi = None
-        self.last_delta = None
         self.delta_cur = 0  # current assumption: initial steering is 0
-        self.last_orientation = 0
+        self._constructed_ranges: dict[int, StateRanges] = {}
 
-    def _get_polytopic_constrain_set(self, C, c_min, c_max, n_min, n_max):
-        # only update self.ranges if road_segment_idx changed
-        if self.ranges is not None and self.prev_road_segment_idx == self.road_segment_idx:
-            return
-
-        self.prev_road_segment_idx = self.road_segment_idx
-        self.ranges = StateRanges(
+    def _get_polytopic_constrain_set(self, C, c_min, c_max, n_min, n_max) -> StateRanges:
+        ranges = StateRanges(
             n=(n_min, n_max),
             c=(c_min, c_max),
             ds=self.v_x_range,
@@ -75,14 +66,27 @@ class RoadAlignedModel(AbstractVehicleModel):
         )
         # updates ranges in place
         MainPaperConstraintsReduction.apply_all(
-            state_ranges=self.ranges,
+            state_ranges=ranges,
             v_x_range=self.v_x_range,
             acc_x_range=self.acc_x_range,
             acc_y_range=self.acc_y_range,
             yaw_rate_range=self.yaw_rate_range,
             yaw_acc_range=self.yaw_acc_range,
-            curvature_derivative=C(0)  # constant for all s
+            curvature_derivative=0  # constant for all s
         )
+
+        print(self.road_segment_idx, optimal_range_bound(
+            road_width_range=(n_min, n_max),
+            v_x_range=self.v_x_range,
+            v_y_range=self.v_y_range,
+            a_x_range=self.acc_x_range,
+            a_y_range=self.acc_y_range,
+            yaw_rate_range=self.yaw_rate_range,
+            yaw_acc_range=self.yaw_acc_range,
+            curvature=c_min
+        ))
+
+        return ranges
 
 
     def g(self, x_tn, u, C, dC):
@@ -94,7 +98,7 @@ class RoadAlignedModel(AbstractVehicleModel):
             u_n + C(s) * ds**2 * (1-n*C(s)),
         ]
 
-    def forward_euler_step(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
+    def forward_euler_step(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any], cp.Expression | ca.MX | int]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -110,7 +114,7 @@ class RoadAlignedModel(AbstractVehicleModel):
 
         if np.isscalar(s):
             next_state = current_state + dx_dt * dt
-            return next_state, []
+            return next_state, [], 0
 
         variables = self.road.get_segment_dependent_variables(s, self.solver_type == 'casadi', self.road_segment_idx)
         C = variables.C
@@ -145,41 +149,52 @@ class RoadAlignedModel(AbstractVehicleModel):
                 self.acc_y_min <= g[1], g[1] <= self.acc_y_max,
                 g[0]**2 + g[1]**2 <= self.a_max,
             ]
+            model_objective = ca.MX(0)
         elif self.solver_type == 'cvxpy':
-            self._get_polytopic_constrain_set(
-                C,
-                c_min,
-                c_max,
-                min(n_min(x) for x in np.linspace(0, 1, 1000)),
-                max(n_max(x) for x in np.linspace(0, 1, 1000)),
-            ) # initializes/updates self.ranges
+            prev_length = sum([segment.length for segment in self.road.segments[:self.road_segment_idx]])
+            cur_segment_length = self.road.segments[self.road_segment_idx].length
+            ranges = lazy_setdefault(
+                self._constructed_ranges,
+                self.road_segment_idx,
+                lambda: self._get_polytopic_constrain_set(
+                    C,
+                    c_min,
+                    c_max,
+                    min(n_min(x) for x in np.linspace(prev_length, prev_length + cur_segment_length, 500)),
+                    max(n_max(x) for x in np.linspace(prev_length, prev_length + cur_segment_length, 500)),
+                )
+            )
             next_state = cp.vstack([current_state[i] + dx_dt[i] * dt for i in range(self.dim_state)]).flatten()
+            soft_constraint_var = [cp.Variable() for _ in range(2)]
             constraints = [
                 0 <= s, s <= self.road.length,
-                self.ranges.c[0] - 1e-3 <= C(s), C(s) <= self.ranges.c[1] + 1e-3,
-                self.ranges.n[0] - 1e-3 <= n, n <= self.ranges.n[1] + 1e-3,
-                self.ranges.ds[0] - 1e-3 <= ds, ds <= self.ranges.ds[1] + 1e-3,
-                self.ranges.dn[0] - 1e-3 <= dn, dn <= self.ranges.dn[1] + 1e-3,
-                self.ranges.u_t[0] - 1e-3 <= u_t, u_t <= self.ranges.u_t[1] + 1e-3,
-                self.ranges.u_n[0] - 1e-3 <= u_n, u_n <= self.ranges.u_n[1] + 1e-3,
+                ranges.c[0] <= C(s), C(s) <= ranges.c[1],
+                ranges.n[0] <= n, n <= ranges.n[1],
+                ranges.ds[0] - soft_constraint_var[0] <= ds, ds <= ranges.ds[1] + soft_constraint_var[1],
+                ranges.dn[0] <= dn, dn <= ranges.dn[1],
+                ranges.u_t[0] <= u_t, u_t <= ranges.u_t[1],
+                ranges.u_n[0] <= u_n, u_n <= ranges.u_n[1],
+                *[var >= 0 for var in soft_constraint_var],
             ]
+            model_objective = cp.sum([var * 1000 for var in soft_constraint_var])
         else:
             raise ValueError(f"solver_type {self.solver_type} not supported")
 
-        return next_state, constraints
+        return next_state, constraints, model_objective
 
     def plot_additional_information(self, states, controls):
-        print(self.ranges)
+        for key, value in self._constructed_ranges.items():
+            print(key, value)
 
-    def convert_vec_to_state(self, vec) -> State:
+    def convert_vec_to_state(self, vec, road_segment_idx=None) -> State:
         # vec: s, n, ds, dn
         self._validate__state_dimension(vec)
         return State(
             vec=vec,
             get_velocity=lambda: vec[2],
             get_offset_from_reference_path=lambda: cp.maximum(
-                (vec[1] - self.road.n_max(vec[0], self.road_segment_idx)),
-                (self.road.n_min(vec[0], self.road_segment_idx) - vec[1])
+                (vec[1] - self.road.n_max(vec[0], road_segment_idx)),
+                (self.road.n_min(vec[0], road_segment_idx) - vec[1])
             ),
             get_remaining_distance=lambda: self.road.length - vec[0],
             get_traveled_distance=lambda: vec[0],
@@ -205,20 +220,18 @@ class RoadAlignedModel(AbstractVehicleModel):
         ])
 
 
-    def get_dsm_control_from_vec(self, control_vec, state_vec, dynamics, dt=None, remaining_predictive_model_states:List[np.ndarray]=None, car_cur_state: AbstractVehicleModel.CarState=None) -> np.ndarray:
+    def get_dsm_control_from_vec(
+            self,
+            control_vec,
+            state_vec,
+            dynamics,
+            dt=None,
+            remaining_predictive_model_states:List[np.ndarray]=None,
+            car_cur_state: AbstractVehicleModel.CarState=None
+    ) -> np.ndarray:
         if dt is None:
             raise ValueError("dt must be specified")
-        self._approach_2(
-            state_vec,
-            control_vec,
-            dt,
-            car_cur_state.steering_angle,
-            car_cur_state.orientation,
-            np.arctan((x_2 := remaining_predictive_model_states[1])[3]/x_2[2]) + self.road.get_tangent_angle_at(float(x_2[0])),
-        )
-        self._approach_4(state_vec, control_vec, dt)
-        self._approach_3(state_vec, control_vec, dt, dynamics)
-
+        # choose one of the four approaches here:
         return self._approach_1(state_vec, control_vec, dt, car_cur_state.steering_angle)
 
     def _approach_1(self, state_vec, control_vec, dt, cur_steering_angle):

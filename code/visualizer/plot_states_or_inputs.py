@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+from typing import List
 
 def plot_states_or_inputs(
-        data, labels, dt,
+        data, labels, time_points: List[float],
         title="States or Control Inputs over Time",
         delta=1e-5,
         store_as_pgf=False,
@@ -15,7 +15,7 @@ def plot_states_or_inputs(
     Parameters:
     - data: list or numpy array of shape (timesteps, num_dimensions).
     - labels: List of labels corresponding to each dimension.
-    - dt: Time step between samples.
+    - time_points: Timepoints of the samples.
     - title: Title of the plot.
     - delta: Threshold for separating near-zero values.
     """
@@ -36,7 +36,7 @@ def plot_states_or_inputs(
 
     data = np.array(data)
     num_dimensions = data.shape[1] if len(data.shape) > 1 else 1
-    time_steps = np.arange(data.shape[0]) * dt
+    time_steps = np.array(time_points)
 
     if num_dimensions != len(labels):
         raise ValueError("Number of labels must match the number of data dimensions.")

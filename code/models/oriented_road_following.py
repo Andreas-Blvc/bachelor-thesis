@@ -92,7 +92,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         self.steering_angle_bounds: List[Tuple[float, float]] = []
         self.velocity_bounds: List[Tuple[float, float]] = []
 
-    def forward_euler_step(self, current_state, control_inputs, dt, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
+    def forward_euler_step(self, current_state, control_inputs, dt, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any], cp.Expression | ca.MX | int]:
         self._validate__state_dimension(current_state)
         self._validate__control_dimension(control_inputs)
 
@@ -115,7 +115,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
                 v + a_x_b * dt,
                 delta + v_delta * dt,
             ])
-            return next_state, []
+            return next_state, [], 0
 
         constraints = []
         if self.solver_type == 'casadi':
@@ -170,7 +170,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             self.a_min <= a_x_b, a_x_b <= self.a_max,
         ]
 
-        return next_state, constraints
+        return next_state, constraints, 0
 
     def _convex_relax_bilinear_terms(self, dt, xi, v, delta, constraints, xi_0=None, delta_0=None, v_0=None, curvature=None, amount_prev_planning_states=None):
         if self.solver_type != 'cvxpy':
@@ -309,15 +309,15 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         #     no_bounds=True,
         # )
 
-    def convert_vec_to_state(self, vec) -> State:
+    def convert_vec_to_state(self, vec, road_segment_idx=None) -> State:
         # vec: s, n, xi, v, delta
         self._validate__state_dimension(vec)
         return State(
             vec=vec,
             get_velocity=lambda: vec[3],
             get_offset_from_reference_path=lambda: cp.maximum(
-                (vec[1] - self.road.n_max(vec[0], self.road_segment_idx)),
-                (self.road.n_min(vec[0], self.road_segment_idx) - vec[1])
+                (vec[1] - self.road.n_max(vec[0], road_segment_idx)),
+                (self.road.n_min(vec[0], road_segment_idx) - vec[1])
             ),
             get_remaining_distance=lambda: self.road.length - vec[0],
             get_traveled_distance=lambda: vec[0],

@@ -21,10 +21,10 @@ class AbstractVehicleModel:
 		self.control_input_labels = control_input_labels
 
 	@abstractmethod
-	def forward_euler_step(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any]]:
+	def forward_euler_step(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any], cp.Expression | ca.MX | int]:
 		raise 'update not implemented'
 	@abstractmethod
-	def convert_vec_to_state(self, vec) -> State:
+	def convert_vec_to_state(self, vec, road_segment_idx=None) -> State:
 		raise "convert_vec_to_state not implemented"
 	@abstractmethod
 	def plot_additional_information(self, states, controls):
