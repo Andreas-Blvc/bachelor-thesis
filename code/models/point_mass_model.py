@@ -62,7 +62,7 @@ class PointMassModel(AbstractVehicleModel):
             get_distance_between=lambda other_state: self._norm_squared(vec[2:] - other_state.as_vector()[2:]),
             get_remaining_distance=lambda: 0,
             get_traveled_distance=lambda: 0,
-            get_offset_from_reference_path=lambda: 0,
+            get_negative_distance_to_closest_border=lambda: 0,
             get_velocity=lambda: self._sqrt(self._norm_squared(vec[2:])),
             get_position_orientation=lambda: (vec[:2], .0),
             to_string=lambda: self._state_vec_to_string(vec)

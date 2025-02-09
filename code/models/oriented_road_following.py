@@ -315,7 +315,7 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
         return State(
             vec=vec,
             get_velocity=lambda: vec[3],
-            get_offset_from_reference_path=lambda: cp.maximum(
+            get_negative_distance_to_closest_border=lambda: cp.maximum(
                 (vec[1] - self.road.n_max(vec[0], road_segment_idx)),
                 (self.road.n_min(vec[0], road_segment_idx) - vec[1])
             ),
@@ -345,9 +345,14 @@ class OrientedRoadFollowingModel(AbstractVehicleModel):
             delta
         ])
 
-    def get_dsm_control_from_vec(self, control_vec, state_vec, dynamics, dt=None, remaining_predictive_model_states:List[np.ndarray]=None, car_cur_state: AbstractVehicleModel.CarState=None):
-        a_x, v_delta = control_vec
+    def get_dsm_control_from_vec(self, control_vec, predictive_state_vec, dynamics, dt=None, remaining_predictive_model_states:List[np.ndarray]=None, car_cur_state: AbstractVehicleModel.CarState=None):
+        next_steering_angle = remaining_predictive_model_states[0][4]
+        v_delta = (next_steering_angle - car_cur_state.steering_angle) / dt
+        a_x = control_vec[0]
         return np.array([
             v_delta,
             a_x
         ])
+
+    def get_name(self):
+        return 'KST'

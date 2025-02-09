@@ -18,8 +18,10 @@ class NonConvexPathPlanner(AbstractPathPlanner):
 
         # Configure others
         model.solver_type = 'casadi'
-        Objectives.norm = ca.sumsqr
+        Objectives.sum_squares = ca.sumsqr
         Objectives.max = lambda x, y: ca.fmax(x, y)
+        Objectives.Zero = 0
+        Objectives.dt = dt
 
         self.opti = None
         self.solve_time = 0.0
@@ -68,7 +70,7 @@ class NonConvexPathPlanner(AbstractPathPlanner):
         # Set the objective in the Opti problem
         states = [self.model.convert_vec_to_state(self.x[j, :].T) for j in range(state_transitions + 1)]
         control_inputs = [self.model.convert_vec_to_control_input(self.u[j, :].T) for j in range(state_transitions)]
-        objective, objective_type = self.get_objective(states, control_inputs)
+        objective, objective_type, _, _ = self.get_objective(states, control_inputs)
         if objective_type == Objectives.Type.MINIMIZE:
             self.opti.minimize(objective)
         else:

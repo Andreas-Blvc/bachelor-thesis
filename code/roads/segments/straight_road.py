@@ -57,7 +57,7 @@ class StraightRoad(AbstractRoad):
         lateral_offset = vx * px + vy * py
 
         if not self.n_min(s) <= lateral_offset <= self.n_max(s):
-            raise ValueError("The given point is not on the road curve.")
+            raise ValueError(f"The given point is not on the road curve. ({x}, {y})")
 
         return s, lateral_offset
 

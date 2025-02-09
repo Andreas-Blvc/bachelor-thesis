@@ -38,6 +38,9 @@ class Road(Enum):
     Straight = './data/straight.pkl'
     Lane_Change = './data/lane_change.pkl'
     Slalom = './data/slalom.pkl'
+    Feasible_Curve = './data/feasible_curve.pkl'
+    Infeasible_Curve = './data/infeasible_curve.pkl'
+    Random = './data/random.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.
@@ -67,18 +70,21 @@ class Model(Enum):
 class BenchmarkConfiguration:
     def __init__(
             self,
-            start_velocity: Velocity | float,
+            start_velocities: List[Velocity | float],
             start_offset: LateralOffset | float,
             velocity_range: VelocityRange | Tuple[float, float],
             roads: List[Road] | List[str],
             time_horizon: TimeHoriozon | float,
             time_discretization: Callable[[int], float],
             models: List[Tuple[Model, SolverType]],
-            objective: Callable[[List[State], List[ControlInput]], Tuple[Any, Objectives.Type]],
+            objectives: List[Callable[[List[State], List[ControlInput]], Tuple[Any, Objectives.Type, Any, str]]],
+            replanning_steps: int,
     ):
-        self.start_velocity = (
-            start_velocity.value if isinstance(start_velocity, Velocity) else start_velocity
-        )
+        self.start_velocities = []
+        for velocity in start_velocities:
+            self.start_velocities.append(
+                velocity.value if isinstance(velocity, Velocity) else velocity
+            )
 
         self.start_offset = (
             start_offset.value if isinstance(start_offset, LateralOffset) else start_offset
@@ -103,6 +109,7 @@ class BenchmarkConfiguration:
             )
 
         self.models = models
-        self.objective = objective
+        self.objectives = objectives
+        self.replanning_steps = replanning_steps
 
 

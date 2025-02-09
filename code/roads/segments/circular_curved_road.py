@@ -60,7 +60,7 @@ class CircularCurveRoad(AbstractRoad):
 
         # Ensure the angle lies within the swept range
         if angle > abs(self.angle_sweep):
-            raise ValueError("The given point is not on the road curve.")
+            raise ValueError(f"The given point is not on the road curve. ({x}, {y})")
 
         # Calculate the s parameter
         s = angle / abs(self.angle_sweep) * self.length

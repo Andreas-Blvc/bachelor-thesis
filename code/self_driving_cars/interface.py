@@ -17,7 +17,7 @@ class AbstractSelfDrivingCar(ABC):
     control_input_labels: List[str]
 
     @abstractmethod
-    def drive(self) -> Generator[np.ndarray, None, None]:
+    def drive(self) -> Generator[Tuple[np.ndarray, List[np.ndarray]], None, None]:
         """
         yields car states
         """

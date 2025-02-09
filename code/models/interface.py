@@ -21,6 +21,9 @@ class AbstractVehicleModel:
 		self.control_input_labels = control_input_labels
 
 	@abstractmethod
+	def get_name(self):
+		raise 'get_name not implemented'
+	@abstractmethod
 	def forward_euler_step(self, current_state, control_inputs, dt: float, convexify_ref_state=None, amount_prev_planning_states=None) -> Tuple[np.ndarray, List[Any], cp.Expression | ca.MX | int]:
 		raise 'update not implemented'
 	@abstractmethod

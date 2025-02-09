@@ -4,7 +4,7 @@ class State:
             vec,
             get_distance_between,
             get_velocity,
-            get_offset_from_reference_path,
+            get_negative_distance_to_closest_border,
             get_traveled_distance,
             get_remaining_distance,
             get_position_orientation,
@@ -15,7 +15,7 @@ class State:
         self._vec = vec
         self.get_distance_between = get_distance_between
         self.get_velocity = get_velocity
-        self.get_offset_from_reference_path = get_offset_from_reference_path
+        self.get_negative_distance_to_closest_border = get_negative_distance_to_closest_border
         self.get_traveled_distance = get_traveled_distance
         self.get_remaining_distance = get_remaining_distance
         self.get_position_orientation = get_position_orientation

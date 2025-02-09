@@ -65,6 +65,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
 
     car_path = []
     car_path_line, = ax.plot([], [], 'b-')
+    current_planned_path_line, = ax.plot([], [], 'y-')
 
     """
         INIT PATCHES
@@ -110,7 +111,8 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
 
     dt = car.planner.dt
 
-    def update_frame(car_state):
+    def update_frame(args):
+        car_state, planned_path = args
         zoom_width = 30  # Width of the zoomed-in view
         zoom_height = 30  # Height of the zoomed-in view
 
@@ -132,6 +134,9 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
         car_path_line.set_data(
             [p[0] for p in car_path], [p[1] for p in car_path]
         )
+        current_planned_path_line.set_data(
+            [p[0] for p in planned_path], [p[1] for p in planned_path]
+        )
 
         # Update info box text
         info_box.set_text(
@@ -143,15 +148,20 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
 
         ax.set_xlim(center_x - zoom_width / 2, center_x + zoom_width / 2)
         ax.set_ylim(center_y - zoom_height / 2, center_y + zoom_height / 2)
-        return car_patch, car_path_line, info_box
+        return car_patch, car_path_line, current_planned_path_line, info_box
 
-    frames = list(car.drive())  # Convert to list to prevent exhaustion
+
+    # x frames per second
+    discretization_step = dt(0)  # assuming constant here!
+    fps = 25
+    N = max(int(1/fps / discretization_step), 1)
+    frames = list(car.drive())[::N]  # Convert to list to prevent exhaustion
 
     anim: FuncAnimation = FuncAnimation(
         fig,
         update_frame,
         frames=frames,
-        interval=int(dt(0) * 1000),  # Interval in ms
+        interval=int(discretization_step * N * 1000),  # Interval in ms
         blit=True,
         repeat=False
     )

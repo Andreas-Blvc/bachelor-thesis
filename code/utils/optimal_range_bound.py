@@ -1,3 +1,4 @@
+import sys
 from functools import reduce
 from itertools import product
 from typing import Tuple
@@ -250,10 +251,10 @@ def optimal_range_bound(road_width_range, v_x_range, v_y_range, yaw_rate_range, 
         opti.subject_to(c)
 
     opti.minimize(
-        -1 * (n[1] - n[0]) ** 2 +
-        -1 * (ds[1] - ds[0]) ** 2 +
-        -1 * (dn[1] - dn[0]) ** 2 +
-        -10 * (u_t[1] - u_t[0]) ** 2 +
+        -100 * (n[1] - n[0]) ** 2 +
+        -0 * (ds[1] - ds[0]) ** 2 +
+        -0 * (dn[1] - dn[0]) ** 2 +
+        -0 * (u_t[1] - u_t[0]) ** 2 +
         -10 * (u_n[1] - u_n[0]) ** 2
     )
 
@@ -261,18 +262,23 @@ def optimal_range_bound(road_width_range, v_x_range, v_y_range, yaw_rate_range, 
     s_opts = {"max_iter": 5000, "print_level": 0}
     opti.solver('ipopt', p_opts, s_opts)
 
-    try:
-        solution = opti.solve()
-        ranges_optimal = StateRanges(
-            c=(curvature, curvature),
-            n=(solution.value(n[0]), solution.value(n[1])),
-            ds=(solution.value(ds[0]), solution.value(ds[1])),
-            dn=(solution.value(dn[0]), solution.value(dn[1])),
-            u_t=(solution.value(u_t[0]), solution.value(u_t[1])),
-            u_n=(solution.value(u_n[0]), solution.value(u_n[1])),
-        )
-    except RuntimeError:
-        ranges_optimal = None
+    with open('/dev/null', 'w') as output_file:
+        stdout_old = sys.stdout
+        sys.stdout = output_file
+        try:
+            solution = opti.solve()
+            ranges_optimal = StateRanges(
+                c=(curvature, curvature),
+                n=(solution.value(n[0]), solution.value(n[1])),
+                ds=(solution.value(ds[0]), solution.value(ds[1])),
+                dn=(solution.value(dn[0]), solution.value(dn[1])),
+                u_t=(solution.value(u_t[0]), solution.value(u_t[1])),
+                u_n=(solution.value(u_n[0]), solution.value(u_n[1])),
+            )
+        except RuntimeError:
+            ranges_optimal = None
+        finally:
+            sys.stdout = stdout_old
 
     return ranges_optimal
 

@@ -1,16 +1,20 @@
 import os
 import subprocess
+import csv
+import urllib.parse
 
-from self_driving_cars import AbstractSelfDrivingCar
+from path_planner import Objectives
+from self_driving_cars import DynamicSingleTrackModel
 from visualizer import plot_states_or_inputs
 from visualizer.vehicle_path_visualizer import animate
 
 
 class Benchmark:
-    def __init__(self, car: AbstractSelfDrivingCar, folder: str):
+    def __init__(self, car: DynamicSingleTrackModel, folder: str, road_name: str):
         self.path = f'benchmark-results/{folder}/'
         self.car = car
         self.folder = folder
+        self.road_name = road_name
         self.animation_called = False
 
     def plot_car_states(self):
@@ -92,7 +96,7 @@ class Benchmark:
         )
         self.car.plot_metrics(store_as_pgf=True, pgf_name=self.path + "solver_metrics.pgf")
 
-        # todo: solver-metrics -> solver_metrics
+        # todo solver-metrics -> solver_metrics
         latex_content = r"""
 \documentclass[a4paper]{article}
 \usepackage{geometry}
@@ -141,3 +145,85 @@ class Benchmark:
             if os.path.exists(aux_file):
                 os.remove(aux_file)
 
+
+    def save_to_csv(self):
+        old_max = Objectives.max
+        old_sum_squares = Objectives.sum_squares
+        old_create_var = Objectives.create_var
+        old_zero = Objectives.Zero
+        Objectives.max = max
+        Objectives.sum_squares = lambda vec: sum(x ** 2 for x in vec)
+        Objectives.create_var = None
+        Objectives.Zero = 0
+
+        objective_val, objective_type, _, objective_name  = self.car.planner.get_objective(
+            [self.car.convert_vec_to_state(vec) for vec, _ in self.car.car_states],
+            [self.car.convert_vec_to_control_input(vec) for vec, _ in self.car.executed_controls],
+        )
+
+
+        # File paths
+        animation_file = os.path.join(self.folder, "animation.mp4")
+        stats_file = os.path.join(self.folder, "stats.pdf")
+
+        # Ensure the file paths are properly encoded for URLs
+        url_animation = f"http://wg-server.net:8000/{animation_file}"
+        url_stats = f"http://wg-server.net:8000/{stats_file}"
+        print(objective_val)
+        new_data = [
+            # model:
+            self.car.predictive_model.get_name(),
+            # dt:
+            f"{self.car.dt(0)*1000:.2f}ms",
+            # re-plan after
+            self.car.N,
+            # planning horizon:
+            self.car.planner.time_horizon,
+            # v_min [m/s]:
+            self.car.velocity_range[0],
+            # v_max [m/s]:
+            self.car.velocity_range[1],
+            # a_min [m/s^2]:
+            self.car.acceleration_range[0],
+            # a_max [m/s^2]:
+            self.car.acceleration_range[1],
+            # delta_min [radians]:
+            self.car.steering_range[0],
+            # delta_max [radians]:
+            self.car.steering_range[1],
+            # v_delta_min [radians/s]:
+            self.car.steering_velocity_range[0],
+            # v_delta_max [radians/s]:
+            self.car.steering_velocity_range[1],
+            # road name:
+            self.road_name,
+            # road completion:
+            f"{100 * self.car.convert_vec_to_state(self.car.car_states[-1][0]).get_traveled_distance() / self.car.road.length:.2f}%"
+            if len(self.car.car_states) > 0 else "0%",
+            # objective value:
+            f"{objective_name}: {objective_val:.2f}",
+            # avg solve time:
+            f"{sum(self.car.solve_times) * 1000 / len(self.car.solve_times):.2f}ms"
+            if len(self.car.car_states) > 0 else "-",
+            # max solve time:
+            f"{max(self.car.solve_times) * 1000:.2f}ms"
+            if len(self.car.car_states) > 0 else "-",
+            # min solve time:
+            f"{min(self.car.solve_times) * 1000:.2f}ms"
+            if len(self.car.car_states) > 0 else "-",
+            # url animation:
+            f'=HYPERLINK("{url_animation}"; "Animation")',
+            # url stats:
+            f'=HYPERLINK("{url_stats}"; "Stats")',
+        ]
+
+        # Save to a CSV file
+        filename = "output.csv"
+        with open(filename, mode="a", newline="\n") as file:  # 'a' for append mode
+            writer = csv.writer(file, delimiter=';')
+            writer.writerow(new_data)
+
+        Objectives.max = old_max
+        Objectives.sum_squares = old_sum_squares
+        Objectives.create_var = old_create_var
+        Objectives.Zero = old_zero

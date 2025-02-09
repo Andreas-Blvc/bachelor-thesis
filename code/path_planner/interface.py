@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, List, Tuple, Any
 import numpy as np
 
 from models import AbstractVehicleModel
+from .objectives import Objectives
+from utils import State, ControlInput
 
 
 class AbstractPathPlanner(ABC):
     solve_time: float
     setup_time: float
-    def __init__(self, model: AbstractVehicleModel, dt: Callable[[int], float], time_horizon, get_objective):
+    def __init__(self, model: AbstractVehicleModel, dt: Callable[[int], float], time_horizon, get_objective: Callable[[List[State], List[ControlInput]], Tuple[Any, Objectives.Type, Any, str]]):
         self.model = model
         self.dt = dt
         self.time_horizon = time_horizon

@@ -18,10 +18,13 @@ class ConvexPathPlanner(AbstractPathPlanner):
 
         # Configure others:
         model.solver_type = 'cvxpy'
-        Objectives.norm = cp.sum_squares
+        Objectives.sum_squares = cp.sum_squares
         Objectives.max = lambda x, y: cp.max(cp.hstack([x, y]))
+        Objectives.create_var = lambda: cp.Variable()
+        Objectives.Zero = cp.Constant(0)
+        Objectives.dt = dt
 
-        self.use_param = use_param
+        self.use_param = use_param and False  # buggy
         self.verbose = verbose
         # for each state_transition, we have to construct a problem with initial state as param.
         self._constructed_problems: dict[int, Tuple[cp.Problem, cp.Variable, cp.Variable, cp.Parameter]] = {}
@@ -31,8 +34,8 @@ class ConvexPathPlanner(AbstractPathPlanner):
         # Define control and state variables for the entire time horizon
         N = max(sum(state_transitions_on_segment), 0)
 
-        u = cp.Variable((N, self.model.dim_control_input))  # Control inputs matrix: (N, 2)
-        x = cp.Variable((N + 1, self.model.dim_state))  # State variables matrix: (N + 1, 4)
+        u = cp.Variable((N, self.model.dim_control_input), 'u')  # Control inputs matrix: (N, 2)
+        x = cp.Variable((N + 1, self.model.dim_state), 'x')  # State variables matrix: (N + 1, 4)
 
         if self.use_param:
             initial_state = cp.Parameter((self.model.dim_state,), name="initial_state_param")
@@ -49,7 +52,7 @@ class ConvexPathPlanner(AbstractPathPlanner):
             # additional_min_objective_term += 1e3 * final_state.get_alignment_error() ** 2 + 5 * final_state.get_lateral_offset() ** 2
 
         # Dynamics constraints vectorized over a time horizon
-        model_states_objective = cp.Constant(0)
+        additional_minimize_objective = cp.Constant(0)
         states = []
         for j in range(N):
             # State transition: x_{k+1} = x_k + (A * x_k + B * u_k) * dt
@@ -63,7 +66,15 @@ class ConvexPathPlanner(AbstractPathPlanner):
                 convexify_ref_state=initial_state,
                 amount_prev_planning_states=j,
             )
-            model_states_objective += model_objective
+            # try to keep an offset from the bounds:
+            alpha = 0.5
+            offset = self.model.convert_vec_to_state(x[j, :], road_segment_idx).get_negative_distance_to_closest_border()
+            v = cp.Variable()
+            constraints.append(offset <= -alpha + v)
+            constraints.append(v >= 0)
+            additional_minimize_objective += 1e5 * v
+
+            additional_minimize_objective += model_objective
             constraints += model_constraints
             constraints.append(x[j + 1, :].T == next_state)
             states.append(self.model.convert_vec_to_state(x[j, :], road_segment_idx))
@@ -77,18 +88,19 @@ class ConvexPathPlanner(AbstractPathPlanner):
             amount_prev_planning_states=N,
         )
         constraints += goal_state_constraints
-        model_states_objective += model_objective
+        additional_minimize_objective += model_objective
 
         # Define the optimization problem
         control_inputs = [self.model.convert_vec_to_control_input(u[j, :]) for j in range(N)]
-        objective, objective_type = self.get_objective(states, control_inputs)
+        objective, objective_type, objective_constraints, _ = self.get_objective(states, control_inputs)
+        constraints += objective_constraints
         # TODO remove later:
         for state in states:
             constraints.append(state.get_velocity() >= 3)
         if objective_type == Objectives.Type.MINIMIZE:
-            prob = cp.Problem(cp.Minimize(objective + additional_min_objective_term + model_states_objective), constraints)
+            prob = cp.Problem(cp.Minimize(objective + additional_min_objective_term + additional_minimize_objective), constraints)
         else:
-            prob = cp.Problem(cp.Maximize(objective - additional_min_objective_term - model_states_objective), constraints)
+            prob = cp.Problem(cp.Maximize(objective - additional_min_objective_term - additional_minimize_objective), constraints)
 
         return prob, x, u, initial_state
 
@@ -101,7 +113,7 @@ class ConvexPathPlanner(AbstractPathPlanner):
         state_transitions_on_segment = [0] * len(segments)
         for i, segment in enumerate(segments):
             if prev_segments_length <= traveled_distance <= prev_segments_length + segment.length:
-                distance_til_next_segment = prev_segments_length + segment.length - traveled_distance - (0 if i < len(segments) - 1 else 3)
+                distance_til_next_segment = prev_segments_length + segment.length - traveled_distance - (0 if i < len(segments) - 1 else max(self.model.road.length * .04, 3))
                 estimated_time_to_reach_next_segment = distance_til_next_segment / ref_velocity
                 state_transitions = min(max_state_transitions,  self.get_state_transitions(estimated_time_to_reach_next_segment, sum(state_transitions_on_segment)))
                 state_transitions_on_segment[i] = state_transitions
@@ -123,7 +135,12 @@ class ConvexPathPlanner(AbstractPathPlanner):
             initial_state_param.value = initial_state
         else:
             prob, x, u, _ = self._construct_problem(state_transitions_on_segment, initial_state)
-        prob.solve(solver='MOSEK', warm_start=True)
+
+        try:
+            prob.solve(solver='MOSEK', warm_start=True)
+        except cp.SolverError:
+            x.value = None
+            u.value = None
 
         if x.value is not None and u.value is not None:
             states = [state for state in x.value]
@@ -134,8 +151,12 @@ class ConvexPathPlanner(AbstractPathPlanner):
 
         # self.prob.solve(solver='CLARABEL', verbose=self.verbose)
         # print("Solve time:", f"{self.prob.solver_stats.solve_time:.3f}s")
-        self.solve_time = prob.solver_stats.solve_time
-        self.setup_time = prob.solver_stats.setup_time
+        if prob.solver_stats is not None:
+            self.solve_time = prob.solver_stats.solve_time
+            self.setup_time = prob.solver_stats.setup_time
+        else:
+            self.solve_time = -1
+            self.setup_time = -1
         # Return optimized state and control trajectories
         if len(control_inputs) == 0:
             print(

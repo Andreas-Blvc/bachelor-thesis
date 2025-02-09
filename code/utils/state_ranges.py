@@ -21,9 +21,7 @@ def _update_range(current, new):
         updated_upper = current_upper
 
     if updated_lower > updated_upper:
-        raise ValueError(
-            f"Invalid range update: lower bound {updated_lower} exceeds upper bound {updated_upper}."
-        )
+        return 0, 0
 
     return updated_lower, updated_upper
 

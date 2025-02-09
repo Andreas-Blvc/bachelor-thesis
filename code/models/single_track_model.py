@@ -210,7 +210,7 @@ class SingleTrackModel(AbstractVehicleModel):
         return State(
             vec=vec,
             get_velocity=lambda: float(vec[3]),
-            get_offset_from_reference_path=lambda: 0,
+            get_negative_distance_to_closest_border=lambda: 0,
             get_remaining_distance=lambda: 0,
             get_traveled_distance=lambda: 0,
             get_distance_between=lambda other_state: self._sqrt(self._norm_squared(vec[:2] - other_state.as_vector()[:2])),

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from roads import AbstractRoad
-from utils import add_coordinates, rotate_coordinates
+from utils import add_coordinates, rotate_coordinates, State, ControlInput
 from path_planner import AbstractPathPlanner
 from models import AbstractVehicleModel
 
@@ -34,6 +34,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
             cornering_stiffness_coefficient_front = 20.89,
             cornering_stiffness_coefficient_rear = 20.89,
             friction_coefficient = 1.048,
+            replanning_steps = 5,
     ):
         """
         State: Global Position x, Global Postion y, Steering Angle, Velocity, Orientation, Yaw Rate, Slip Angle
@@ -60,6 +61,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
         self.planner = planner
 
         self.dt = planner.dt
+        self.N = replanning_steps # re-plan after N steps
         self.steering_range = steering_range
         self.steering_velocity_range = steering_velocity_range
         self.velocity_range = velocity_range
@@ -89,12 +91,13 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
             return False
 
     def drive(self):
-        yield self.initial_state
+        yield self.initial_state, []
         self.controls: List[Tuple[float, Callable[[], np.ndarray]]] = []
         self.current_state = self.initial_state
         current_time = 0
-        N = 5
+        N = self.N
         cur_control_queue_size = 0
+        predictive_model_states = []
         while self._on_road():
             if len(self.controls) == 0:
                 start_time = time.time()
@@ -146,7 +149,7 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
                       f"planned next {sum(self.dt(i) for i in range(cur_control_queue_size)) * 1000:.2f}ms in {self.planner.solve_time * 1000:.2f}ms{' ' * 10}", end='')
             except ValueError:
                 break
-            yield self.current_state
+            yield self.current_state, [self.predictive_model.convert_vec_to_state(state).get_position_orientation()[0] for state in predictive_model_states]
             # Store:
             self.car_states.append((self.current_state, current_time))
             self.executed_controls.append((control, current_time - cur_dt))
@@ -333,4 +336,37 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
     def get_steering_angle(self, state) -> float:
         return state[2]
 
+    # ============================================
+    # EVALUATION
+    # ============================================
+
+    def convert_vec_to_state(self, vec, road_segment_idx=None) -> State:
+        # x, y, delta, v, psi, dpsi, beta
+        try:
+            s, n = self.road.get_road_position(vec[0], vec[1])
+        except ValueError:
+            print(vec[0], vec[1])
+            exit()
+        return State(
+            vec=vec,
+            get_velocity=lambda: vec[3],
+            get_negative_distance_to_closest_border=lambda: max(
+                (n - self.road.n_max(s)),
+                (self.road.n_min(s) - n)
+            ),
+            get_remaining_distance=lambda: self.road.length - s,
+            get_traveled_distance=lambda: s,
+            get_distance_between=lambda other_state: sum(x ** 2 for x in (vec[:2] - other_state.as_vector()[:2])),
+            to_string=lambda: '-',
+            get_lateral_offset=lambda: n,
+            get_alignment_error=lambda: vec[4] - self.road.get_tangent_angle_at(s),
+            get_position_orientation=lambda: (
+                np.array([vec[0], vec[1]]),
+                vec[4],
+            )
+        )
+
+    def convert_vec_to_control_input(self, vec) -> ControlInput:
+        # v_delta, a_x
+        return ControlInput(vec, to_string=lambda: '-')
 
