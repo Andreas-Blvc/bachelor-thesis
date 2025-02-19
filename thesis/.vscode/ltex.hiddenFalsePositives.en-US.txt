@@ -1,0 +1,1 @@
+{"rule":"MISSING_GENITIVE","sentence":"^\\QMcCormick relaxation constraints for the bilinear terms.\\E$"}

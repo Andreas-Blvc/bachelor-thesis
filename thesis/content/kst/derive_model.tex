@@ -1,0 +1,369 @@
+
+\section{Derive Frenet Frame State}
+In this section, we derive the state transition model for the Frenet frame, which is a commonly used coordinate system in vehicle dynamics and
+control.
+The Frenet frame is particularly useful for path tracking and motion planning as it simplifies the representation of the vehicle's motion relative to
+a reference path.
+
+We start by considering the dynamics of the kinematic single track model in the global coordinate system.
+This model captures the essential behavior of a vehicle by representing it as a single point mass with a front and rear axle.
+The state variables include the position coordinates $(p_x, p_y)$, the orientation angle $\psi$, the steering angle $\delta$, and the longitudinal
+velocity $v$.
+The control inputs are the longitudinal acceleration $a_{\text{long}}$ and the steering rate $v_{\delta}$.
+
+The dynamics of the kinematic single track model in the global coordinate system are:
+
+\begin{align*}
+	 & \dot{p}_x = v\cos(\psi)                    \\
+	 & \dot{p}_y = v\sin(\psi)                    \\
+	 & \dot{\delta} = v_{\delta}                  \\
+	 & \dot{v} = a_{\text{long}}                  \\
+	 & \dot{\psi} = \frac{v}{l_{wb}} \tan(\delta) \\
+\end{align*}
+
+Building on the orientation model from the previous chapter, we can extend the point mass model to include body-fixed control inputs.
+This approach helps us achieve our goal.
+
+Using the previously derived equations \ref{eq:first_derivative_long} and \ref{eq:first_derivative_lat}, and incorporating the
+definitions $\xi = \psi - \theta$ and $\dot{\theta}=\frac{d\theta}{ds}\frac{ds}{dt}=C(s)\dot{s}$, we obtain
+the following equations:
+
+\begin{align*}
+	\dot{s} = \frac{v_x\cos{\xi}}{1-nC(s)} \\
+	\dot{n} = v_x\sin{\xi}                 \\
+	\dot{\xi} = \dot{\psi} - C(s)\dot{s}   \\
+\end{align*}
+
+Combining these equations with the kinematic single track model, we derive the state transition model for the Frenet frame.
+This model provides a comprehensive representation of the vehicle's motion in the Frenet coordinate system, which is essential for accurate path
+tracking and motion planning.
+
+Next, we define the state variables and control inputs for the single-track model.
+
+\pagebreak
+
+\subsection{Model}
+
+The state variables and control inputs for the single-track model in the Frenet frame are defined as follows:
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		$x = \begin{bmatrix}
+				s \\ n \\ \xi \\ v \\ \delta
+			\end{bmatrix}$
+		\caption{State Variables}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		$u = \begin{bmatrix}
+				a_{x,b} \\ v_\delta
+			\end{bmatrix}$
+		\caption{Control Inputs}
+	\end{subfigure}
+\end{figure}
+
+where the state consists of the Frenet frame coordinates $(s, n)$, the heading alignment error $\xi$, the longitudinal vehicle velocity $v$, and the steering angle $\delta$.
+The state evolution is described by the following equations:
+
+\begin{equation}
+	f(x, u) =
+	\begin{bmatrix}
+		\frac{v \cos\xi}{1 - nC(s)}                \\[8pt]
+		v \sin\xi                                  \\[8pt]
+		\frac{1}{l_{wb}}v \tan\delta - C(s)\dot{s} \\[8pt]
+		a_{x,b}                                    \\[8pt]
+		v_\delta
+	\end{bmatrix}.
+\end{equation}
+
+For this model, we will use body-fixed control inputs, which provide convex road topology constraints.
+To linearize the model dynamics, we will use two new techniques.
+These techniques allow us to maintain the constraints without shifting, as was necessary in the previous chapter.
+This ensures a more accurate and computationally efficient representation of the vehicle's motion.
+
+To simplify the model, the following assumptions are made: $nC(s)$ is close to zero.
+This is a valid since $n$ models the vehicle's lateral position relative to the reference path, and $C(s)$ is the curvature of the reference path
+which is typically small enough for this assumption to be valid.
+We split up the problem by looking the terms which make the model non-linear.
+
+\subsection{Non-Linear Terms}
+
+We have four non-linear terms in the state transition model.
+In the following, we linearize them using approximations.
+\begin{align}
+	 & \frac{v \cos\xi}{1 - nC(s)} \\
+	 & v \sin\xi                   \\
+	 & v \tan\delta                \\
+	 & C(s)\dot{s}
+\end{align}
+
+With our assumptions, that $nC(s)\approx 0$, we can immediately simplify the first term.
+
+\[
+	\frac{v \cos\xi}{1 - nC(s)} \approx v \cos\xi
+\]
+
+\subsubsection{First Order Taylor Polynomial}
+
+To linearize the non-linear terms, we use the first order Taylor polynomial approximation around a reference point.
+The first order Taylor expansion of a function \(f(x)\) around a point \(x_0\) is given by:
+
+\[ f(x) \approx f(x_0) +
+	\frac{df}{dx} (x_0) (x - x_0) \]
+
+Applying the first order Taylor polynomial to the trigonometric functions $\sin$, $\cos$, and
+$\tan$ around the reference points $\xi_0$ and $\delta_0$, we obtain the following approximations:
+
+\[ \cos(\xi) \approx
+	\cos(\xi_0) - \sin(\xi_0) (\xi - \xi_0) \] \[ \sin(\xi) \approx \sin(\xi_0) + \cos(\xi_0) (\xi - \xi_0) \] \[ \tan(\delta) \approx \tan(\delta_0) +
+	\frac{1}{\cos^2(\delta_0)} (\delta - \delta_0) \]
+
+These approximations are known as small angle approximations, which are valid
+when the angles $\xi$ and $\delta$ are small.
+In vehicle dynamics, it is often reasonable to assume that the heading alignment error $\xi$ and the steering angle $\delta$ are small, especially
+when the vehicle is closely following a reference path.
+This allows us to simplify the trigonometric functions using their first order Taylor expansions.
+
+Substituting these first order Taylor approximations into the state transition model, we obtain the following terms:
+
+\begin{align*}
+	 & v (\cos(\xi_0) - \sin(\xi_0) (\xi - \xi_0))                         \\
+	 & v (\sin(\xi_0) + \cos(\xi_0) (\xi - \xi_0))                         \\
+	 & v (\tan(\delta_0) + \frac{1}{\cos^2(\delta_0)} (\delta - \delta_0)) \\
+	 & C(s)\dot{s}
+\end{align*}
+
+Since our reference values $\xi_0 = 0$ and $\delta_0 = 0$ are constant the only remaining non-linear terms are: $$v \xi, v \delta, C(s)\dot{s}$$
+
+Bilinear terms arise when the product of two variables appears in the equations, making the system non-linear.
+In our state transition model, the terms \(v \xi\), \(v \delta\), and \(C(s)\dot{s}\) are bilinear.
+Since \(C(s)\) is a function of \(s\), we will introduce another assumption.
+We have already seen that we can model our road in segments, which we used for the Point Mass Model to obtain less conservative coupling constraints.
+Here, we will reuse this approach to linearize our dynamics.
+
+\subsubsection{Assumption: Piece Wise Linear Curvature}
+
+We assume that the curvature can be expressed as a piece-wise linear function.
+
+\[
+	C(s) = \begin{cases}
+		a_1s+b_1 & \text{if } s \in [s_0, s_1]     \\
+		a_2s+b_2 & \text{if } s \in [s_1, s_2]     \\
+		\vdots                                     \\
+		a_ns+b_n & \text{if } s \in [s_{n-1}, s_n]
+	\end{cases}
+\]
+
+This reduces the non-linear term \(C(s)\dot{s}\) to a new bilinear term \(s\dot{s}\), which we need to linearize.
+
+Next, we will focus on linearizing the bilinear terms.
+
+\section{Handling Bilinear Terms}
+
+To handle bilinear terms of the form \(xy\), we introduce a new variable \(w\) and apply the McCormick relaxation.
+The McCormick relaxation is a technique that linearizes bilinear terms by introducing auxiliary variables and constraints.
+This technique allows us to represent the bilinear terms as a set of linear constraints, which can be solved efficiently using convex optimization
+methods.
+This relaxation only works if the variables \(x\) and \(y\) are bounded:
+
+\[ \underline{x} \leq x \leq \overline{x}, \qquad
+	\underline{y} \leq y \leq \overline{y} \] with constants \(\underline{x}, \overline{x}, \underline{y}, \overline{y} \in \mathbb{R}\).
+
+We introduce a new auxiliary variable \(w\), which will be used as an approximation of the bilinear term \(xy\).
+We use linear constraints to bound the auxiliary variable \(w\) and ensure that it approximates the bilinear term \(xy\).
+The linear constraints are derived from the bounds of the variables \(x\), \(y\), and the bilinear term \(xy\), as shown below:
+
+\[
+	\begin{aligned}
+		w & \geq \underline{x} y + x \underline{y} - \underline{x} \underline{y}, \\
+		w & \geq \overline{x} y + x \overline{y} - \overline{x} \overline{y},     \\
+		w & \leq \overline{x} y + x \underline{y} - \overline{x} \underline{y},   \\
+		w & \leq \underline{x} y + x \overline{y} - \underline{x} \overline{y}.
+	\end{aligned}
+\]
+
+The idea behind these constraints is to create a convex lower bound and a concave upper bound for the bilinear term \(xy\).
+These bounds are constructed as follows: \[ a = (x - \underline{x}) \geq 0 \] \[ b = (y - \underline{y}) \geq 0 \] Since a and b are both positive,
+we can multiply them to get: \[ ab = xy - \underline{x}y - \underline{y}x + \underline{x}\underline{y} \geq 0 \] Thus, we get our first under
+estimator for $xy$: \[ xy \geq \underline{x}y + \underline{y}x - \underline{x}\underline{y} \] To get the all the possible lower and upper bounds by
+what is given we can apply this pattern to $a\in\{x - \underline{x}, \overline{x} - x\}$ and $b\in\{y - \underline{y}, \overline{y} - y\}$.
+For any of the four possible combination of $a$ and $b$ we get $ab\geq0$ and can therefor come up with either an upper or lower bound for $xy$.
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-0-upper.pgf}}
+		\caption{Difference to the upper bound}
+		\label{fig:mccormick_0_upper}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-0-lower.pgf}}
+		\caption{Difference to the lower bound}
+		\label{fig:mccormick_0_lower}
+	\end{subfigure}
+	\caption{McCormick relaxation bounds for the bilinear term \( xy \).}
+	\label{fig:mccormick_bounds_0}
+\end{figure}
+
+Figure \ref{fig:mccormick_0_upper} illustrates the deviation between the actual bilinear term \(xy \) and the smallest upper bound provided by the
+relaxation constraints.
+Similarly, Figure \ref{fig:mccormick_0_lower} shows the deviation to the greatest lower bound.
+For the range \( -2 \leq x \leq 2 \) and \( 0 \leq y \leq 50 \).
+It is evident that the bounds improve as \( x \) and \( y \) approach their respective limits.
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-1-upper.pgf}}
+		\caption{Difference to the upper bound}
+		\label{fig:mccormick_1_upper}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-1-lower.pgf}}
+		\caption{Difference to the lower bound}
+		\label{fig:mccormick_1_lower}
+	\end{subfigure}
+	\caption{McCormick relaxation bounds for the bilinear term \(  xy \) with stricter bounds on \( x \).}
+	\label{fig:mccormick_bounds_1}
+\end{figure}
+
+Figures \ref{fig:mccormick_1_upper} and \ref{fig:mccormick_1_lower} present the results when \( x \) is more tightly bounded, specifically \( -2 \leq
+x \leq 0 \).
+One can observe that the maximum deviation is considerably reduced compared to the previous scenario, indicating that tighter bounds yield a more
+accurate relaxation.
+
+\subsection{Improve Bounds}
+
+To improve the bounds of the McCormick relaxation, we can use tighter bounds for the variables involved in the bilinear terms.
+By reducing the range of the variables, we can achieve a more accurate approximation of the bilinear terms.
+This can be done by analyzing the specific problem and determining the realistic bounds for the variables.
+
+For example, if we know that the variable \( x \) is always within a smaller range, such as \( -1 \leq x \leq 1 \), we can use these tighter bounds
+to improve the McCormick relaxation.
+Similarly, if the variable \( y \) is within a smaller range, such as \( 0 \leq y \leq 25 \), we can use these bounds to achieve a more accurate
+approximation.
+
+To apply tighter bounds to the velocity, we can use the known current velocity and the maximum and minimum acceleration values.
+This allows us to provide a more accurate range for the velocity at each time point, especially for the first few time points.
+
+Let \( v_0 \) be the current velocity, \( \underline{a} \) be the minimum acceleration, and \( \overline{a} \) be the maximum acceleration.
+The velocity at the next time point \( v_1 \) can be bounded as follows:
+
+\[ v_1 \in [v_0 + \underline{a} \Delta t, v_0 +
+		\overline{a} \Delta t] \] where \( \Delta t \) is the time step.
+
+For subsequent time points, we can iteratively apply these bounds to obtain tighter ranges for the velocity.
+For example, the velocity at the second time point \( v_2 \) can be bounded as:
+
+\[ v_2 \in [v_0 + 2\underline{a} \Delta t, v_0 +
+		2\overline{a} \Delta t] \]
+
+By applying these tighter bounds, we can improve the accuracy of the McCormick relaxation for the
+bilinear terms involving the velocity.
+This results in a more precise and efficient representation of the vehicle's motion, which is essential for accurate path tracking and motion
+planning.
+
+In summary, improving the bounds of the McCormick relaxation involves: 1.
+Analyzing the specific problem to determine realistic bounds for the variables.
+2.
+Using tighter bounds for the variables involved in the bilinear terms.
+3.
+Applying these tighter bounds to achieve a more accurate approximation of the bilinear terms.
+
+This approach ensures that the McCormick relaxation provides a more precise and efficient representation of the bilinear terms, which is crucial for
+the accurate modeling and control of vehicle dynamics.
+
+\section{Final Model}
+
+The final linearized state transition model for the Frenet frame, incorporating the linearized non-linear terms and the McCormick relaxation for the bilinear terms, is given by:
+
+\begin{equation}
+	f(s, n, \xi, v, \delta, a_{x,b}, v_\delta )\approx
+	\begin{bmatrix}
+		v (\cos(\xi_0) + \sin(\xi_0)\xi_0) - \sin(\xi_0) w_{v,\xi}                                                                                                 \\[8pt]
+		v (\sin(\xi_0) - \cos(\xi_0)\xi_0) + \cos(\xi_0) w_{v,\xi}                                                                                                 \\[8pt]
+		\frac{v}{l_{wb}} (\tan(\delta_0) - \frac{\delta_0}{\cos^2(\delta_0)}) + \frac{w_{v,\delta}}{\cos^2(\delta_0)}  - a_{i(s)} w_{s,\dot{s}} - b_{i(s)} \dot{s} \\[8pt]
+		a_{x,b}                                                                                                                                                    \\[8pt]
+		v_\delta
+	\end{bmatrix}
+\end{equation}
+Where $w_{v,\xi}$, $w_{v,\delta}$, and $w_{s,\dot{s}}$ are auxiliary variables introduced by the McCormick relaxation to approximate the bilinear
+terms $v\xi$, $v\delta$, and $s\dot{s}$, respectively.
+The Curvature is treated as a piece-wise linear function, where $a_{i(s)}$ and $b_{i(s)}$ are the slope and intercept of the linear function in the
+interval $[s_{i-1}, s_i]$, which can be select by the position $s$.
+The index will be treated as a constant during planing for each time point, which we can achieve by predicted the road segment at each time point.
+The additional constraints for the McCormick relaxation are:
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\[
+			\begin{aligned}
+				w_{v,\xi} & \geq \underline{v} \xi + v \underline{\xi} - \underline{v} \underline{\xi}, \\
+				w_{v,\xi} & \geq \overline{v} \xi + v \overline{\xi} - \overline{v} \overline{\xi},     \\
+				w_{v,\xi} & \leq \overline{v} \xi + v \underline{\xi} - \overline{v} \underline{\xi},   \\
+				w_{v,\xi} & \leq \underline{v} \xi + v \overline{\xi} - \underline{v} \overline{\xi}.
+			\end{aligned}
+		\]
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\[
+			\begin{aligned}
+				w_{v,\delta} & \geq \underline{v} \delta + v \underline{\delta} - \underline{v} \underline{\delta}, \\
+				w_{v,\delta} & \geq \overline{v} \delta + v \overline{\delta} - \overline{v} \overline{\delta},     \\
+				w_{v,\delta} & \leq \overline{v} \delta + v \underline{\delta} - \overline{v} \underline{\delta},   \\
+				w_{v,\delta} & \leq \underline{v} \delta + v \overline{\delta} - \underline{v} \overline{\delta}.
+			\end{aligned}
+		\]
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\[
+			\begin{aligned}
+				w_{s,\dot{s}} & \geq \underline{s} \dot{s} + s \underline{\dot{s}} - \underline{s} \underline{\dot{s}}, \\
+				w_{s,\dot{s}} & \geq \overline{s} \dot{s} + s \overline{\dot{s}} - \overline{s} \overline{\dot{s}},     \\
+				w_{s,\dot{s}} & \leq \overline{s} \dot{s} + s \underline{\dot{s}} - \overline{s} \underline{\dot{s}},   \\
+				w_{s,\dot{s}} & \leq \underline{s} \dot{s} + s \overline{\dot{s}} - \underline{s} \overline{\dot{s}}.
+			\end{aligned}
+		\]
+	\end{subfigure}
+	\caption{McCormick relaxation constraints for the bilinear terms.}
+	\label{fig:mccormick_constraints}
+\end{figure}
+
+The coupling constraints are simple as \[ s\in[\underline{s}, \overline{s}], n\in[\underline{n}(s), \overline{n}(s)], \xi \in [\underline{\xi},
+		\overline{\xi}], v\in[\underline{v}, \overline{v}], \delta \in [\underline{\delta}, \overline{\delta}], \] \[ v_\delta \in [\underline{v_\delta},
+		\overline{v_\delta}], a_{x,b} \in [\underline{a_{x,b}}, \overline{a_{x,b}}\min\{1, \frac{v_S}{v}\}] \] where $v_S$ is parameter which is used to
+encounter limiting engine power and breaking power.
+
+Last but not least we have to consider the friction circle.
+\[
+	\sqrt{a_{x,b}^2 + (\frac{v^2}{l_{wb}} \tan(\delta))^2} \leq a_{max}
+\]
+Utilizing that $\tan(\delta) \leq \frac{\tan(\overline{\delta})}{\overline{\delta}}\delta$:
+\[
+	a_{x,b}^2 + (\frac{1}{l_{wb}}\frac{\tan(\overline{\delta})}{\overline{\delta}})^2 v^4 \delta^2 \leq a_{max}^2
+\]
+
+\subsection{Linearize Quadratic Term}
+
+In this section, we will linearize the quadratic term \(s^2\) in the state transition model.
+For quadratic terms, which occur in equality constraints, we can use the McCormick relaxation technique, which is typically used for bilinear terms,
+but can also be applied to quadratic terms.
+However, in the case of quadratic terms, we can achieve better bounds.
+For the lower bound, which must be convex, we can simply use the term itself, as a quadratic term is always convex.
+The best upper bound can be obtained by connecting the points defined by the bounds on \(s\).
+\[
+	s^2 \leq (\underline{s} + \overline{s})s - \underline{s}\overline{s}
+\]

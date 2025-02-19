@@ -1,7 +1,7 @@
 \RequirePackage[l2tabu,orthodox]{nag} % for package advice
 
 % TODO: decide if one-sided/two-sided
-%\documentclass[headsepline,footsepline,footinclude=false,fontsize=11pt,paper=a4,listof=totoc,bibliography=totoc,BCOR=12mm,DIV=12]{scrbook} % two-sided
+% \documentclass[headsepline,footsepline,footinclude=false,fontsize=11pt,paper=a4,listof=totoc,bibliography=totoc,BCOR=12mm,DIV=12]{scrbook} % two-sided
 \documentclass[headsepline,footsepline,footinclude=false,oneside,fontsize=11pt,paper=a4,listof=totoc,bibliography=totoc]{scrbook} % one-sided
 
 \input{settings/packages}
@@ -18,29 +18,34 @@
 \makeatletter\@ifpackageloaded{underscore}{}{\usepackage[strings]{underscore}}\makeatother
 
 \begin{document}
-% \input{settings/cover}
+\input{settings/cover}
 
 \frontmatter{}
-% \input{settings/title}
-% \input{settings/disclaimer}
-% \input{settings/acknowledgements}
-% \input{settings/abstract}
+\input{settings/title}
+\input{settings/disclaimer}
+\input{settings/acknowledgements}
+\input{settings/abstract}
 \microtypesetup{protrusion=false}
-% \tableofcontents{}
+\tableofcontents{}
 \microtypesetup{protrusion=true}
 
 \mainmatter{}
 \input{content/Overview.tex}
 \input{content/Problem_Formulation.tex}
+
+\input{content/main_paper/derive_model_and_constraints.tex}
+\input{content/main_paper/finding_inner_polytope.tex}
+
+\input{content/kst/intro.tex}
+\input{content/kst/derive_model.tex}
+
 \input{content/Mccormick.tex}
 % \input{content/Introduction}
-\input{content/Single_Track_In_Frenet_Frame.tex}
 \input{content/Derivation_Ingrator_Model}
 \input{content/Mapping_Controls_States.tex}
 \input{content/Main_Problem_With_McCormick.tex}
 \input{content/Convexify_Eq_of_Motion.tex}
-\input{content/Imvestigate_Main_Paper.tex}
-\input{content/cylindrical_algebraic_decomposition.tex}
+% \input{content/cylindrical_algebraic_decomposition.tex}
 % \input{content/Format}
 % \input{content/Style}
 % \input{content/Latex}

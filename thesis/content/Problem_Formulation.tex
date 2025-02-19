@@ -60,7 +60,7 @@ The control inputs $u_i$ are external influences that modify the state.
 These are grouped into a control vector $u$.
 Both $x$ and $u$ are time-dependent.
 
-\subsection{Point Mass Model}
+\subsection{Point Mass Model} \label{section:basic_pm}
 
 The point mass model (PM) consists of four state variables:
 
@@ -187,78 +187,134 @@ The following additional constraints are part of the model, a parameter $a_{max}
 	\sqrt{u_2^2 + (x_4\dot{x}_5)^2} \leq a_{\max}
 \end{equation}
 
-For both models the vehicle is additional constrained on its velocity range, steering angle range and how fast the steering angle can change.
-Which are quite natural constraints, which should not be forgotten.
+For both models, the vehicle is additionally constrained by its velocity range, steering angle range, and the rate of change of the steering angle.
+These constraints are natural and should not be overlooked.
 
 \section{Constraints}
 
-Our constraints on the derivatives \ref{eq:dynamics} using one of the models can be then expressed as:
+The constraints on the derivatives defined in \eqref{eq:dynamics}, using one of the models, can be expressed as:
+
 \begin{equation}
 	\pi'(t) = f(\pi(t), u(t))
 \end{equation}
 
-\section{Reformulation of the Problem}
+\section{Problem Reformulation}
 
-Since Solver cannot operate on a function space, the first task is to project our infinite-dimensional function space of trajectories to a
+Since solvers cannot operate directly on function spaces, the first step is to approximate the infinite-dimensional space of trajectories using a
 finite-dimensional vector space.
-Additionally, we convert the constraints, which so far consist of set membership and predicates, into a set of equalities and inequalities, which is
-the standard input format for the solver.
+Additionally, we transform the constraints, originally defined by set membership and predicates, into a system of equalities and inequalities, which
+are compatible with standard solver inputs.
 
-Outlook: Penalty or Barrier functions, which integrate the constraints as part of the objective.
+An alternative approach involves using penalty or barrier functions to incorporate constraints into the objective function.
 
-Direct vs Indirect Methods
+\subsection{Direct vs.
+	Indirect Methods}
 
-\subsection{Direct Methods}
+\subsubsection{Direct Methods}
 
-To project the function space to a vector space one
-defines a set of basis function which than span a subspace of the original function space.
-A function of the subspace is then defined by a linear combination of the basis function.
+To project the function space into a finite-dimensional
+vector space, we define a set of basis functions that span a subspace of the original space.
+A function in this subspace is then represented as a linear combination of the basis functions:
 
 \begin{equation}
-	\tilde{\pi(t)} = \sum_{i=1}^{N}\pi_i\phi_i(t)
+	\tilde{\pi}(t) = \sum_{i=1}^{N} \pi_i \phi_i(t)
 \end{equation}
 
-Of course, we may lose our original optimal solution and restrict our search space by the basis function, but our problem now reduces to finding
-finite-dimensional subspace.
-One of the most common numerical method to approximate are Numerical Integrators with Collocation.
-Collocation means that we require the trajectories to satisfies the constraints only in a set of discrete points $\{t_i\}_{i=1\dots m}$.
-Then numerical integrations techniques are used to approximate the trajectory between those points.
+While this approach restricts the search space, potentially deviating from the true optimal solution, it allows for numerical tractability.
+One of the most widely used techniques for trajectory approximation is numerical integration with collocation.
+In this approach, the trajectory is required to satisfy the constraints at a discrete set of time points $\{t_i\}_{i=1}^{m}$.
+Numerical integration techniques are then employed to approximate the trajectory between these points.
 
-\subsection{New Formulation}
+\subsection{Discrete-Time Problem Formulation}
 
-Given the models and using direct method, we can formulate our optimization problem over a finite-dimensional vector space.
+Using direct methods, we now reformulate the optimization problem over a finite-dimensional vector space.
 
-Let $\mathcal{X}$ be the set of valid state the vehicle model can be in and $\mathcal{U}$ bet set of all valid control inputs of the model.
+Let $\mathcal{X}$ be the set of valid vehicle states and $\mathcal{U}$ the set of all feasible control inputs.
 
-We define our trajectory over discrete time points $\{t_i\}_{i=1\dots m}$ as $\pi(t_i)=x_i$ and our new objective over
-$\mathcal{X}\times\mathcal{U}$, as $J: \mathcal{X}\times\mathcal{U}\to \mathbb{R}$.
+The trajectory is defined at discrete time points $\{t_i\}_{i=1}^{m}$, where $\pi(t_i) = x_i$.
+The objective function is then defined over $\mathcal{X} \times \mathcal{U}$ as $J: \mathcal{X} \times \mathcal{U} \to \mathbb{R}$.
 
-\subsubsection{Problem Definition: Discrete Time Optimal Trajectory Planning}
+\subsubsection{Problem Definition: Discrete-Time Optimal Trajectory Planning}
 
-Given a 7-tuple $(\mathcal{X}, \mathcal{U}, x_{\text{initial}}, X_{\text{goal}}, f, J, \{t_i\}_{i=1\dots m})$, the objective is to find:
+Given a 7-tuple $(\mathcal{X}, \mathcal{U}, x_{\text{initial}}, X_{\text{goal}}, f, J, \{t_i\}_{i=1}^{m})$, the objective is to find:
 
 \begin{align}
-	u^* & = \underset{u\in \mathcal{U}^{T-1}}{\operatorname{arg\,min}} \sum_{i=1}^{T-1}
-	J(x_{i+1}, u_{i})                                                                                                                                                \\ \text{s.t.
-	}   & \quad x_1 = x_{\text{initial}}                                                                                                                             \\
-	    & \quad x_T \in X_{\text{goal}} \subseteq \mathcal{X}                                                                                                        \\
-	    & \quad x_{i},u_{i}, \in \mathcal{C} \subseteq \mathcal{X}\times\mathcal{U}     & \text{for all} \quad i \in \{1,\dots,m-1\} \label{eq:coupling_constraints} \\
-	    & \quad x_{i+1} = x_i + (t_{i+1} - t_i)f(x_i,u_i)                               & \text{for all} \quad i \in\{1,\dots,m-1\}	\label{eq:discrete_dynamics}
+	u^* & = \underset{u \in \mathcal{U}^{T-1}}{\operatorname{arg\,min}} \sum_{i=1}^{T-1}
+	J(x_{i+1}, u_{i})                                                                                                                                      \\ \text{s.t.
+	}   & \quad x_1 = x_{\text{initial}}                                                                                                                   \\
+	    & \quad x_T \in X_{\text{goal}} \subseteq \mathcal{X}                                                                                              \\
+	    & \quad (x_i, u_i) \in \mathcal{C} \subseteq \mathcal{X} \times \mathcal{U}      & \forall i \in \{1, \dots, m-1\} \label{eq:coupling_constraints} \\
+	    & \quad x_{i+1} = x_i + (t_{i+1} - t_i) f(x_i, u_i)                              & \forall i \in \{1, \dots, m-1\} \label{eq:discrete_dynamics}
 \end{align}
 
-Given an initial state $x_{\text{initial}}$ and a control sequence over the whole sequence of time points, we can use our model's dynamics $f$ and
-the numerical integration approach to compute the state for each time point.
-Our problem formulation introduces a new coupling constraint $C$ on a state and the control input applied to this state.
+Given an initial state $x_{\text{initial}}$ and a control sequence over the time horizon, we use the vehicle model dynamics $f$ and numerical
+integration to compute the state at each time step.
+This formulation introduces a coupling constraint $\mathcal{C}$ that governs the relationship between state and control inputs.
 
-We will face the problem that the problem does so far not apply to the DCP Problems.
-We will present how one can come around this problem with both of the models we introduced.
-Doing so we will explain some modeling techniques, that come along with some approximations and investigate them.
-We will first focus on the point mass model.
+One challenge is that this formulation does not yet conform to disciplined convex programming (DCP) principles.
+We will address this issue by discussing applicable modeling techniques, including approximations and their implications, focusing first on the point
+mass model.
 
-\subsection{Frenet Frame}
+\section{Frenet Frame Representation}
 
-So far, our models used a global Cartesian coordinate system to describe the vehicle positions and pose.
-This is fine for the dynamics of the vehicle, but once one starts to model the constraints which arise from the road topology it gets quite complex.
-Given the fact that road topology is known in advance we will use it to model or vehicles states that will empower us to model constraints based on
-the road in a more natural way, which also leads to convex road topology constraints.
+In our previous models, vehicle positions and orientations were represented using a global Cartesian coordinate system.
+While this approach is effective for modeling vehicle dynamics, it becomes cumbersome when incorporating road topology constraints.
+
+Since road topology is typically known in advance, we can leverage this knowledge to define a coordinate system that simplifies constraint modeling.
+The Frenet frame provides a more intuitive way to describe vehicle motion relative to a reference path, resulting in a more structured and often
+convex constraint representation.
+
+The Frenet frame consists of two coordinates, $(s, n)$, where $s$ represents the arc-length position along the reference curve, and $n$ denotes the
+orthogonal deviation from it.
+This transformation allows constraints to be naturally aligned with the road structure, simplifying feasibility checks and trajectory optimization.
+
+\begin{figure}[h]
+	\centering
+	\begin{tikzpicture}
+		% Draw the reference path (a smooth curve)
+		\draw[->, thick, domain=2:8, samples=100] plot (\x, {-5 + 4.466667*(\x) - 0.7444444*(\x)^2 - 0.005555556*(\x)^3 + 0.005555556*(\x)^4});
+
+		% Label the reference path
+		\node[black] at (8,3.5) {\small Reference Path};
+
+		% Point on the reference path
+		\filldraw[black] (4,2.022224352) circle (2pt);
+		\node[above left] at (4,2.022224352) {\small $(s, 0)$};
+
+		% Draw tangent and normal vectors
+		\draw[->, thick] (4,2.022224352) -- (6,1.3555515519999999) node[right] {\small $e_t$};
+		\draw[->, thick] (4,2.022224352) -- (4.6666728,4.022224352) node[above] {\small $e_n$};
+
+		% Theta angle
+		\draw[dashed] (4,2.022224352) -- (5.8,2.022224352);
+		\draw[->] (5.8,2.022224352) arc (0:-18.43510695912798:1.8);
+		\node at (5.6,1.75) {\small $\theta$};
+
+		% Off-path point (s, n)
+		\filldraw[black] (4.333336399999999,3.022224352) circle (2pt);
+		\node[above right] at (4.333336399999999,3.022224352) {\small $(s, n)$};
+	\end{tikzpicture}
+	\caption{Frenet Frame Representation}
+	\label{fig:frenet_frame}
+\end{figure}
+
+Let $\theta(s)$ denote the angle between the tangent vector at position $s$ along the reference path and the $x$-axis of a global fixed coordinate
+system.
+If the global position of the reference path at the starting point $s_{\min}$ is known, the global coordinates of any point along the reference path can be determined using:
+
+\begin{align}
+	p_x(s) & = \int_{s_{\min}}^{s} \cos(\theta(\sigma)) d\sigma + p_x(s_{\min}), \\
+	p_y(s) & = \int_{s_{\min}}^{s} \sin(\theta(\sigma)) d\sigma + p_y(s_{\min}).
+\end{align}
+
+The reference path is aligned with the road, allowing the vehicle's position to be described within this Frenet frame.
+In the following section, we will transition the point mass model's dynamics into this coordinate system.
+
+\subsection{Body-Fixed Coordinate System}
+
+To further refine the vehicle's representation, we introduce the body-fixed coordinate system, which is attached to the moving reference position of
+the vehicle within the global coordinate system.
+The first axis of the body-fixed coordinate system aligns with the vehicle's longitudinal orientation and is denoted by the unit vector $e_{b,x}$.
+The second axis is orthogonal to the first and is denoted by $e_{b,y}$.
+This coordinate system simplifies modeling control inputs and forces acting on the vehicle.
 

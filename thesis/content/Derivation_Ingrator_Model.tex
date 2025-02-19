@@ -1,235 +1,235 @@
-\chapter{Derivation of the Integrator Model} \label{ch:der_int_mod}
+% \chapter{Derivation of the Integrator Model} \label{ch:der_int_mod}
 
-\section{Assumptions}
+% \section{Assumptions}
 
-1. External accelerations can be directly controlled:
-\begin{equation}
-	u = \begin{bmatrix} a_{x,b}, & a_{y,b}, & a_\psi \end{bmatrix}, \quad a_b = \begin{bmatrix} a_{x,b}, & a_{y,b} \end{bmatrix}
-\end{equation}
-\\
-2. Orientation of the vehicle $\psi$ equals the angle of the road $\theta$:
-\begin{equation}
-	\xi = \psi - \theta = 0
-\end{equation}
-which implies:
-\begin{itemize}
-	\item $a_b = a_t$
-	\item $\dot{\psi} = \dot{\theta} = \frac{d\theta}{ds} \cdot \frac{ds}{dt} = C(s)\dot{s}$
-	\item $a_\psi = \ddot{\psi} = \ddot{\theta} = C'(s) \dot{s}^2 + C(s)\ddot{s}$
-\end{itemize}
-3. $C'(s) = C'$ is constant.
+% 1. External accelerations can be directly controlled:
+% \begin{equation}
+% 	u = \begin{bmatrix} a_{x,b}, & a_{y,b}, & a_\psi \end{bmatrix}, \quad a_b = \begin{bmatrix} a_{x,b}, & a_{y,b} \end{bmatrix}
+% \end{equation}
+% \\
+% 2. Orientation of the vehicle $\psi$ equals the angle of the road $\theta$:
+% \begin{equation}
+% 	\xi = \psi - \theta = 0
+% \end{equation}
+% which implies:
+% \begin{itemize}
+% 	\item $a_b = a_t$
+% 	\item $\dot{\psi} = \dot{\theta} = \frac{d\theta}{ds} \cdot \frac{ds}{dt} = C(s)\dot{s}$
+% 	\item $a_\psi = \ddot{\psi} = \ddot{\theta} = C'(s) \dot{s}^2 + C(s)\ddot{s}$
+% \end{itemize}
+% 3. $C'(s) = C'$ is constant.
 
-\section{Further Simplification}
+% \section{Further Simplification}
 
-1. Define artificial input variables:
-\begin{equation}
-	\tilde{u} :=
-	\begin{bmatrix}
-		u_t \\ u_n
-	\end{bmatrix} =
-	\begin{bmatrix}
-		\frac{
-			a_{x,tn} + 2\dot{n}C(s)\dot{s} + nC'(s)\dot{s}^2
-		}{
-			1 - nC(s)
-		} \\
-		a_{y,tn} - C(s)\dot{s}^2(1 - nC(s))
-	\end{bmatrix}
-\end{equation}
+% 1. Define artificial input variables:
+% \begin{equation}
+% 	\tilde{u} :=
+% 	\begin{bmatrix}
+% 		u_t \\ u_n
+% 	\end{bmatrix} =
+% 	\begin{bmatrix}
+% 		\frac{
+% 			a_{x,tn} + 2\dot{n}C(s)\dot{s} + nC'(s)\dot{s}^2
+% 		}{
+% 			1 - nC(s)
+% 		} \\
+% 		a_{y,tn} - C(s)\dot{s}^2(1 - nC(s))
+% 	\end{bmatrix}
+% \end{equation}
 
-\section{Resulting Integrator Model}
+% \section{Resulting Integrator Model}
 
-State:
-\[
-	x_{tn} = \begin{bmatrix} s, & n, & \dot{s}, & \dot{n} \end{bmatrix}
-\]
-Input:
-\[
-	\tilde{u} = \begin{bmatrix} u_t, & u_n \end{bmatrix}
-\]
-The integrator model is given by:
-\begin{equation}
-	\dot{x}_{tn} = \begin{bmatrix}
-		0 & 0 & 1 & 0 \\
-		0 & 0 & 0 & 1 \\
-		0 & 0 & 0 & 0 \\
-		0 & 0 & 0 & 0 \\
-	\end{bmatrix} x_{tn} + \begin{bmatrix}
-		0 & 0 \\
-		0 & 0 \\
-		1 & 0 \\
-		0 & 1 \\
-	\end{bmatrix} \tilde{u}
-\end{equation}
+% State:
+% \[
+% 	x_{tn} = \begin{bmatrix} s, & n, & \dot{s}, & \dot{n} \end{bmatrix}
+% \]
+% Input:
+% \[
+% 	\tilde{u} = \begin{bmatrix} u_t, & u_n \end{bmatrix}
+% \]
+% The integrator model is given by:
+% \begin{equation}
+% 	\dot{x}_{tn} = \begin{bmatrix}
+% 		0 & 0 & 1 & 0 \\
+% 		0 & 0 & 0 & 1 \\
+% 		0 & 0 & 0 & 0 \\
+% 		0 & 0 & 0 & 0 \\
+% 	\end{bmatrix} x_{tn} + \begin{bmatrix}
+% 		0 & 0 \\
+% 		0 & 0 \\
+% 		1 & 0 \\
+% 		0 & 1 \\
+% 	\end{bmatrix} \tilde{u}
+% \end{equation}
 
-\section{Constraints}
+% \section{Constraints}
 
-The constraints are defined by:
-\begin{align}
-	g(x_{tn}, \tilde{u}) :=
-	\begin{bmatrix}
-		(1 - nC(s)) u_t - (2\dot{n}C(s)\dot{s} + nC' \dot{s}^2) \\
-		u_n + C(s) \dot{s}^2 (1 - nC(s))
-	\end{bmatrix}
-\end{align}
-\\
-Define the constraint set $\mathcal{Z}$ as:
-\begin{equation}
-	\mathcal{Z} = \left\{
-	\begin{bmatrix} x_{tn} \\ \tilde{u} \end{bmatrix} \; \middle|\;
-	\begin{aligned}
-		 & C_{min} \leq C(s) \leq C_{max},                                                                                                                                              \\
-		 & n_{min} \leq n \leq n_{max},                                                                                                                                                 \\
-		 & \begin{bmatrix} v_{xmin} \\ v_{ymin} \end{bmatrix} \leq \begin{bmatrix} \dot{s}(1 + nC(s)) \\ \dot{n} \end{bmatrix} \leq \begin{bmatrix} v_{ymax} \\ v_{xmax} \end{bmatrix}, \\
-		 & \dot{\psi}_{min} \leq C(s) \dot{s} \leq \dot{\psi}_{max},                                                                                                                    \\
-		 & a_{\psi,b,min} \leq C' \dot{s}^2 + C(s) u_t \leq a_{\psi,b,max},                                                                                                             \\
-		 & a_{b,min} \leq g(x_{tn}, \tilde{u}) \leq a_{b,max},                                                                                                                          \\
-		 & ||g(x_{tn}, \tilde{u})||^2 \leq \text{const}
-	\end{aligned}
-	\right\}
-\end{equation}
+% The constraints are defined by:
+% \begin{align}
+% 	g(x_{tn}, \tilde{u}) :=
+% 	\begin{bmatrix}
+% 		(1 - nC(s)) u_t - (2\dot{n}C(s)\dot{s} + nC' \dot{s}^2) \\
+% 		u_n + C(s) \dot{s}^2 (1 - nC(s))
+% 	\end{bmatrix}
+% \end{align}
+% \\
+% Define the constraint set $\mathcal{Z}$ as:
+% \begin{equation}
+% 	\mathcal{Z} = \left\{
+% 	\begin{bmatrix} x_{tn} \\ \tilde{u} \end{bmatrix} \; \middle|\;
+% 	\begin{aligned}
+% 		 & C_{min} \leq C(s) \leq C_{max},                                                                                                                                              \\
+% 		 & n_{min} \leq n \leq n_{max},                                                                                                                                                 \\
+% 		 & \begin{bmatrix} v_{xmin} \\ v_{ymin} \end{bmatrix} \leq \begin{bmatrix} \dot{s}(1 + nC(s)) \\ \dot{n} \end{bmatrix} \leq \begin{bmatrix} v_{ymax} \\ v_{xmax} \end{bmatrix}, \\
+% 		 & \dot{\psi}_{min} \leq C(s) \dot{s} \leq \dot{\psi}_{max},                                                                                                                    \\
+% 		 & a_{\psi,b,min} \leq C' \dot{s}^2 + C(s) u_t \leq a_{\psi,b,max},                                                                                                             \\
+% 		 & a_{b,min} \leq g(x_{tn}, \tilde{u}) \leq a_{b,max},                                                                                                                          \\
+% 		 & ||g(x_{tn}, \tilde{u})||^2 \leq \text{const}
+% 	\end{aligned}
+% 	\right\}
+% \end{equation}
 
-\section{Constraint Approximation Problem}
+% \section{Constraint Approximation Problem}
 
-Given $\mathcal{Z}$, find an inner approximation $\underline{\mathcal{Z}}$ of $\mathcal{Z}$ such that $\underline{\mathcal{Z}}$ can be described with a set of constraints following the Disciplined Convex Programming (DCP) rules:
-\begin{itemize}
-	\item affine $==$ affine
-	\item convex $\leq$ concave
-	\item concave $\geq$ convex
-\end{itemize}
+% Given $\mathcal{Z}$, find an inner approximation $\underline{\mathcal{Z}}$ of $\mathcal{Z}$ such that $\underline{\mathcal{Z}}$ can be described with a set of constraints following the Disciplined Convex Programming (DCP) rules:
+% \begin{itemize}
+% 	\item affine $==$ affine
+% 	\item convex $\leq$ concave
+% 	\item concave $\geq$ convex
+% \end{itemize}
 
-\section{\texorpdfstring{$\forall$}{For all}-Elimination}
+% \section{\texorpdfstring{$\forall$}{For all}-Elimination}
 
-For a constraint not following the DCP rules, of the form:
-\begin{equation}
-	c_{min} \leq f(x, y) \leq c_{max}
-\end{equation}
-with $x \in \mathbb{R}$, $y \in \mathbb{R}^n$, and $f: \mathbb{R}^{n+1} \to \mathbb{R}$, where $c_{min}, c_{max} \in \mathbb{R}$ are constants. Further, if $f$ is affine in $x$, represented by:
-\begin{equation}
-	f(x, y) = a(y) x + b(y)
-\end{equation}
-with $a, b : \mathbb{R}^n \to \mathbb{R}$, bounds on $a(y)$ and $b(y)$ can be chosen:
-\[
-	a_{min} \leq a(y) \leq a_{max}, \quad b_{min} \leq b(y) \leq b_{max}
-\]
-Thus, an inner approximation of the set $Z$ defined by $c_{min} \leq f(x, y) \leq c_{max}$ can be given by:
-\begin{equation}
-	\begin{aligned}
-		 & \underline{Z} =                                                                                                                                                                    \\
-		 & \left\{ x \in \mathbb{R} \;\middle|\; \forall y \in \mathbb{R}^n : a(y) \in [a_{min}, a_{max}] \land b(y) \in [b_{min}, b_{max}] \implies f(x, y) \in  [c_{min}, c_{max}] \right\} \\
-		 & \times \left\{ y \in \mathbb{R}^n \;\middle|\; a(y) \in [a_{min}, a_{max}] \land b(y) \in [b_{min}, b_{max}] \right\}                                                              \\
-		 & =: X \times Y
-	\end{aligned}
-\end{equation}
-\subsection{Calculate \texorpdfstring{$X$}{X}}
-\textbf{Assumptions:}
-\begin{equation}
-	c_{min} \leq b_{min} \text{ and } b_{max} \leq c_{max} \text{ (or } a(y) \neq 0 \text{ TODO)}
-\end{equation}
-\\
-\textbf{Definitions:}
-\begin{equation}
-	x_{min} := \max \left\{ \min\left\{ 0, \frac{c_{min} - b_{min}}{a_{max}} \right\}, \min\left\{ 0, \frac{c_{max} - b_{max}}{a_{min}} \right\} \right\}
-\end{equation}
+% For a constraint not following the DCP rules, of the form:
+% \begin{equation}
+% 	c_{min} \leq f(x, y) \leq c_{max}
+% \end{equation}
+% with $x \in \mathbb{R}$, $y \in \mathbb{R}^n$, and $f: \mathbb{R}^{n+1} \to \mathbb{R}$, where $c_{min}, c_{max} \in \mathbb{R}$ are constants. Further, if $f$ is affine in $x$, represented by:
+% \begin{equation}
+% 	f(x, y) = a(y) x + b(y)
+% \end{equation}
+% with $a, b : \mathbb{R}^n \to \mathbb{R}$, bounds on $a(y)$ and $b(y)$ can be chosen:
+% \[
+% 	a_{min} \leq a(y) \leq a_{max}, \quad b_{min} \leq b(y) \leq b_{max}
+% \]
+% Thus, an inner approximation of the set $Z$ defined by $c_{min} \leq f(x, y) \leq c_{max}$ can be given by:
+% \begin{equation}
+% 	\begin{aligned}
+% 		 & \underline{Z} =                                                                                                                                                                    \\
+% 		 & \left\{ x \in \mathbb{R} \;\middle|\; \forall y \in \mathbb{R}^n : a(y) \in [a_{min}, a_{max}] \land b(y) \in [b_{min}, b_{max}] \implies f(x, y) \in  [c_{min}, c_{max}] \right\} \\
+% 		 & \times \left\{ y \in \mathbb{R}^n \;\middle|\; a(y) \in [a_{min}, a_{max}] \land b(y) \in [b_{min}, b_{max}] \right\}                                                              \\
+% 		 & =: X \times Y
+% 	\end{aligned}
+% \end{equation}
+% \subsection{Calculate \texorpdfstring{$X$}{X}}
+% \textbf{Assumptions:}
+% \begin{equation}
+% 	c_{min} \leq b_{min} \text{ and } b_{max} \leq c_{max} \text{ (or } a(y) \neq 0 \text{ TODO)}
+% \end{equation}
+% \\
+% \textbf{Definitions:}
+% \begin{equation}
+% 	x_{min} := \max \left\{ \min\left\{ 0, \frac{c_{min} - b_{min}}{a_{max}} \right\}, \min\left\{ 0, \frac{c_{max} - b_{max}}{a_{min}} \right\} \right\}
+% \end{equation}
 
-\begin{equation}
-	x_{max} := \min \left\{ \max\left\{ 0, \frac{c_{max} - b_{max}}{a_{max}} \right\}, \max\left\{ 0, \frac{c_{min} - b_{min}}{a_{min}} \right\} \right\}
-\end{equation}
-\\
-\textbf{Claim:}
-\begin{equation}\label{claim}
-	X = [x_{min}, x_{max}]
-\end{equation}
-\\
-\textbf{Sub-Claim:}
-\begin{equation}
-	x_{min} < 0 < x_{max}
-\end{equation}
-\\
-\textbf{Proof of Claim \eqref{claim}:}
+% \begin{equation}
+% 	x_{max} := \min \left\{ \max\left\{ 0, \frac{c_{max} - b_{max}}{a_{max}} \right\}, \max\left\{ 0, \frac{c_{min} - b_{min}}{a_{min}} \right\} \right\}
+% \end{equation}
+% \\
+% \textbf{Claim:}
+% \begin{equation}\label{claim}
+% 	X = [x_{min}, x_{max}]
+% \end{equation}
+% \\
+% \textbf{Sub-Claim:}
+% \begin{equation}
+% 	x_{min} < 0 < x_{max}
+% \end{equation}
+% \\
+% \textbf{Proof of Claim \eqref{claim}:}
 
-Let \( x \in X \).
+% Let \( x \in X \).
 
-\textbf{Case Distinction for \( x_{min} \):}
+% \textbf{Case Distinction for \( x_{min} \):}
 
-\begin{itemize}
-	\item \textbf{Case 1:} \( x_{min} = \frac{c_{min} - b_{min}}{a_{max}} \)
-	      \begin{equation}
-		      a_{max} x_{min} + b_{min} = c_{min} \leq a_{max} x + b_{min} \implies x_{min} \leq x
-	      \end{equation}
+% \begin{itemize}
+% 	\item \textbf{Case 1:} \( x_{min} = \frac{c_{min} - b_{min}}{a_{max}} \)
+% 	      \begin{equation}
+% 		      a_{max} x_{min} + b_{min} = c_{min} \leq a_{max} x + b_{min} \implies x_{min} \leq x
+% 	      \end{equation}
 
-	\item \textbf{Case 2:} \( x_{min} = \frac{c_{max} - b_{max}}{a_{min}} \)
-	      \begin{equation}
-		      a_{min} x_{min} + b_{max} = c_{max} \geq a_{min} x + b_{max} \implies x_{min} \leq x
-	      \end{equation}
-\end{itemize}
+% 	\item \textbf{Case 2:} \( x_{min} = \frac{c_{max} - b_{max}}{a_{min}} \)
+% 	      \begin{equation}
+% 		      a_{min} x_{min} + b_{max} = c_{max} \geq a_{min} x + b_{max} \implies x_{min} \leq x
+% 	      \end{equation}
+% \end{itemize}
 
-\textbf{Case Distinction for \( x_{max} \):}
+% \textbf{Case Distinction for \( x_{max} \):}
 
-\begin{itemize}
-	\item \textbf{Case 1:} \( x_{max} = \frac{c_{max} - b_{max}}{a_{max}} \)
-	      \begin{equation}
-		      a_{max} x_{max} + b_{max} = c_{max} \geq a_{max} x + b_{max} \implies x_{max} \geq x
-	      \end{equation}
+% \begin{itemize}
+% 	\item \textbf{Case 1:} \( x_{max} = \frac{c_{max} - b_{max}}{a_{max}} \)
+% 	      \begin{equation}
+% 		      a_{max} x_{max} + b_{max} = c_{max} \geq a_{max} x + b_{max} \implies x_{max} \geq x
+% 	      \end{equation}
 
-	\item \textbf{Case 2:} \( x_{max} = \frac{c_{min} - b_{min}}{a_{min}} \)
-	      \begin{equation}
-		      a_{min} x_{max} + b_{min} = c_{min} \leq a_{min} x + b_{min} \implies x_{max} \geq x
-	      \end{equation}
-\end{itemize}
+% 	\item \textbf{Case 2:} \( x_{max} = \frac{c_{min} - b_{min}}{a_{min}} \)
+% 	      \begin{equation}
+% 		      a_{min} x_{max} + b_{min} = c_{min} \leq a_{min} x + b_{min} \implies x_{max} \geq x
+% 	      \end{equation}
+% \end{itemize}
 
-Therefore, we have:
-\begin{equation}
-	x_{min} \leq x \leq x_{max}
-\end{equation}
+% Therefore, we have:
+% \begin{equation}
+% 	x_{min} \leq x \leq x_{max}
+% \end{equation}
 
-Let \( x \in [x_{min}, x_{max}] \), \( y \in Y \).
+% Let \( x \in [x_{min}, x_{max}] \), \( y \in Y \).
 
-\textbf{Case Distinction for \( a(y) \):}
+% \textbf{Case Distinction for \( a(y) \):}
 
-\begin{itemize}
-	\item \textbf{Case 1:} \( a(y) > 0 \)
-	      \begin{equation}
-		      a(y) x + b(y) \leq a(y) x_{max} + b(y) \leq a_{max} \frac{c_{max} - b_{max}}{a_{max}} + b_{max} = c_{max}
-	      \end{equation}
-	      \begin{equation}
-		      a(y) x + b(y) \geq a(y) x_{min} + b(y) \geq a_{max} \frac{c_{min} - b_{min}}{a_{max}} + b_{min} = c_{min}
-	      \end{equation}
+% \begin{itemize}
+% 	\item \textbf{Case 1:} \( a(y) > 0 \)
+% 	      \begin{equation}
+% 		      a(y) x + b(y) \leq a(y) x_{max} + b(y) \leq a_{max} \frac{c_{max} - b_{max}}{a_{max}} + b_{max} = c_{max}
+% 	      \end{equation}
+% 	      \begin{equation}
+% 		      a(y) x + b(y) \geq a(y) x_{min} + b(y) \geq a_{max} \frac{c_{min} - b_{min}}{a_{max}} + b_{min} = c_{min}
+% 	      \end{equation}
 
-	\item \textbf{Case 2:} \( a(y) < 0 \)
-	      \begin{equation}
-		      a(y) x + b(y) \leq a(y) x_{min} + b(y) \leq a_{min} \frac{c_{max} - b_{max}}{a_{min}} + b_{max} = c_{max}
-	      \end{equation}
-	      \begin{equation}
-		      a(y) x + b(y) \geq a(y) x_{max} + b(y) \geq a_{min} \frac{c_{min} - b_{min}}{a_{min}} + b_{min} = c_{min}
-	      \end{equation}
+% 	\item \textbf{Case 2:} \( a(y) < 0 \)
+% 	      \begin{equation}
+% 		      a(y) x + b(y) \leq a(y) x_{min} + b(y) \leq a_{min} \frac{c_{max} - b_{max}}{a_{min}} + b_{max} = c_{max}
+% 	      \end{equation}
+% 	      \begin{equation}
+% 		      a(y) x + b(y) \geq a(y) x_{max} + b(y) \geq a_{min} \frac{c_{min} - b_{min}}{a_{min}} + b_{min} = c_{min}
+% 	      \end{equation}
 
-	\item \textbf{Case 3:} \( a(y) = 0 \)
-	      \begin{equation}
-		      a(y) x + b(y) = b(y) \in [c_{min}, c_{max}]
-	      \end{equation}
-\end{itemize}
+% 	\item \textbf{Case 3:} \( a(y) = 0 \)
+% 	      \begin{equation}
+% 		      a(y) x + b(y) = b(y) \in [c_{min}, c_{max}]
+% 	      \end{equation}
+% \end{itemize}
 
-Therefore,
-\begin{equation}
-	\forall y \in Y: a(y) x + b(y) \in [c_{min}, c_{max}] \implies x \in X
-\end{equation}
+% Therefore,
+% \begin{equation}
+% 	\forall y \in Y: a(y) x + b(y) \in [c_{min}, c_{max}] \implies x \in X
+% \end{equation}
 
-\subsection{Example}
+% \subsection{Example}
 
-Given $v_{_xmin}\leq \dot{s}(1 + nC(s)) \leq v_{_xmin}$.
-\\
-Set:
-\begin{itemize}
-	\item $x = \dot{s}$
-	\item $y = \begin{bmatrix} n \\ C(s) \end{bmatrix}$
-	\item $a(y) = 1 + y_1 y_2$
-	\item $b(y) = 0$
-\end{itemize}
-Bounds for $a(y), b(y)$:
-\begin{itemize}
-	\item $a_{min} = 1 + \min \left\{ C_{min}n_{min}, C_{min}n_{max}, C_{max}n_{min}, C_{max}n_{max} \right\}$
-	\item $a_{max} = 1 + \max \left\{ C_{min}n_{min}, C_{min}n_{max}, C_{max}n_{min}, C_{max}n_{max} \right\}$
-	\item $b_{min} = b_{max} = 0$
-\end{itemize}
-One can now easily calculate $[x_{min}, x_{max}] = X$ and $Y$ can be expressed as $[C_{min}, C_{max}] \times [n_{min}, n_{max}]$
+% Given $v_{_xmin}\leq \dot{s}(1 + nC(s)) \leq v_{_xmin}$.
+% \\
+% Set:
+% \begin{itemize}
+% 	\item $x = \dot{s}$
+% 	\item $y = \begin{bmatrix} n \\ C(s) \end{bmatrix}$
+% 	\item $a(y) = 1 + y_1 y_2$
+% 	\item $b(y) = 0$
+% \end{itemize}
+% Bounds for $a(y), b(y)$:
+% \begin{itemize}
+% 	\item $a_{min} = 1 + \min \left\{ C_{min}n_{min}, C_{min}n_{max}, C_{max}n_{min}, C_{max}n_{max} \right\}$
+% 	\item $a_{max} = 1 + \max \left\{ C_{min}n_{min}, C_{min}n_{max}, C_{max}n_{min}, C_{max}n_{max} \right\}$
+% 	\item $b_{min} = b_{max} = 0$
+% \end{itemize}
+% One can now easily calculate $[x_{min}, x_{max}] = X$ and $Y$ can be expressed as $[C_{min}, C_{max}] \times [n_{min}, n_{max}]$
