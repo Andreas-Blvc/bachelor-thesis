@@ -71,6 +71,7 @@ class MainPaperConstraintsReduction:
             1 - nc_max,
             1 - nc_min,
         )
+        print(slope_range)
         return StateRanges(
             ds=affine_range_bounding(
                 slope_range=slope_range,
@@ -149,8 +150,9 @@ class MainPaperConstraintsReduction:
         slope_range = (1, 1)
         intercept_range = (
             cds2_min - c2ds2n_max,
-            cds2_max + c2ds2n_min
+            cds2_max - c2ds2n_min
         )
+        print(intercept_range)
 
         return StateRanges(
             u_n=affine_range_bounding(

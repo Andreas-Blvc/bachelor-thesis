@@ -82,9 +82,9 @@ def affine_range_bounding(slope_range, intercept_range, lower_bound, upper_bound
         else:
             x_lb = (lower_bound - intercept_min) / slope_max
         if upper_bound - intercept_max > 0:
-            x_ub = (upper_bound - intercept_max) / slope_min
-        else:
             x_ub = (upper_bound - intercept_max) / slope_max
+        else:
+            x_ub = (upper_bound - intercept_max) / slope_min
         return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
 
     #  6. 7. 8.

@@ -1,0 +1,57 @@
+\section{Implementation Details} \label{sec:implementation_details}
+
+\subsection{Road Segments}
+
+For our point mass model, we want to split up the road into segments, based on mainly their curvature.
+As already discussed this approach allows the model to have a larger search space during planning.
+The introduced kinematic single track model assumes the curvature to be linear, which is only practical for the road topology if we allow a piece
+wise linear curvature and select the current piece.
+We can easily add other road topology constraints to be dependent by the current segment, such as the road width.
+
+Our planner operates on a time horizon, divided into discrete time steps $\{t_i\}_{i=1,\dots,n}$.
+For each time point, we seek the state and the transition to the next time point, controlled by the input.
+The transition is constrained by the dynamics of the model, the state variables, and the control input through coupling constraints.
+To make the dynamics and coupling constraints dependent on the road segment, we need to provide the current road segment for each time point.
+
+Given the start and end of each road segment $\{[s_{i-1}, s_{i}]\}_{i=1,\dots,m}$ and the current position $s$ of the vehicle, with a reference velocity
+$v(t)$ which can be time-dependent, we can determine the current road segment for each time point by:
+\begin{equation}
+	i_{s, \{s_{i}\}_{i=0,\dots,m}, v}: \{t_i\}_{i=1,\dots,n} \to \{1,\dots,m\}, t \mapsto i(t) = \min \left\{ j \mid s + \int_{0}^{t} v(\sigma) d\sigma \leq s_j \right\}
+\end{equation}
+
+This function can be used to determine the road segment-dependent variables.
+We want to make not only the curvature road segment-dependent but also the road width.
+The road width consists of the left $\overline{n}(s)$ and right $\underline{n}(s)$ lane width.
+The left lane width can be concave, and the right lane width can be convex.
+Thus, our implementation of a road segment includes a linear curvature, a concave and convex lane width, and the length of the segment.
+This can be extended to include, for example, the upper velocity limits for each segment.
+
+\subsection{Planner}
+
+Our trajectory planner requires the model $(\text{dim}(x), \text{dim}(u), f, \mathcal{C})$, which includes the dimensions of the state variables, the
+dimensions of the control inputs, the dynamics equation represented by $f$, and the coupling constraints represented by $\mathcal{C}$.
+The time horizon and discretization are given by $\{t_i\}_{i=0,\dots,n}$.
+
+To construct the variables and constraints for our planner, we need to define the state variables, control inputs, and the constraints that describe
+the transitions between states.
+
+First, we define the state variables and control inputs for each time step $t_i$:
+\begin{equation}
+	x(t_i) \in \mathbb{R}^{dim(x)}, u(t_i) \in \mathbb{R}^{dim(u)}
+\end{equation}
+
+For each $i\in\{1,\dots,n\}$ we define an equality constraint:
+\begin{equation}
+	x(t_i) = x(t_{i-1}) + f(x(t_{i-1}), u(t_{i-1})) (t_i - t_{i-1})
+\end{equation}
+Those combined with the coupling constraints $\mathcal{C}$ and the additional constraints for the kinematic single track model
+\ref{fig:mccormick_constraints}, define the constraints for our discrete time optimal trajectory problem.
+
+With the constant state $x_{initial}$, we will model our initial state and add the following constraint $x(t_0) = x_{initial}$.
+For our evolution we did not encounter any additional constraints on the final state.
+Instead, we modeled our driving behavior through the objective.
+
+We implemented our optimization problem using Python with the 'CVXPY' library and solved it using the 'MOSEK' solver.
+
+Next, we introduce the objectives we used for our trajectory planner.
+

@@ -1,0 +1,30 @@
+\section{Problem Formulation} \label{sec:problem_formulation}
+
+The problem of motion planning using an optimization-based approach is defined as follows:
+
+The objective is to find a function
+$\pi(t): [0,T] \to \mathcal{X}$, where $T$ represents the planning horizon and $\mathcal{X}$ is the configuration space, which defines the set of
+feasible configurations for the vehicle.
+
+The vehicle starts in an initial configuration $x_{\text{initial}} \in \mathcal{X}$, and the trajectory should end in a set of goal configurations
+$X_{\text{goal}} \subset \mathcal{X}$.
+
+Additionally, a constraint is defined over the derivatives of $\pi$ with respect to $t \in [0, T]$, denoted as $D(\pi(t), \pi'(t), \pi''(t), \dots)$.
+
+To formulate an optimization problem, we define an objective function and a feasible set.
+
+Let $\Pi[\mathcal{X}, T]$ represent the set of all possible functions mapping $[0, T]$ to $\mathcal{X}$.
+Further, let $J(\pi): \Pi[\mathcal{X}, T] \to \mathbb{R}$ be the objective function.
+
+\subsubsection{Problem Definition: Optimal Trajectory Planning}
+
+Given a 6-tuple $(\mathcal{X}, x_{\text{initial}}, X_{\text{goal}}, D, J, T)$, the objective is to find:
+
+\begin{align}
+	x^* & = \underset{\pi \in \Pi(\mathcal{X},T)}{\operatorname{arg\,min}}
+	J(\pi)                                                                                                                        \\ \text{s.t.
+	}   & \quad \pi(0) = x_{\text{initial}}                                                                                       \\
+	    & \quad \pi(T) \in X_{\text{goal}}                                                                                        \\
+	    & \quad \pi(t) \in \mathcal{X},                                    & \text{for all} \quad t \in [0,T]                     \\
+	    & \quad D(\pi(t), \pi'(t), \pi''(t), \dots),                       & \text{for all} \quad t \in [0,T] \label{eq:dynamics}
+\end{align}

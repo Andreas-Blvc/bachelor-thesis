@@ -1,7 +1,7 @@
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.exception import WolframKernelException
 from wolframclient.language import wlexpr, wl
-from sympy import symbols, Le, Add, Mul
+from sympy import symbols, And, Or, Not, Eq, Ne, Ge, Le, Lt, Gt, Add, Mul, Pow
 import time
 import subprocess
 
@@ -78,33 +78,49 @@ def eliminate_quantifier(
             head = expr.head.name
             args = expr.args
 
-            # Handle LessEqual
-            if head == "LessEqual" or head == "Less":
+            # Logical and comparison operations
+            if head == "And":
+                return And(*(_convert_wl_to_sympy(arg) for arg in args))
+            elif head == "Or":
+                return Or(*(_convert_wl_to_sympy(arg) for arg in args))
+            elif head == "Not":
+                return Not(_convert_wl_to_sympy(args[0]))
+            elif head == "Equal":
+                return Eq(_convert_wl_to_sympy(args[0]), _convert_wl_to_sympy(args[1]))
+            elif head == "Unequal":
+                return Ne(_convert_wl_to_sympy(args[0]), _convert_wl_to_sympy(args[1]))
+            elif head == "LessEqual":
                 return Le(_convert_wl_to_sympy(args[0]), _convert_wl_to_sympy(args[1]))
+            elif head == "GreaterEqual":
+                return Ge(_convert_wl_to_sympy(args[0]), _convert_wl_to_sympy(args[1]))
+            elif head == "Less":
+                return Lt(_convert_wl_to_sympy(args[0]), _convert_wl_to_sympy(args[1]))
+            elif head == "Greater":
+                return Gt(_convert_wl_to_sympy(args[0]), _convert_wl_to_sympy(args[1]))
 
-            # Handle Plus
+            # Arithmetic operations
             elif head == "Plus":
                 return Add(*(_convert_wl_to_sympy(arg) for arg in args))
-
-            # Handle Times
             elif head == "Times":
                 return Mul(*(_convert_wl_to_sympy(arg) for arg in args))
-
+            elif head == "Power":
+                return Pow(_convert_wl_to_sympy(args[0]), _convert_wl_to_sympy(args[1]))
 
         # Handle constants and numbers
         elif isinstance(expr, (int, float)):
             return expr
 
+        # Handle global variables (e.g., Global`x3)
         elif 'Global' in str(expr):
             var_name = str(expr).split("Global`")[-1]
-            if var_name == "u1":
-                return u1
-            elif var_name == "u2":
-                return u2
-            elif var_name == "x3":
-                return x3
-            else:
-                raise ValueError(f"Unknown variable: {expr}")
+            return symbols(var_name)
+
+        # Handle basic numbers and constants
+        elif isinstance(expr, (int, float)):
+            return expr
+
+        # If not recognized, raise an error
+        raise ValueError(f"Unsupported expression type: {expr}")
 
     session = WolframLanguageSession('/Applications/Wolfram.app/Contents/MacOS/WolframKernel')
     for _ in range(10):
@@ -113,7 +129,7 @@ def eliminate_quantifier(
             expressions = session.evaluate(wlexpr(f'''
                 constraintsZ = And[
                    {vxMin} <= x3*(1 - x2*{Curvature}),
-                   x3*(1 + x2*{Curvature}) <= {vxMax},
+                   x3*(1 - x2*{Curvature}) <= {vxMax},
                    {dpsiMin} <= {Curvature}*x3,
                    {Curvature}*x3 <= {dpsiMax},
                    {apsiMin} <= {Curvature}*u1,
@@ -165,7 +181,7 @@ def eliminate_quantifier(
         
                 randomDirections = Join[
                    defaultDirections,
-                   Table[Normalize[RandomReal[{-1, 1}, 3]], {0}]
+                   Table[Normalize[RandomReal[{-1, 1}, 3]], {4}]
                    ];
                 
                 pointToList[point_] := {x3, u1, u2} /. point;
@@ -175,8 +191,8 @@ def eliminate_quantifier(
                     {
                         point = pointToList[pointRules], 
                         tLow = 0, 
-                        tHigh = 100, 
-                        maxIterations = 50, 
+                        tHigh = 20, 
+                        maxIterations = 1000, 
                         iteration = 0, 
                         currentPoint
                     },
@@ -196,7 +212,7 @@ def eliminate_quantifier(
         
                     iteration = 0;
                     While[
-                        Abs[tHigh - tLow] > 0.001 && iteration < maxIterations,
+                        Abs[tHigh - tLow] > 0.00001 && iteration < maxIterations,
         
                         currentPoint = point + ((tLow + tHigh)/2) direction;
                         If[
@@ -239,7 +255,7 @@ def eliminate_quantifier(
             '''))
             session.stop()
 
-            # print(expressions)
+            # print('expressions', expressions)
             # for expr in expressions:
             #     print('expression', expr)
             #     print('sympy', _convert_wl_to_sympy(expr))
@@ -248,7 +264,7 @@ def eliminate_quantifier(
                 [
                     Le(2, x1),
                     Le(x1, -2),  # make it infeasible
-                ] if expressions is None else
+                ] if expressions is None or len(expressions) == 0 else
                 [
                 _convert_wl_to_sympy(expr) for expr in expressions
                 ] + [

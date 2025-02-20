@@ -251,11 +251,11 @@ def optimal_range_bound(road_width_range, v_x_range, v_y_range, yaw_rate_range, 
         opti.subject_to(c)
 
     opti.minimize(
-        -100 * (n[1] - n[0]) ** 2 +
-        -0 * (ds[1] - ds[0]) ** 2 +
-        -0 * (dn[1] - dn[0]) ** 2 +
-        -0 * (u_t[1] - u_t[0]) ** 2 +
-        -10 * (u_n[1] - u_n[0]) ** 2
+        -1 * (n[1] - n[0]) ** 2 +
+        -10 * (ds[1] - ds[0]) ** 2 +
+        -1 * (dn[1] - dn[0]) ** 2 +
+        -1 * (u_t[1] - u_t[0]) ** 2 +
+        -1 * (u_n[1] - u_n[0]) ** 2
     )
 
     p_opts = {"expand": True}

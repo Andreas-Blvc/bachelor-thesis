@@ -1,4 +1,6 @@
 from typing import List, Tuple, Callable
+
+from hypothesis.reporting import current_reporter
 from scipy.integrate import solve_ivp
 import time
 import math
@@ -212,6 +214,9 @@ class DynamicSingleTrackModel(AbstractSelfDrivingCar):
             plt.show()
 
     def _update(self, current_state, control_inputs, dt) -> np.ndarray:
+        # Temporary forward euler
+        return current_state + self._dynamics(current_state, control_inputs, dt) * dt
+
         t_span = (0, dt)
 
         # Wrap dynamics to pass control input as argument

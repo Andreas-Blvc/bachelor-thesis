@@ -58,7 +58,8 @@ class RoadAlignedModel(AbstractVehicleModel):
         self._constructed_ranges: dict[int, Callable[[cp.Variable,cp.Variable,cp.Variable,cp.Variable,cp.Variable,cp.Variable], List[Any]]] = {}
         self._optimal_ranges: List[StateRanges] = []
 
-    def _get_polytopic_constrain_set(self, C, c_min, c_max, s_min, s_max, n_min, n_max) -> Callable[[cp.Variable,cp.Variable,cp.Variable,cp.Variable,cp.Variable,cp.Variable], List[Any]]:
+    def _get_polytopic_constrain_set(self, C, c_min, c_max, s_min, s_max, n_min, n_max) -> Callable[
+        [Any, Any, Any, Any, Any, Any], StateRanges]:
         ranges = StateRanges(
             n=(n_min, n_max),
             c=(c_min, c_max),
@@ -90,26 +91,27 @@ class RoadAlignedModel(AbstractVehicleModel):
         )
         self._optimal_ranges.append(optimal_range)
         # return optimal_range
+        print(ranges)
 
-        formulas, [x1, x2, x3, x4, u1, u2] = eliminate_quantifier(
-            Curvature = c_min,
-            sMin = s_min,
-            sMax = s_max,
-            nMin = n_min,
-            nMax = n_max,
-            vxMin = self.v_x_min,
-            vxMax = self.v_x_max,
-            vyMin = self.v_y_min,
-            vyMax = self.v_y_max,
-            axMin = self.acc_x_min,
-            axMax = self.acc_x_max,
-            ayMin = self.acc_y_min,
-            ayMax = self.acc_y_max,
-            dpsiMin = self.yaw_rate_min,
-            dpsiMax = self.yaw_rate_max,
-            apsiMin = self.yaw_acc_min,
-            apsiMax = self.yaw_acc_max,
-        )
+        # formulas, [x1, x2, x3, x4, u1, u2] = eliminate_quantifier(
+        #     Curvature = c_min,
+        #     sMin = s_min,
+        #     sMax = s_max,
+        #     nMin = n_min,
+        #     nMax = n_max,
+        #     vxMin = self.v_x_min,
+        #     vxMax = self.v_x_max,
+        #     vyMin = self.v_y_min,
+        #     vyMax = self.v_y_max,
+        #     axMin = self.acc_x_min,
+        #     axMax = self.acc_x_max,
+        #     ayMin = self.acc_y_min,
+        #     ayMax = self.acc_y_max,
+        #     dpsiMin = self.yaw_rate_min,
+        #     dpsiMax = self.yaw_rate_max,
+        #     apsiMin = self.yaw_acc_min,
+        #     apsiMax = self.yaw_acc_max,
+        # )
 
         def _constrain_var(cvx_u1, cvx_u2, cvx_x1, cvx_x2, cvx_x3, cvx_x4):
             # Mapping of SymPy to CVXPY variables
@@ -118,7 +120,10 @@ class RoadAlignedModel(AbstractVehicleModel):
             # print(list(str(c) for c in constraints))
             return constraints
 
-        return _constrain_var
+        def _constrained_rectangle(cvx_u1, cvx_u2, cvx_x1, cvx_x2, cvx_x3, cvx_x4):
+            return ranges
+
+        return _constrained_rectangle
 
 
     def g(self, x_tn, u, C, dC):
@@ -199,11 +204,10 @@ class RoadAlignedModel(AbstractVehicleModel):
                 )
             )
             next_state = cp.vstack([current_state[i] + dx_dt[i] * dt for i in range(self.dim_state)]).flatten()
-            soft_constraint_var = [cp.Variable() for _ in range(4)]
-            constraints = get_constraints(u_t, u_n, s, n, ds, dn) + [
-                0 <= s, s <= self.road.length,
-                n_min(s) <= n, n <= n_max(s),
-            ]
+            # constraints = get_constraints(u_t, u_n, s, n, ds, dn) + [
+            #     0 <= s, s <= self.road.length,
+            #     n_min(s) <= n, n <= n_max(s),
+            # ]
             # + [
             #                     Le(sMin, x1),
             #                     Le(x1, sMax),
@@ -212,18 +216,19 @@ class RoadAlignedModel(AbstractVehicleModel):
             #                     Le(vyMin, x4),
             #                     Le(x4, vyMax),
             #                 ],
-
-            # constraints = [
-            #     0 <= s, s <= self.road.length,
-            #     # ranges.c[0] <= C(s), C(s) <= ranges.c[1],
-            #     n_min(s) <= n, n <= n_max(s),
-            #     ranges.ds[0] - soft_constraint_var[0] <= ds, ds <= ranges.ds[1] + soft_constraint_var[1],
-            #     ranges.dn[0] - soft_constraint_var[2] <= dn, dn <= ranges.dn[1] + soft_constraint_var[3],
-            #     ranges.u_t[0] <= u_t, u_t <= ranges.u_t[1],
-            #     ranges.u_n[0] <= u_n, u_n <= ranges.u_n[1],
-            #     *[var >= 0 for var in soft_constraint_var],
-            # ]
-            model_objective = 0 # cp.sum([var * 1000 for var in soft_constraint_var])
+            soft_constraint_var = [cp.Variable() for _ in range(4)]
+            ranges = get_constraints(u_t, u_n, s, n, ds, dn)
+            constraints = [
+                0 <= s, s <= self.road.length,
+                # ranges.c[0] <= C(s), C(s) <= ranges.c[1],
+                n_min(s) <= n, n <= n_max(s),
+                ranges.ds[0] - soft_constraint_var[0] <= ds, ds <= ranges.ds[1] + soft_constraint_var[1],
+                ranges.dn[0] - soft_constraint_var[2] <= dn, dn <= ranges.dn[1] + soft_constraint_var[3],
+                ranges.u_t[0] <= u_t, u_t <= ranges.u_t[1],
+                ranges.u_n[0] <= u_n, u_n <= ranges.u_n[1],
+                *[var >= 0 for var in soft_constraint_var],
+            ]
+            model_objective = cp.sum([var * 1000 for var in soft_constraint_var])
         else:
             raise ValueError(f"solver_type {self.solver_type} not supported")
 
@@ -281,6 +286,8 @@ class RoadAlignedModel(AbstractVehicleModel):
         if dt is None:
             raise ValueError("dt must be specified")
         # choose one of the four approaches here:
+        # return self._approach_2(state_vec, control_vec, dt, car_cur_state.steering_angle, car_cur_state.orientation)
+        return self._approach_2_initial(state_vec, control_vec, dt, car_cur_state.orientation)
         return self._approach_1(state_vec, control_vec, dt, car_cur_state.steering_angle)
 
     def _approach_1(self, state_vec, control_vec, dt, cur_steering_angle):
@@ -296,7 +303,7 @@ class RoadAlignedModel(AbstractVehicleModel):
         v_x = np.sqrt((ds * (1 - n * self.road.get_curvature_at(s))) **2 + dn ** 2)
         dpsi = (a_y_tn - np.tan(xi) * a_x_tn) / (v_x * (np.tan(xi) * np.sin(xi) + np.cos(xi)))
         a_x = (a_x_tn + v_x * dpsi * np.sin(xi)) / np.cos(xi)
-        dC = 0 # (self.road.get_curvature_at(s + ds * dt) - self.road.get_curvature_at(s)) /dt
+        dC = (self.road.get_curvature_at(s + ds * dt) - self.road.get_curvature_at(s)) /dt
         dxi = 1 / (1 + (dn / (ds * (1 - n * self.road.get_curvature_at(s)))) ** 2) * (
                 a_y_tn * ds * (1 - n * self.road.get_curvature_at(s)) - dn * (a_x_tn - self.road.get_curvature_at(s) * (a_x_tn * n + ds * dn) - dC * ds * n)
         ) / (ds * (1 - n * self.road.get_curvature_at(s))) ** 2
@@ -304,6 +311,32 @@ class RoadAlignedModel(AbstractVehicleModel):
         v_delta = max(min((delta - cur_steering_angle) / dt, 8), -8)
         return np.array([
             v_delta, a_x
+        ])
+
+    def _approach_2_initial(self, state_vec, control_vec, dt, cur_orientation):
+        # =========
+        # Approach 2, LAG
+        # =========
+        l_wb = 0.883 + 1.508
+
+        # Aliases
+        s_0, n_0, ds_0, dn_0 = state_vec
+        u_t, u_n = control_vec
+        s_1, n_1, ds_1, dn_1 = (
+            s_0 + ds_0 * dt,
+            n_0 + dn_0 * dt,
+            ds_0 + u_t * dt,
+            dn_0 + u_n * dt,
+        )
+        v_0 = np.sqrt(ds_0 ** 2 + dn_0 ** 2)
+        v_1 = np.sqrt(ds_1 ** 2 + dn_1 ** 2)
+
+        dpsi = (- cur_orientation + self.road.get_tangent_angle_at(s_0)) / dt
+        # DSM-Controls
+        a = (v_1 - v_0) / dt
+        v_delta = np.arctan(dpsi * l_wb / v_0) / dt
+        return np.array([
+            v_delta, a
         ])
 
     @staticmethod

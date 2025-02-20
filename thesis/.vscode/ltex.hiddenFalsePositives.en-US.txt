@@ -1,1 +1,3 @@
 {"rule":"MISSING_GENITIVE","sentence":"^\\QMcCormick relaxation constraints for the bilinear terms.\\E$"}
+{"rule":"MISSING_GENITIVE","sentence":"^\\QMcCormick envelopes provide a way to approximate bilinear terms with convex functions, thereby enabling the use of efficient convex optimization algorithms.\\E$"}
+{"rule":"MISSING_GENITIVE","sentence":"^\\QLagrangian relaxation is particularly useful in combinatorial optimization problems, where it can provide strong bounds and guide the search for optimal solutions.\\E$"}

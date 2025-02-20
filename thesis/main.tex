@@ -30,22 +30,32 @@
 \microtypesetup{protrusion=true}
 
 \mainmatter{}
-\input{content/Overview.tex}
-\input{content/Problem_Formulation.tex}
+\chapter{Introduction}
+\input{content/introduction/overview.tex}
+\input{content/introduction/problem_formulation.tex}
+\input{content/introduction/related_work.tex}
+\input{content/introduction/thesis_structure.tex}
 
-\input{content/main_paper/derive_model_and_constraints.tex}
-\input{content/main_paper/finding_inner_polytope.tex}
+\chapter{Preliminaries}
+\input{content/preliminaries/notation.tex}
+\input{content/preliminaries/convex_discrete_time_optimization.tex}
+\input{content/preliminaries/vehicle_models.tex}
 
-\input{content/kst/intro.tex}
-\input{content/kst/derive_model.tex}
+\chapter{Methodology}
+\input{content/methodology/motion_planning_using_point_mass.tex}
+\input{content/methodology/motion_planning_using_bicylce.tex}
+\input{content/methodology/modeling_techniques.tex}
 
-\input{content/Mccormick.tex}
+\chapter{Evaluation}
+\input{content/evaluation/intro.tex}
+\input{content/evaluation/implementations_details.tex}
+\input{content/evaluation/performance_evaluation.tex}
+\input{content/evaluation/challenges_encountered.tex}
+
+\chapter{Discussion and Future Work}
+\chapter{Conclusion}
+
 % \input{content/Introduction}
-\input{content/Derivation_Ingrator_Model}
-\input{content/Mapping_Controls_States.tex}
-\input{content/Main_Problem_With_McCormick.tex}
-\input{content/Convexify_Eq_of_Motion.tex}
-% \input{content/cylindrical_algebraic_decomposition.tex}
 % \input{content/Format}
 % \input{content/Style}
 % \input{content/Latex}

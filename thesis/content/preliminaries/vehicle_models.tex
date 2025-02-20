@@ -1,0 +1,147 @@
+\section{Vehicle Models} \label{sec:vehicle_models}
+
+A vehicle model describes the position and orientation of the vehicle in the real world and predicts how these states change over time.
+Different models vary in complexity and accuracy.
+Generally, higher complexity results in increased accuracy.
+
+Here, we introduce two fundamental models.
+
+The state variables $x_i$ represent the current position and pose of the vehicle, potentially including velocity, steering angle, or other relevant
+parameters.
+We group these variables into a state vector $x$.
+
+The control inputs $u_i$ are external influences that modify the state.
+These are grouped into a control vector $u$.
+Both $x$ and $u$ are time-dependent.
+
+\subsection{Point Mass Model} \label{subsec:point_mass_model}
+
+The point mass model (PM) consists of four state variables:
+
+\begin{equation}
+	x = \begin{bmatrix} p_x \\ p_y \\ v_x \\ v_y \end{bmatrix}
+	\label{eq:states_pm}
+\end{equation}
+
+Here, $p_x$ and $p_y$ represent the vehicle's position in a global fixed coordinate system.
+Instead of an explicit orientation, velocity is divided into its components $v_x$ and $v_y$.
+
+The model has two control inputs:
+
+\begin{equation}
+	u = \begin{bmatrix} a_x \\ a_y \end{bmatrix}
+	\label{eq:controls_pm}
+\end{equation}
+
+These correspond to accelerations in the $x$ and $y$ directions.
+
+The future position and velocity are determined by the following system of differential equations:
+
+\begin{equation}
+	\dot{x} = A x + B u
+\end{equation}
+
+where
+
+\begin{equation}
+	A = \begin{bmatrix} 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix}, \quad
+	B = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 1 & 0 \\ 0 & 1 \end{bmatrix}
+\end{equation}
+
+The control inputs are bounded by a circular constraint, where the radius $a_{\max}$ is a model parameter:
+
+\begin{equation}
+	\sqrt{u_1^2 + u_2^2} \leq a_{\max}
+\end{equation}
+
+This model is the simplest commonly used for motion planning.
+
+\subsection{Bicycle Model} \label{subsec:bicycle_model}
+
+The kinematic single track model (KST) consists of five state variables:
+
+\begin{equation}
+	x = \begin{bmatrix} p_x \\ p_y \\ \delta \\ v \\ \psi \end{bmatrix}
+	\label{eq:states_kst}
+\end{equation}
+
+Similar to the point mass model, the first two state variables $p_x$ and $p_y$ define the vehicle's global position in a two-dimensional coordinate
+system.
+The vehicle is now modeled with an orientation $\psi$ relative to the global $x$-axis.
+The velocity vector describes the velocity $v$ of the rear wheel, aligning with the orientation.
+The front wheels can rotate around the yaw axis, and their angle relative to the orientation is represented by the steering angle $\delta$.
+
+Two control inputs modify the velocity and steering, directly affecting the state variables:
+
+\begin{equation}
+	u = \begin{bmatrix} v_{\delta} \\ a_{\text{long}} \end{bmatrix}
+	\label{eq:controls_kst}
+\end{equation}
+where $v_{\delta}$ is the steering velocity, and $a_{\text{long}}$ is the longitudinal acceleration.
+
+The future state follows these differential equations:
+
+\begin{align}
+	 & \dot{p}_x = v\cos(\psi)                    \\
+	 & \dot{p}_y = v\sin(\psi)                    \\
+	 & \dot{\delta} = v_{\delta}                  \\
+	 & \dot{v} = a_{\text{long}}                  \\
+	 & \dot{\psi} = \frac{v}{l_{wb}} \tan(\delta) \\
+\end{align}
+
+The single-track name originates from simplifying front and rear wheels into single contact points, assuming no wheel slip, leading to a kinematic
+model abstraction.
+The following figure comprehends the whole model nicely.
+
+\begin{figure}[h]
+	\centering
+	\begin{tikzpicture}
+		% Axes
+		\draw[->] (0,0) -- (2,0) node[right] {$x$};
+		\draw[->] (0,0) -- (0,2) node[above] {$y$};
+
+		% Rear Wheel
+		\fill (2,2) circle (2pt); % Draws a small point at (2,2)
+
+		% Vehicle body
+		\draw[thick,rotate around={11.536959-90:(2,2)}] (1.8,1.3) rectangle (2.2,2.7);
+		\draw[thick,rotate around={26.536959-90:(7,3)}] (6.8,2.3) rectangle (7.2,3.7);
+
+		% Wheelbase
+		\draw[-] (2,2) -- (7,3);
+		\draw[dashed] (2,2) -- (1.7,3.5);
+		\draw[dashed] (7,3) -- (6.7,4.5);
+		\draw[dashed, <->] (1.8,3) -- (6.8,4) node[midway,above] {$l_{wb}$};
+
+		% Velocity vector
+		\draw[->] (2,2.1) -- (4,2.5) node[midway,above] {$v$};
+
+		% Heading angle
+		\draw[dashed] (3.25,2.25) -- (6,2.25);
+		\draw[->] (6,2.25) arc (0:11.536959:2.75);
+		\node at (5.7,2.5) {$\psi$};
+
+		% Steering angle
+		\draw[dashed] (7,3) -- (8.5,3.3);
+		\draw[dashed] (7,3) -- ++(26.536959:1.5);
+		\draw[->] (8.5,3.3) arc (11.536959:26.536959:1.5);
+		\node at (8.2,3.43) {$\delta$};
+
+		% Displacement vector
+		\draw[dashed,thick,->] (0,0) -- (1.95,1.95)
+		node[midway, left, shift={(-0,+0.4)}] {$\begin{bmatrix}s_x \\ s_y \end{bmatrix}$};
+	\end{tikzpicture}
+	\caption{Bicycle model representation of a vehicle.}
+	\label{fig:bicycle_model}
+\end{figure}
+
+The following additional constraints are part of the model, a parameter $a_{max}$ is introduced:
+
+\begin{equation}
+	\sqrt{u_2^2 + (x_4\dot{x}_5)^2} \leq a_{\max}
+\end{equation}
+
+For both models, the vehicle is additionally constrained by its velocity range, steering angle range, and the rate of change of the steering angle.
+These constraints are natural and should not be overlooked.
+
+\subsection{Curve Following Coordinate System} \label{subsec:curve_following_coordinate_system}

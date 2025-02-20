@@ -65,12 +65,13 @@ class Objectives:
         objective = Objectives.Zero
         constraints = []
         for i, state in enumerate(states):
-            if Objectives.create_var is not None:
+            if Objectives.create_var is not None and False:
                 hp_var = Objectives.create_var()
                 constraints.append(hp_var >= state.get_negative_distance_to_closest_border())
+                constraints.append(0 >= hp_var)
                 objective += hp_var ** 2
             else:
-                objective += state.get_negative_distance_to_closest_border() ** 2
+                objective += state.get_negative_distance_to_closest_border()
         return objective, Objectives.Type.MINIMIZE, [], 'minimize_offset_from_reference_path'
 
 

@@ -2,3 +2,5 @@ Frenet
 convexify
 polytope
 Polytope
+Elchtest
+infeasibility

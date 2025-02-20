@@ -41,6 +41,7 @@ class Road(Enum):
     Feasible_Curve = './data/feasible_curve.pkl'
     Infeasible_Curve = './data/infeasible_curve.pkl'
     Random = './data/random.pkl'
+    PmFeasibleCurve = './data/pm_feasible_curve.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.
