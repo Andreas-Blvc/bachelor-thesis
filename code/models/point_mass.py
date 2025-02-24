@@ -91,8 +91,6 @@ class PointMassModel(AbstractVehicleModel):
         )
         self._optimal_ranges.append(optimal_range)
         # return optimal_range
-        print(ranges)
-
         # formulas, [x1, x2, x3, x4, u1, u2] = eliminate_quantifier(
         #     Curvature = c_min,
         #     sMin = s_min,
@@ -443,4 +441,4 @@ class PointMassModel(AbstractVehicleModel):
         ])
 
     def get_name(self):
-        return "PM"
+        return "Point Mass"

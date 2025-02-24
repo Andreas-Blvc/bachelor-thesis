@@ -65,7 +65,7 @@ class Objectives:
         objective = Objectives.Zero
         constraints = []
         for i, state in enumerate(states):
-            if Objectives.create_var is not None and False:
+            if Objectives.create_var is not None:
                 hp_var = Objectives.create_var()
                 constraints.append(hp_var >= state.get_negative_distance_to_closest_border())
                 constraints.append(0 >= hp_var)

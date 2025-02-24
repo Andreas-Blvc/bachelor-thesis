@@ -1,7 +1,7 @@
 import numpy as np
 from datetime import datetime
 
-from models import BicycleModel, PointMassModel, OrientedRoadFollowingModel
+from models import BicycleModel, PointMassModel
 from path_planner import ConvexPathPlanner, NonConvexPathPlanner
 from roads import load_road
 from self_driving_cars import DynamicSingleTrackModel

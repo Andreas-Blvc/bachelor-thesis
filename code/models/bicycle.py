@@ -28,8 +28,8 @@ class BicycleModel(AbstractVehicleModel):
         super().__init__(
             dim_state=5,
             dim_control_input=2,
-            control_input_labels=['a', 'v_{\\delta}'],
-            state_labels=['s', 'n', '\\xi', 'v', '\\delta'],
+            control_input_labels=['a', 'v_{delta}'],
+            state_labels=['s', 'n', 'xi', 'v', 'delta'],
         )
         # Params:
         self.road = road
@@ -62,7 +62,7 @@ class BicycleModel(AbstractVehicleModel):
         c_1 = w(0)
         c_2 = a_max + c_1 ** (-1/(2*n))
         # BE CAREFUL HERE.
-        # cvxpy adds an additional constraint on the first argument of power if neg exponent is provided:
+        # cvxpy adds a constraint on the first argument of power if neg exponent is provided:
         # a + c_2 >= 0, and -a + c_2 >= 0
         # due to symmetry we could have also chosen a - c_2 for the first line and  -a-c_2 for the second, but with
         # the added constraints this would imply: a < -c_2, c_2 < a for some positive value of c_2 leading
@@ -405,4 +405,4 @@ class BicycleModel(AbstractVehicleModel):
         ])
 
     def get_name(self):
-        return 'kst'
+        return 'Bicycle'
