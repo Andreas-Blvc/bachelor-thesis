@@ -76,7 +76,6 @@ class Road(AbstractRoad):
 
         return segment_dependent_variable
 
-    # TODO: not part of interface, but needed by the models, probably move it there
     def get_segment_dependent_variables(self, s, use_casadi: bool=False, road_segment_idx: int=None) -> SegmentDependentVariables:
         """
         Retrieves road segment-dependent variables: curvature function, curvature bounds, and width bounds.

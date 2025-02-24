@@ -34,6 +34,17 @@ class AbstractRoad(ABC):
         self.n_min = n_min
         self.n_max = n_max
 
+    # defaults to ignoring road segment idx, overridden by child classes.
+    def get_segment_dependent_variables(self, s, use_casadi: bool=False, road_segment_idx: int=None) -> SegmentDependentVariables:
+        return SegmentDependentVariables(
+            self.get_curvature_at,
+            self.get_curvature_derivative_at,
+            self.get_curvature_min,
+            self.get_curvature_max,
+            self.n_min,
+            self.n_max,
+        )
+
     @abstractmethod
     def get_curvature_at(self, s_param: float) -> float:
         """
@@ -43,7 +54,7 @@ class AbstractRoad(ABC):
             s_param (float): Parameter along the road (typically between 0 and road.length).
 
         Returns:
-            float: Curvature at the specified parameter.
+            float: Curvature of the specified parameter.
         """
         pass
 

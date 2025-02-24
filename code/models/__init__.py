@@ -1,5 +1,4 @@
 from .interface import AbstractVehicleModel
+from .point_mass import PointMassModel
+from .bicycle import BicycleModel
 from .oriented_road_following import OrientedRoadFollowingModel
-from .point_mass_model import PointMassModel
-from .road_aligned_model import RoadAlignedModel
-from .single_track_model import SingleTrackModel

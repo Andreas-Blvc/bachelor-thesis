@@ -65,8 +65,8 @@ class SolverType(Enum):
     NonConvex = 2
 
 class Model(Enum):
-    OrientedRoadFollowingModel = "OrientedRoadFollowingModel"
-    RoadAlignedModel = "RoadAlignedModel"
+    BicycleModel = "BicycleModel"
+    PointMassModel = "PointMassModel"
 
 class BenchmarkConfiguration:
     def __init__(

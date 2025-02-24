@@ -1,7 +1,7 @@
 import numpy as np
 from datetime import datetime
 
-from models import OrientedRoadFollowingModel, RoadAlignedModel
+from models import BicycleModel, PointMassModel, OrientedRoadFollowingModel
 from path_planner import ConvexPathPlanner, NonConvexPathPlanner
 from roads import load_road
 from self_driving_cars import DynamicSingleTrackModel
@@ -45,8 +45,8 @@ def run(config: BenchmarkConfiguration):
                 )
                 for model_type, solver_type in config.models:
                     match model_type:
-                        case Model.OrientedRoadFollowingModel:
-                            predictive_model = OrientedRoadFollowingModel(
+                        case Model.BicycleModel:
+                            predictive_model = BicycleModel(
                                 road=road,
                                 v_range=velocity_range,
                                 acc_range=(-6, 3),
@@ -54,8 +54,8 @@ def run(config: BenchmarkConfiguration):
                                 steering_velocity_range=steering_velocity_range,
                                 l_wb=0.883+1.508,
                             )
-                        case Model.RoadAlignedModel:
-                            predictive_model = RoadAlignedModel(
+                        case Model.PointMassModel:
+                            predictive_model = PointMassModel(
                                 road=road,
                                 v_x_range=velocity_range,
                                 v_y_range=(-10, 10),
@@ -69,7 +69,7 @@ def run(config: BenchmarkConfiguration):
                             raise ValueError('model type not supported')
                     match solver_type:
                         case SolverType.Convex:
-                            planner = ConvexPathPlanner(predictive_model, dt, time_horizon, objective, verbose=True, use_param=model_type == Model.RoadAlignedModel)
+                            planner = ConvexPathPlanner(predictive_model, dt, time_horizon, objective, verbose=True, use_param=model_type == Model.PointMassModel)
                         case SolverType.NonConvex:
                             planner = NonConvexPathPlanner(predictive_model, dt, time_horizon, objective)
                         case _:

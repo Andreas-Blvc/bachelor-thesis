@@ -47,7 +47,8 @@ class ConvexPathPlanner(AbstractPathPlanner):
                 self.model.road_segment_idx is not None and
                 self.model.road_segment_idx == len(getattr(self.model.road, 'segments', [self.model.road])) - 1
         ):
-            final_state = self.model.convert_vec_to_state(x[N, :])
+            pass
+            # final_state = self.model.convert_vec_to_state(x[N, :])
             # constraints.append(final_state.get_alignment_error() == 0)
             # additional_min_objective_term += 1e3 * final_state.get_alignment_error() ** 2 + 5 * final_state.get_lateral_offset() ** 2
 
@@ -87,14 +88,14 @@ class ConvexPathPlanner(AbstractPathPlanner):
             convexify_ref_state=initial_state,
             amount_prev_planning_states=N,
         )
-        constraints += goal_state_constraints
         additional_minimize_objective += model_objective
+        constraints += goal_state_constraints
+        states.append(self.model.convert_vec_to_state(x[N, :], self.model.road_segment_idx))
 
         # Define the optimization problem
         control_inputs = [self.model.convert_vec_to_control_input(u[j, :]) for j in range(N)]
         objective, objective_type, objective_constraints, _ = self.get_objective(states, control_inputs)
         constraints += objective_constraints
-        # TODO remove later:
         for state in states:
             constraints.append(state.get_velocity() >= 3)
         if objective_type == Objectives.Type.MINIMIZE:
@@ -122,7 +123,6 @@ class ConvexPathPlanner(AbstractPathPlanner):
                 traveled_distance = prev_segments_length + segment.length
             prev_segments_length += segment.length
 
-        # print(str(state_transitions_on_segment).ljust(20), end='')
         if sum(state_transitions_on_segment) <= 0:
             print('\nreached end of road')
             return [], []
@@ -149,14 +149,13 @@ class ConvexPathPlanner(AbstractPathPlanner):
             states = [initial_state]
             control_inputs = []
 
-        # self.prob.solve(solver='CLARABEL', verbose=self.verbose)
-        # print("Solve time:", f"{self.prob.solver_stats.solve_time:.3f}s")
         if prob.solver_stats is not None:
             self.solve_time = prob.solver_stats.solve_time
             self.setup_time = prob.solver_stats.setup_time
         else:
             self.solve_time = -1
             self.setup_time = -1
+
         # Return optimized state and control trajectories
         if len(control_inputs) == 0:
             print(
