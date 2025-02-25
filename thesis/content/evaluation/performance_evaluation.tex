@@ -4,15 +4,14 @@
 
 Our trajectory planner aims to minimize a cost function that represents the driving behavior we desire.
 The cost function is composed of several objectives, each weighted by a corresponding factor.
-The main objectives we considered are:
 
-The main objectives we considered are control effort, deviation from the reference
-trajectory, and terminal state.
-The control effort objective aims to minimize the numerical derivatives of control inputs to ensure smooth driving, represented by the cost function:
+The primary objectives considered are control effort, deviation from the reference trajectory, and terminal state accuracy.
+The control effort objective aims to minimize
+the numerical derivatives of control inputs to ensure smooth driving, represented by the cost function:
 \begin{equation}
 	J_{control} = \sum_{i=0}^{n-1} \left\| d_1(t_i) \right\|^2
 \end{equation}
-where $d_1(t_i)\in \mathbb{R}^{dim(u)}$ is a new introduced auxiliary variable, which is constrained by: \[
+where $d_1(t_i)\in \mathbb{R}^{dim(u)}$ is an auxiliary variable constrained by: \[
 	d_1(t_i) = \frac{u(t_i) - u(t_{i-1})}{t_i - t_{i-1}}
 \]
 
@@ -20,9 +19,10 @@ The tracking objective aims to minimize the deviation from the center of the roa
 \begin{equation}
 	J_{tracking} = \sum_{i=0}^{n} d_2(t_i)^2
 \end{equation}
-where $d_2(t_i)\in \mathbb{R}$ is a new introduced auxiliary variable, which is constrained by: \[
+where $d_2(t_i)\in \mathbb{R}$ is an auxiliary variable constrained by: \[
 	0 \leq d_2(t_i) \leq \min \left\{ \overline{n}(s(t_i)) - n(t_i), n(t_i) - \underline{n}(s(t_i)) \right\}
 \]
+
 The terminal state objective aims to minimize the deviation from a desired terminal state $x_{final}$ at the final time step $t_n$, represented by the cost function:
 \begin{equation}
 	J_{terminal} = \|x(t_n) - x_{final}\|^2
@@ -32,31 +32,24 @@ The total cost function $J$ is a weighted sum of these objectives:
 \begin{equation}
 	J = \alpha J_{control} + \beta J_{tracking} + \gamma J_{terminal} \end{equation} where $\alpha$, $\beta$, and $\gamma$ are the weights that determine
 the relative importance of each objective.
-
-By minimizing this cost function, our trajectory planner generates a trajectory that balances control effort, adherence to the reference trajectory,
-and reaching the desired terminal state.
+By minimizing this cost function, our trajectory planner generates a trajectory that balances control effort, tracking the reference trajectory, and
+accuracy in reaching the desired terminal state.
 
 \subsection{Scenarios} \label{subsec:scenarios}
 
 In order to evaluate the performance of our trajectory planner, we implemented several driving scenarios.
 These scenarios are designed to test different aspects of the planner's capabilities.
-The scenarios we implemented are:
-
-The Straight Road scenario tests the planner's ability to maintain a straight path with minimal
-control effort, ensuring smooth and efficient driving.
-
-In the Left Turn scenario, the planner's performance is evaluated based on its ability to execute a smooth left turn while adhering closely to the
-reference trajectory.
-
-The Lane Change scenario assesses the planner's capability to perform a lane change maneuver safely and efficiently, highlighting its responsiveness
-and precision.
-
+The Straight Road scenario evaluates the planner's ability to maintain a straight path with minimal control effort, ensuring smooth and efficient
+driving.
+In the Left Turn scenario, the planner's performance is assessed based on its ability to execute a smooth left turn while adhering to the reference
+trajectory.
+The Lane Change scenario tests the planner's capability to perform a lane change maneuver safely and efficiently, highlighting its responsiveness and
+precision.
 The Slalom scenario challenges the planner to navigate through a series of closely spaced obstacles, requiring precise control and smooth transitions
 between maneuvers.
-
 The Elchtest, also known as the moose test, evaluates the planner's ability to perform a sudden evasive maneuver to avoid an obstacle, testing its
 quick decision-making and control under pressure.
-The Elchtest can be visualized as follows:
+The Elchtest scenario can be visualized as follows:
 \begin{figure}[H]
 	\centering
 	\begin{tikzpicture}
@@ -82,17 +75,71 @@ terminal state.
 
 By evaluating the planner in these diverse scenarios, we can gain a comprehensive understanding of its strengths and areas for improvement.
 
-\subsection{Simulation} \label{subsec:simulation}
+\begin{longtable}{l c c c c c}
+	\caption{Overview of Road Segments and Their Properties}                                                                                             \\
+	\toprule
+	\textbf{Road Name}                & \textbf{Segment} & \textbf{Length} & \textbf{Curvature} & \multicolumn{2}{c}{\textbf{Lane Width}}                \\
+	\cmidrule(lr){5-6}
+	                                  &                  &                 &                    & \textbf{Start}                          & \textbf{End} \\
+	\midrule
+	\endfirsthead
 
-For the actual simulation of the vehicle, we use a complex model and discretized its dynamics using Runge-Kutta which provides a more accurate than
-the forward we used during planning.
+	\multicolumn{6}{c}{\textit{Continued from previous page}}                                                                                            \\
+	\toprule
+	\textbf{Road Name}                & \textbf{Segment} & \textbf{Length} & \textbf{Curvature} & \multicolumn{2}{c}{\textbf{Lane Width}}                \\
+	\cmidrule(lr){5-6}
+	                                  &                  &                 &                    & \textbf{Start}                          & \textbf{End} \\
+	\midrule
+	\endhead
 
-For reproducibility, we provide the model which is given by the state variables and control inputs: \[ x = [p_x, p_y, \delta, v, \psi, \dot{\psi},
-	\beta]^T, u = [a_x, v_{\delta}]^T \] where $p_x, p_y$ are the position coordinates, $\delta$ is the steering angle, $v$ is the velocity, $\psi$ is
-the yaw angle, $\dot{\psi}$ is the yaw rate, $\beta$ is the slip angle, $a_x$ is the longitudinal acceleration, and $v_{\delta}$ is the steering
-rate.
+	\bottomrule
+	\multicolumn{6}{c}{\textit{Continued on next page}}                                                                                                  \\
+	\endfoot
 
-The dynamics of the model are given by, for $|v|\geq0.1$:
+	\bottomrule
+	\endlastfoot
+
+	\multirow{5}{*}{Elchtest}         & 1                & 12.0            & 0.000              & [-1.0,1.0]                              & [-1.0,1.0]   \\
+	                                  & 2                & 13.5            & 0.000              & [-1.0,1.0]                              & [2.0,4.7]    \\
+	                                  & 3                & 11.0            & 0.000              & [2.0,4.7]                               & [2.0,4.7]    \\
+	                                  & 4                & 12.5            & 0.000              & [2.0,4.7]                               & [-1.0,1.0]   \\
+	                                  & 5                & 12.0            & 0.000              & [-1.0,1.0]                              & [-1.0,1.0]   \\
+	\midrule
+	\multirow{1}{*}{Left Turn}        & 1                & 235.6           & 0.007              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	\midrule
+	\multirow{1}{*}{Straight}         & 1                & 180.0           & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	\midrule
+	\multirow{4}{*}{Lane Change}      & 1                & 30.0            & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 2                & 20.9            & 0.025              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 3                & 20.9            & -0.025             & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 4                & 30.0            & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	\midrule
+	\multirow{5}{*}{Slalom}           & 1                & 20.0            & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 2                & 94.2            & -0.033             & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 3                & 94.2            & 0.033              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 4                & 94.2            & -0.033             & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 5                & 20.0            & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	\midrule
+	\multirow{3}{*}{Feasible Curve}   & 1                & 20.0            & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 2                & 15.7            & 0.200              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 3                & 20.0            & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	\midrule
+	\multirow{3}{*}{Infeasible Curve} & 1                & 20.0            & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 2                & 8.8             & 0.357              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	                                  & 3                & 20.0            & 0.000              & [-2.0,2.0]                              & [-2.0,2.0]   \\
+	\midrule
+\end{longtable}
+
+\subsection{Simulation Setup} \label{subsec:simulation}
+
+For the vehicle simulation, we employ a more sophisticated model and discretize its dynamics using the Runge-Kutta method, which offers greater
+accuracy compared to the forward Euler method used for trajectory planning.
+To ensure reproducibility, we define the model using the following state variables and control inputs: \[ x = [p_x, p_y, \delta, v, \psi, \dot{\psi},
+	\beta]^T, u = [a_x, v_{\delta}]^T \] where $p_x$, $p_y$ represent the vehicle's position coordinates, $\delta$ is the steering angle, $v$ is the
+velocity, $\psi$ is the yaw angle, $\dot{\psi}$ is the yaw rate, $\beta$ is the slip angle, $a_x$ is the longitudinal acceleration, and $v_\delta$ is
+the steering rate.
+
+The model's dynamics are governed by the following equations, valid for $|v|\geq0.1$:
 \[
 	f(x, u) = \begin{bmatrix}
 		v\cos(\psi + \beta)                                  \\
@@ -128,7 +175,7 @@ The dynamics of the model are given by, for $|v|\geq0.1$:
 		\dot{\psi}
 	\end{bmatrix}
 \]
-and for $|v|<0.1$:
+For smaller velocities $|v|<0.1$, the dynamics simplify to:
 \[
 	f(x, u) = \begin{bmatrix}
 		v\cos(\psi + \beta) \\
@@ -161,18 +208,58 @@ The center of gravity is located \(l_f = 0.883\,\mathrm{m}\) from the front axle
 The front and rear cornering stiffness coefficients are both \(C_{S,f} = C_{S,r} = 20.89\,\text{[1/rad]}\), and the friction coefficient is \(\mu =
 1.048\).
 
-In our approach, we employed a replanning strategy to improve the adaptability of the trajectory planner.
-In addition to the time horizon used during the initial planning phase, we implemented a fixed time interval, shorter than the time horizon, after
-which the planner recalculates the trajectory from the current position of the vehicle.
+\subsubsection{Replanning Strategy}
+
+In our simulation, we employed a replanning strategy to implement a feedback mechanism.
+In addition to the time horizon, we implemented a fixed time interval, shorter than the time horizon, after which the planner recalculates the
+trajectory from the current position of the vehicle.
 This replanning mechanism allows the planner to adjust to changes in the environment or deviations from the planned path.
+We employed a time discretization of equal intervals for the replanning time interval, and the time intervals increase linearly for the remaining
+time horizon.
 
-\subsection{Results} \label{subsec:results}
+\begin{figure}[h]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[
+				xlabel={Time Point $t_i$},
+				ylabel={Difference $t_i - t_{i-1}$},
+				width=0.8\textwidth,
+				height=0.5\textwidth,
+				grid=major,
+				axis lines=middle,
+				enlargelimits=true,
+				xtick=\empty, % Remove x-axis ticks
+				ytick=\empty, % Remove y-axis ticks
+				clip=false
+			]
+			% Data points
+			\addplot[only marks, mark=*, mark size=2pt]
+			coordinates {
+					(0,0.2) (1,0.2) (2,0.2) (3,0.2) (4,0.2) (5,0.5) (6,0.8) (7,1.2) (8,1.5) (9,1.8)
+				};
 
-In this work, we compare two modeling approaches for vehicle dynamics in scenarios where road alignment plays a key role.
-Specifically, we evaluate a point mass model that is aligned to the road and a kinematic bicycle model that captures the vehicle's geometry and
-steering kinematics more explicitly.
+			% Dashed vertical line for replanning interval
+			\addplot[dashed] coordinates {(4,0) (4,2)};
 
-\subsection*{Point Mass (Road-Aligned) Model}
+			% Replanning label
+			\node[anchor=west] at (axis cs:4,2) {Replanning Interval};
+
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Time points and their differences to previous time points}
+	\label{fig:time_points}
+\end{figure}
+
+Figure \ref{fig:time_points} illustrates the time points and their intervals.
+The states for the time points to the left of the dashed line are simulated, after which a replanning is triggered.
+This replanning follows the same time discretization pattern as the initial planning phase.
+The term $\Delta t$ refers to the time intervals between the initial time points, which vary across the different benchmark scenarios.
+The slope of time difference after the replanning interval is given by $\Delta^2 t_{replan}$.
+
+\subsection{Results}
+\label{subsec:results}
+
+\subsection*{Point Mass Model}
 
 \paragraph{Assumptions and Simplifications.}
 The point mass model simplifies the vehicle to a single mass concentrated at a point.
@@ -203,9 +290,10 @@ vehicle length, and lateral motion.
 It models the steering input at the front axle while assuming no explicit slip at the tire contact patch (although slip angles may be implicitly
 captured via kinematic relations).
 Unlike a full dynamic model, it generally omits complex tire forces and weight transfer, but retains essential geometry required to describe the
-vehicle's heading and turning radius accurately.
+vehicle’s heading and turning radius accurately
 
-\paragraph{Performance Characteristics.}
+\paragraph{Performance Characteristics.
+}
 Compared to the point mass model, the kinematic bicycle model typically has:
 \begin{itemize}
 	\item \textbf{Improved representation of vehicle posture}, because it
@@ -221,16 +309,3 @@ Compared to the point mass model, the kinematic bicycle model typically has:
 	      predictive capability in aggressive cornering or low-adhesion
 	      conditions.
 \end{itemize}
-
-\subsection*{Comparative Summary}
-
-When evaluating performance for standard driving maneuvers and moderate turning radii, the kinematic bicycle model often yields more faithful
-estimates of the vehicle trajectory than the point mass model, owing to its explicit handling of vehicle geometry.
-The point mass model, however, can be beneficial in path planning or control algorithms that rely on computationally inexpensive dynamics and do not
-require precise yaw-rate or steering-angle predictions.
-
-In short, the road-aligned point mass model is a higher-level abstraction that excels in simplicity and speed but sacrifices accuracy in situations
-with larger lateral dynamics.
-The kinematic bicycle model achieves better fidelity by incorporating the essential geometry of steering, but at a slightly higher computational and
-implementation cost.
-Both models can be useful depending on the complexity and fidelity demands of the application.

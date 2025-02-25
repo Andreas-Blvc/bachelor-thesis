@@ -1,5 +1,5 @@
 import numpy as np
-from datetime import datetime
+import uuid
 
 from models import BicycleModel, PointMassModel
 from path_planner import ConvexPathPlanner, NonConvexPathPlanner
@@ -94,7 +94,7 @@ def run(config: BenchmarkConfiguration):
                     benchmarks.append(
                         Benchmark(
                             car=self_driving_car,
-                            folder=f"{road_name.split('/')[-1].split('.')[0]}-{model_type.value}-{datetime.now().strftime('%d-%m-%Y %H:%M:%S')}",
+                            folder=f"{road_name.split('/')[-1].split('.')[0]}-{model_type.value}-{str(uuid.uuid4())}",
                             road_name=road_name.split('/')[-1].split('.')[0].replace('_', ' ').title()
                         )
                     )

@@ -1,24 +1,22 @@
 \section{Problem Formulation} \label{sec:problem_formulation}
 
-The problem of motion planning using an optimization-based approach is defined as follows:
+The goal of motion planning is to compute a feasible and optimal trajectory for an autonomous vehicle that safely navigates from an initial state to
+a goal region while satisfying dynamic and environmental constraints.
+Using an optimization-based approach, this problem can be formulated as finding a function $\pi(t): [0,T] \to \mathcal{X}$,where $\mathcal{X}$ is the
+configuration space representing all feasible vehicle states, and $T$ is the planning horizon.
 
-The objective is to find a function
-$\pi(t): [0,T] \to \mathcal{X}$, where $T$ represents the planning horizon and $\mathcal{X}$ is the configuration space, which defines the set of
-feasible configurations for the vehicle.
+The vehicle starts at an initial configuration $x_{\text{initial}} \in \mathcal{X}$, and must reach a goal region $X_{\text{goal}} \subset
+	\mathcal{X}$ within the time horizon T .
+The trajectory must also satisfy constraints on its derivatives, such as velocity, acceleration, and higher-order dynamics, which are represented by
+a predicate $D(\pi(t), \pi'(t), \pi''(t), \dots)$.
 
-The vehicle starts in an initial configuration $x_{\text{initial}} \in \mathcal{X}$, and the trajectory should end in a set of goal configurations
-$X_{\text{goal}} \subset \mathcal{X}$.
+To formulate this as an optimization problem, we define an objective function $J(\pi): \Pi[\mathcal{X}, T] \to \mathbb{R}$ that evaluates the quality
+of a given trajectory $\pi(t)$ over the planning horizon.
+This function may incorporate metrics such as smoothness, energy efficiency, safety, or time minimization.
 
-Additionally, a constraint is defined over the derivatives of $\pi$ with respect to $t \in [0, T]$, denoted as $D(\pi(t), \pi'(t), \pi''(t), \dots)$.
+\subsubsection{Problem Definition: Optimal Trajectory Planning} \label{subsec:optimal_trajectory_planning}
 
-To formulate an optimization problem, we define an objective function and a feasible set.
-
-Let $\Pi[\mathcal{X}, T]$ represent the set of all possible functions mapping $[0, T]$ to $\mathcal{X}$.
-Further, let $J(\pi): \Pi[\mathcal{X}, T] \to \mathbb{R}$ be the objective function.
-
-\subsubsection{Problem Definition: Optimal Trajectory Planning}
-
-Given a 6-tuple $(\mathcal{X}, x_{\text{initial}}, X_{\text{goal}}, D, J, T)$, the objective is to find:
+Given a 6-tuple $(\mathcal{X}, x_{\text{initial}}, X_{\text{goal}}, D, J, T)$, the task is to find:
 
 \begin{align}
 	x^* & = \underset{\pi \in \Pi(\mathcal{X},T)}{\operatorname{arg\,min}}
@@ -28,3 +26,7 @@ Given a 6-tuple $(\mathcal{X}, x_{\text{initial}}, X_{\text{goal}}, D, J, T)$, t
 	    & \quad \pi(t) \in \mathcal{X},                                    & \text{for all} \quad t \in [0,T]                     \\
 	    & \quad D(\pi(t), \pi'(t), \pi''(t), \dots),                       & \text{for all} \quad t \in [0,T] \label{eq:dynamics}
 \end{align}
+
+This formulation ensures that the computed trajectory is feasible, adheres to the vehicle's dynamic constraints, and optimizes a desired cost
+function.
+The next sections will discuss methods for solving this problem efficiently using numerical optimization techniques.

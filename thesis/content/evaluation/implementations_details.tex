@@ -28,8 +28,10 @@ This can be extended to include, for example, the upper velocity limits for each
 
 \subsection{Planner}
 
-Our trajectory planner requires the model $(\text{dim}(x), \text{dim}(u), f, \mathcal{C})$, which includes the dimensions of the state variables, the
-dimensions of the control inputs, the dynamics equation represented by $f$, and the coupling constraints represented by $\mathcal{C}$.
+The convex discrete-time optimization problem will be solved using an external solver, which we refer to as the planner, as it provides the solution
+to the motion planning problem.
+Our trajectory planner is parameterized by a tuple $(\text{dim}(x), \text{dim}(u), f, \mathcal{C})$, which includes the dimensions of the state
+variables, the dimensions of the control inputs, the dynamics equation represented by $f$, and the coupling constraints represented by $\mathcal{C}$.
 The time horizon and discretization are given by $\{t_i\}_{i=0,\dots,n}$.
 
 To construct the variables and constraints for our planner, we need to define the state variables, control inputs, and the constraints that describe
@@ -40,18 +42,17 @@ First, we define the state variables and control inputs for each time step $t_i$
 	x(t_i) \in \mathbb{R}^{dim(x)}, u(t_i) \in \mathbb{R}^{dim(u)}
 \end{equation}
 
-For each $i\in\{1,\dots,n\}$ we define an equality constraint:
+For each $i\in\{1,\dots,n\}$, we define the following equality constraint:
 \begin{equation}
 	x(t_i) = x(t_{i-1}) + f(x(t_{i-1}), u(t_{i-1})) (t_i - t_{i-1})
 \end{equation}
-Those combined with the coupling constraints $\mathcal{C}$ and the additional constraints for the kinematic single track model
-\ref{fig:mccormick_constraints}, define the constraints for our discrete time optimal trajectory problem.
+These constraints, combined with the coupling constraints $\mathcal{C}$, additional constraints, and auxiliary variables for the bicycle model
+\ref{fig:mccormick_constraints}, define the constraints and variables for our planner.
 
-With the constant state $x_{initial}$, we will model our initial state and add the following constraint $x(t_0) = x_{initial}$.
-For our evolution we did not encounter any additional constraints on the final state.
-Instead, we modeled our driving behavior through the objective.
+Given the initial state $x_{initial}$, we model our initial condition with the constraint $x(t_0) = x_{initial}$.
+For our evaluation, we did not impose any additional constraints on the final state.
+Instead, we modeled our driving behavior through the objective function.
 
-We implemented our optimization problem using Python with the 'CVXPY' library and solved it using the 'MOSEK' solver.
+We implemented our optimization problem using Python with the 'cvxpy' library and solved it using the 'MOSEK' solver.
 
-Next, we introduce the objectives we used for our trajectory planner.
-
+Next, we introduce the objectives used for our trajectory planner.

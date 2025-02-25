@@ -1,12 +1,8 @@
-In this chapter, we evaluate the performance of our proposed method on a set of benchmark problems.
-We introduced two models, each with its own dynamic equations and coupling constraints on state variables and control inputs.
-For the Point Mass Model, the dynamics are given by \ref{eq:pm_final_dynamics} and its coupling constraints by \ref{eq:pm_coupling_constraints},
-which can be constructed using the two proposed methods for eliminating the for-all operator.
-The dynamics of the kinematic single track model are approximated by \ref{eq:kst_final_dynamics}, and the coupling constraints are listed in section
-\ref{sec:kst_coupling_constraints}.
+In this chapter, we evaluate the performance of our proposed method using a set of benchmark problems.
+We introduced two models, $M_{pm}$ \eqref{model:point_mass} and $M_{kst}$ \eqref{model:kst}, each defined by its own dynamic equations and
+constraints on state variables and control inputs.
 
-For realistic driving tests, we still need to address implementation details, which we will handle next.
-Additionally, we require a simulation model and a control layer implementation to map the planned trajectory to the vehicle.
-The simulation model is used to evaluate the performance of the planned trajectory, while the control layer maps the planned trajectory to the
-vehicle.
-This allows us to construct actual scenarios and test our models in driving conditions.
+To enable realistic driving tests, we must address key implementation details, which we will discuss next.
+Additionally, a simulation model is required to assess the performance of the planned trajectory.
+This simulation allows us to recreate real-world driving scenarios
+and evaluate our models under practical conditions

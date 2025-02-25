@@ -1,0 +1,98 @@
+\section{Challenges and Limitations}
+
+This section discusses the various challenges encountered during the development and implementation of the control and planning algorithms for the
+vehicle.
+It highlights specific issues related to replanning, dynamics lag, and the application of McCormick relaxations.
+Each subsection provides a detailed explanation of the problem, the approach taken to address it, and the results obtained.
+The purpose of this section is to provide insight into the practical difficulties faced, and the solutions devised to overcome them, thereby
+contributing to the overall understanding and improvement of the system's performance.
+
+\subsection{Replanning Challenges for Point Mass}
+
+During the replanning phase for the point mass, we encountered a significant challenge.
+Our control layer introduced some inaccuracies, resulting in the vehicle reaching a higher velocity than anticipated at the time of replanning.
+This discrepancy led to infeasibility issues during the replanning process.
+
+To address this problem, we introduced soft constraints.
+These soft constraints allowed for a more flexible approach to handling the velocity overshoot, ensuring that the replanning process could still
+generate feasible trajectories despite the initial inaccuracies.
+By incorporating these soft constraints, we were able to mitigate the impact of the velocity overshoot and maintain the overall feasibility of the
+replanning process.
+\pagebreak
+\subsection{Lag in Dynamics}
+We experienced a lag caused by using the forward Euler method on the vehicle model's dynamics and adding a feedback loop to adjust the vehicle
+orientation.
+The issue arose because a change in the steering was accounted for in the orientation two additional steps later, leading to overcorrection and
+resulting in oscillation, illustrated by Figure \ref{fig:lag_orientation}.
+
+\begin{figure}[h]
+	\centering
+	\resizebox{0.5\textwidth}{!}{\input{figures/lag_orientation.pgf}}
+	\caption{Oscillation in vehicle orientation due to lag in dynamics.}
+	\label{fig:lag_orientation}
+\end{figure}
+
+To address this problem, we employed a better discretization scheme and accounted for the lag in the feedback loop.
+By doing so, we were able to mitigate the overcorrection and eliminate the oscillation, leading to a more stable and accurate control of the
+vehicle's orientation.
+
+\subsection{McCormick Relaxation}
+
+To illustrate the application of these relaxations in practice, consider a path-planning scenario with \( v_{min} = 1 \), \( v_{max} = 5 \), and \(
+v_{start} = 1 \).
+In this scenario, the bilinear term \( v\xi \), which appears in the equation of motion for \(\dot{n} = v \sin{\xi} \approx v\xi\), is approximated
+using McCormick relaxations.
+
+\begin{figure}[h]
+	\centering
+	\resizebox{1\textwidth}{!}{\input{figures/velocity.pgf}}
+	\caption{Planned velocity profile.}
+	\label{fig:velocity}
+\end{figure}
+
+Figure \ref{fig:velocity} shows the planned velocity profile, which quickly reaches its upper limit.
+The alignment error $\xi$ is close to zero.
+Here, \( \xi \) is bounded within \(-45^{\circ} \leq \xi \leq 45^{\circ} \).
+It is noteworthy that \( \xi \) does not reach these bounds.
+
+\begin{figure}[h]
+	\centering
+	\resizebox{0.6\textwidth}{!}{\input{figures/state_transition_approximation.pgf}}
+	\caption{McCormick Relaxation on $v\xi$.}
+	\label{fig:dn-term-approx}
+\end{figure}
+
+Figure \ref{fig:dn-term-approx} compares the actual bilinear value \( v\xi \) with the relaxation variable \( w \) introduced via McCormick
+envelopes.
+This comparison highlights the accuracy of the relaxation approach in approximating the bilinear interaction and its effect on the state transition
+of \( n \).
+Once the velocity reaches its limit, the approximation becomes increasingly accurate.
+\pagebreak
+\subsubsection{Challenges with McCormick Relaxations}
+
+McCormick performs poorly when the velocity is at the midpoint of its limits.
+Since we decouple the lateral movement from the steering angle and velocity using McCormick relaxations, it is possible for the vehicle to move
+laterally without any longitudinal movement.
+To prevent this, we use an approach that allows for tighter bounds on the velocity by considering the maximum and minimum acceleration.
+Figure \ref{fig:mccormick_problem} illustrates the McCormick relaxation without tighter bounds, while Figure \ref{fig:mccormick_problem_better}
+demonstrates the improvement with tighter bounds.
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick_problem.pgf}}
+		\caption{State transition approximation for \( n \) using bilinear term relaxation.}
+		\label{fig:mccormick_problem}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick_improvement.pgf}}
+		\caption{State transition approximation for \( n \) using tighter bounds.}
+		\label{fig:mccormick_problem_better}
+	\end{subfigure}
+	\caption{Comparison of McCormick relaxation with and without tighter bounds.}
+\end{figure}
+Due to the rapid inaccuracy of the bounds, more frequent replanning is required.
+This presents a significant trade-off compared to the point mass model, which necessitates less frequent replanning.

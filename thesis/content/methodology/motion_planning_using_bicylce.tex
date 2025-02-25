@@ -1,173 +1,123 @@
 \section{Motion Planning using Bicycle Model} \label{sec:motion_planning_using_bicylce}
-
-We have already introduced the kinematic single track model in which a steering angle and an orientation, which will now combine with the idea of the
-previous chapter.
-We want to model our state variables in the road aligned frame, which is the Frenet frame.
-The states and controls variables of the kinematic single track model are defined in the global coordinate system are defined as in \ref{eq:states_kst} and \ref{eq:controls_kst}:
-
-\begin{figure}[h]
-	\centering
-	\begin{subfigure}[b]{0.45\textwidth}
-		\centering
-		$x = \begin{bmatrix} p_x \\ p_y \\ \delta \\ v \\ \psi \end{bmatrix}$
-		\caption{State Variables}
-	\end{subfigure}
-	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
-		\centering
-		$u = \begin{bmatrix} v_{\delta} \\ a_{\text{long}} \end{bmatrix}$
-		\caption{Control Inputs}
-	\end{subfigure}
-\end{figure}
-
-Our goal is not model dynamics and state variables in the Frenet frame.
+Instead of using the point mass model, we can employ the bicycle model to represent vehicle dynamics more accurately.
+We have already introduced the bicycle model with a steering angle and an orientation.
+Now, we will combine this model with the concepts from the previous chapter.
+Our objective is to represent the state variables in the road-aligned frame.
+The state and control variables of the bicycle model, defined in the global coordinate system, are given in equations \eqref{eq:states_kst} and
+\eqref{eq:controls_kst}.
 
 \subsection{Transforming Global Cartesian Coordinates to Frenet Frame} \label{subsec:bicycle_conversion_of_cartesian_to_frenet}
 
-In this section, we derive the state transition model for the Frenet frame, which is a commonly used coordinate system in vehicle dynamics and
-control.
-The Frenet frame is particularly useful for path tracking and motion planning as it simplifies the representation of the vehicle's motion relative to
-a reference path.
+In this section, we derive the state transition model in the Frenet frame.
 
-We start by considering the dynamics of the kinematic single track model in the global coordinate system.
-This model captures the essential behavior of a vehicle by representing it as a single point mass with a front and rear axle.
-The state variables include the position coordinates $(p_x, p_y)$, the orientation angle $\psi$, the steering angle $\delta$, and the longitudinal
-velocity $v$.
-The control inputs are the longitudinal acceleration $a_{\text{long}}$ and the steering rate $v_{\delta}$.
+We begin by considering the dynamics of the bicycle model in the global coordinate system, which are described by
+\eqref{eq:kst_dpx}-\eqref{eq:dpsi_steering_angle}.
 
-The dynamics of the kinematic single track model in the global coordinate system are:
+To express vehicle motion in the Frenet frame, we define the deviation from the reference path using the lateral displacement $n$ and the orientation
+error $\xi = \psi - \theta$, where $\theta$ is the heading of the reference path.
+The path curvature $C(s)$ relates to its arc length parameter $s$ as $\dot{\theta} = C(s) \dot{s}$.
 
-\begin{align*}
-	 & \dot{p}_x = v\cos(\psi)                    \\
-	 & \dot{p}_y = v\sin(\psi)                    \\
-	 & \dot{\delta} = v_{\delta}                  \\
-	 & \dot{v} = a_{\text{long}}                  \\
-	 & \dot{\psi} = \frac{v}{l_{wb}} \tan(\delta) \\
-\end{align*}
+Using the previously derived equations \eqref{eq:first_derivative_long} and \eqref{eq:first_derivative_lat}, we obtain the state transition equations in the Frenet frame:
 
-Building on the orientation model from the previous chapter, we can extend the point mass model to include body-fixed control inputs.
-This approach helps us achieve our goal.
+\begin{align} \dot{s} &= \frac{v\cos\xi}{1 - nC(s)} \\ \dot{n} &= v\sin\xi \\ \dot{\xi} &= \dot{\psi} - C(s)\dot{s} \end{align}
 
-Using the previously derived equations \ref{eq:first_derivative_long} and \ref{eq:first_derivative_lat}, and incorporating the
-definitions $\xi = \psi - \theta$ and $\dot{\theta}=\frac{d\theta}{ds}\frac{ds}{dt}=C(s)\dot{s}$, we obtain
-the following equations:
+By integrating these equations with the bicycle model, we derive a complete state transition model in the Frenet frame.
+The state variables and control inputs for the bicycle model in the Frenet frame are defined in \eqref{def:kst_frenet_states} and
+\eqref{def:kst_frenet_controls}.
+\begin{align}
+	x_{kst} & = \begin{bmatrix}
+		            s & n & \xi & v & \delta
+	            \end{bmatrix}^T
+	\label{def:kst_frenet_states}        \\[10pt]
+	u_{kst} & = \begin{bmatrix}
+		            a & v_\delta
+	            \end{bmatrix}^T
+	\label{def:kst_frenet_controls}
+\end{align}
 
-\begin{align*}
-	\dot{s} = \frac{v_x\cos{\xi}}{1-nC(s)} \\
-	\dot{n} = v_x\sin{\xi}                 \\
-	\dot{\xi} = \dot{\psi} - C(s)\dot{s}   \\
-\end{align*}
-
-Combining these equations with the kinematic single track model, we derive the state transition model for the Frenet frame.
-This model provides a comprehensive representation of the vehicle's motion in the Frenet coordinate system, which is essential for accurate path
-tracking and motion planning.
-
-Next, we define the state variables and control inputs for the single-track model.
-
-\subsection{Model Dynamics Approximation} \label{subsec:approximation_of_model_dynamics}
-
-The state variables and control inputs for the single-track model in the Frenet frame are defined as follows:
-\begin{figure}[h]
-	\centering
-	\begin{subfigure}[b]{0.45\textwidth}
-		\centering
-		$x = \begin{bmatrix}
-				s \\ n \\ \xi \\ v \\ \delta
-			\end{bmatrix}$
-		\caption{State Variables}
-	\end{subfigure}
-	\hfill
-	\begin{subfigure}[b]{0.45\textwidth}
-		\centering
-		$u = \begin{bmatrix}
-				a_{x,b} \\ v_\delta
-			\end{bmatrix}$
-		\caption{Control Inputs}
-	\end{subfigure}
-\end{figure}
-
-where the state consists of the Frenet frame coordinates $(s, n)$, the heading alignment error $\xi$, the longitudinal vehicle velocity $v$, and the steering angle $\delta$.
-The state evolution is described by the following equations:
+The dynamics of model are described by \eqref{eq:kst_frenet_dynamics}.
 
 \begin{equation}
-	f(x, u) =
+	f_{kst}(x_{kst}, u_{kst}) =
 	\begin{bmatrix}
 		\frac{v \cos\xi}{1 - nC(s)}                \\[8pt]
 		v \sin\xi                                  \\[8pt]
 		\frac{1}{l_{wb}}v \tan\delta - C(s)\dot{s} \\[8pt]
-		a_{x,b}                                    \\[8pt]
+		a                                          \\[8pt]
 		v_\delta
 	\end{bmatrix}.
+	\label{eq:kst_frenet_dynamics}
 \end{equation}
 
-For this model, we will use body-fixed control inputs, which provide convex road topology constraints.
-To linearize the model dynamics, we will use two new techniques.
+In the following section, we will present an approach how the model dynamics can be approximated to apply to the DCP rules.
+
+\subsection{Model Dynamics Approximation} \label{subsec:approximation_of_model_dynamics}
+
+For this model, we will stick to the body-fixed control inputs, which keeps the coupling constraints convex.
+Instead, we aim to linearize the model dynamics using two new techniques.
 These techniques allow us to maintain the constraints without shifting, as was necessary in the previous chapter.
 This ensures a more accurate and computationally efficient representation of the vehicle's motion.
 
-To simplify the model, the following assumptions are made: $nC(s)$ is close to zero.
-This is a valid since $n$ models the vehicle's lateral position relative to the reference path, and $C(s)$ is the curvature of the reference path
-which is typically small enough for this assumption to be valid.
-We split up the problem by looking the terms which make the model non-linear.
+To simplify the model, we make the following assumption: $nC(s)$ is close to zero.
+This is valid since $n$ represents the vehicle's lateral position relative to the reference path, and $C(s)$ is the curvature of the reference path,
+which is typically small enough for this assumption to hold.
+We will analyze the terms that introduce non-linearity into the model.
 
 \subsubsection{Non-Linear Terms}
 
-We have four non-linear terms in the state transition model.
-In the following, we linearize them using approximations.
-\begin{align}
-	 & \frac{v \cos\xi}{1 - nC(s)} \\
-	 & v \sin\xi                   \\
-	 & v \tan\delta                \\
-	 & C(s)\dot{s}
-\end{align}
-
-With our assumptions, that $nC(s)\approx 0$, we can immediately simplify the first term.
-
+The state transition model contains four non-linear terms.
+We will linearize these terms using appropriate approximations.
 \[
-	\frac{v \cos\xi}{1 - nC(s)} \approx v \cos\xi
+	\frac{v \cos\xi}{1 - nC(s)} ,
+	v \sin\xi                   ,
+	v \tan\delta                ,
+	C(s)\dot{s}
 \]
 
-\subsubsection{First Order Taylor Polynomial}
+Given our assumption that $nC(s) \approx 0$, we can simplify the first term as follows:
 
-To linearize the non-linear terms, we use the first order Taylor polynomial approximation around a reference point.
-The first order Taylor expansion of a function \(f(x)\) around a point \(x_0\) is given by:
+\[ \frac{v \cos\xi}{1 - nC(s)} \approx v
+	\cos\xi \]
 
-\[ f(x) \approx f(x_0) +
-	\frac{df}{dx} (x_0) (x - x_0) \]
+\subsubsection{First Order Taylor Polynomial} To linearize the trigonometric terms, we use the first-order Taylor
+polynomial approximation around a reference point.
+The first-order Taylor expansion of a function $f(x)$ around a point $x_0$ is given by:
 
-Applying the first order Taylor polynomial to the trigonometric functions $\sin$, $\cos$, and
-$\tan$ around the reference points $\xi_0$ and $\delta_0$, we obtain the following approximations:
+\[ f(x) \approx f(x_0) + \frac{df}{dx}
+	(x_0) (x - x_0) \]
 
-\[ \cos(\xi) \approx
-	\cos(\xi_0) - \sin(\xi_0) (\xi - \xi_0) \] \[ \sin(\xi) \approx \sin(\xi_0) + \cos(\xi_0) (\xi - \xi_0) \] \[ \tan(\delta) \approx \tan(\delta_0) +
+Using the first-order Taylor polynomial to approximate the trigonometric functions $\sin$, $\cos$, and $\tan$
+around the reference points $\xi_0$ and $\delta_0$, we obtain the following linearizations:
+
+\[ \cos(\xi) \approx \cos(\xi_0) -
+	\sin(\xi_0) (\xi - \xi_0) \] \[ \sin(\xi) \approx \sin(\xi_0) + \cos(\xi_0) (\xi - \xi_0) \] \[ \tan(\delta) \approx \tan(\delta_0) +
 	\frac{1}{\cos^2(\delta_0)} (\delta - \delta_0) \]
 
 These approximations are known as small angle approximations, which are valid
-when the angles $\xi$ and $\delta$ are small.
-In vehicle dynamics, it is often reasonable to assume that the heading alignment error $\xi$ and the steering angle $\delta$ are small, especially
-when the vehicle is closely following a reference path.
-This allows us to simplify the trigonometric functions using their first order Taylor expansions.
+when the angles $\xi$ and $\delta$ are close to their reference values.
+In vehicle dynamics, it is often reasonable to assume that the heading alignment error $\xi$ and the steering angle $\delta$ do not change rapidly,
+especially when the vehicle is closely following a reference path.
+This allows us to simplify the trigonometric functions using their first-order Taylor expansions.
 
-Substituting these first order Taylor approximations into the state transition model, we obtain the following terms:
-
+By substituting these approximations into the state transition model, we obtain the following terms:
 \begin{align*}
 	 & v (\cos(\xi_0) - \sin(\xi_0) (\xi - \xi_0))                         \\
 	 & v (\sin(\xi_0) + \cos(\xi_0) (\xi - \xi_0))                         \\
-	 & v (\tan(\delta_0) + \frac{1}{\cos^2(\delta_0)} (\delta - \delta_0)) \\
-	 & C(s)\dot{s}
+	 & v (\tan(\delta_0) + \frac{1}{\cos^2(\delta_0)} (\delta - \delta_0))
 \end{align*}
+Since our reference values $\xi_0$ and $\delta_0$ are treated as constants during planning, the only remaining non-linear terms are: $$v \xi, v
+	\delta, C(s)\dot{s}$$
 
-Since our reference values $\xi_0 = 0$ and $\delta_0 = 0$ are constant the only remaining non-linear terms are: $$v \xi, v \delta, C(s)\dot{s}$$
-
-Bilinear terms arise when the product of two variables appears in the equations, making the system non-linear.
-In our state transition model, the terms \(v \xi\), \(v \delta\), and \(C(s)\dot{s}\) are bilinear.
-Since \(C(s)\) is a function of \(s\), we will introduce another assumption.
-We have already seen that we can model our road in segments, which we used for the Point Mass Model to obtain less conservative coupling constraints.
-Here, we will reuse this approach to linearize our dynamics.
+These are known as bilinear terms, which occur when the product of two variables appears in the equations,
+rendering the system non-linear.
+Since $C(s)$ is a function of $s$, we will introduce an additional assumption.
+We have previously demonstrated that our road can be modeled in segments, a technique we employed for the Point Mass Model to achieve less
+conservative coupling constraints.
+In this context, we will apply the same approach to linearize our dynamics.
 
 \subsubsection{Assumption: Piece Wise Linear Curvature}
 
-We assume that the curvature can be expressed as a piece-wise linear function.
+We assume that the curvature can be approximated as a piece-wise linear function.
 
 \[
 	C(s) = \begin{cases}
@@ -178,24 +128,24 @@ We assume that the curvature can be expressed as a piece-wise linear function.
 	\end{cases}
 \]
 
-This reduces the non-linear term \(C(s)\dot{s}\) to a new bilinear term \(s\dot{s}\), which we need to linearize.
+This transformation reduces the nonlinear term $C(s)\dot{s}$ to a bilinear term $s\dot{s}$, which still requires linearization.
 
-Next, we will focus on linearizing the bilinear terms.
+In the next section, we will introduce a relaxation method to achieve this.
 
 \subsection{Convex Relaxation of Bilinear Terms} \label{subsec:convex_relaxation_for_bilinear_terms}
 
-To handle bilinear terms of the form \(xy\), we introduce a new variable \(w\) and apply the McCormick relaxation.
+To handle bilinear terms of the form $xy$, we introduce a new variable $w$ and apply the McCormick relaxation.
 The McCormick relaxation is a technique that linearizes bilinear terms by introducing auxiliary variables and constraints.
 This technique allows us to represent the bilinear terms as a set of linear constraints, which can be solved efficiently using convex optimization
 methods.
-This relaxation only works if the variables \(x\) and \(y\) are bounded:
+This relaxation only works if the variables $x$ and $y$ are bounded:
 
 \[ \underline{x} \leq x \leq \overline{x}, \qquad
-	\underline{y} \leq y \leq \overline{y} \] with constants \(\underline{x}, \overline{x}, \underline{y}, \overline{y} \in \mathbb{R}\).
+	\underline{y} \leq y \leq \overline{y} \] with constants $\underline{x}, \overline{x}, \underline{y}, \overline{y} \in \mathbb{R}$.
 
-We introduce a new auxiliary variable \(w\), which will be used as an approximation of the bilinear term \(xy\).
-We use linear constraints to bound the auxiliary variable \(w\) and ensure that it approximates the bilinear term \(xy\).
-The linear constraints are derived from the bounds of the variables \(x\), \(y\), and the bilinear term \(xy\), as shown below:
+We introduce an auxiliary variable $w$ to approximate the bilinear term $xy$.
+Linear constraints are applied to bound $w$ and ensure it accurately represents the bilinear term $xy$.
+These constraints are derived from the bounds of the variables $x$, $y$, and the bilinear term $xy$, as shown below:
 
 \[
 	\begin{aligned}
@@ -205,13 +155,15 @@ The linear constraints are derived from the bounds of the variables \(x\), \(y\)
 		w & \leq \underline{x} y + x \overline{y} - \underline{x} \overline{y}.
 	\end{aligned}
 \]
+The idea behind these constraints is to create a convex lower bound and a concave upper bound for the bilinear term $xy$.
+For example, the first bound is constructed as follows: \[ a = (x - \underline{x}) \geq 0, b = (y - \underline{y}) \geq 0 \] Since $a$ and $b$ are
+both non-negative, we can multiply them to get and obtain our first lower bound: \[ ab = xy - \underline{x}y - x\underline{y} +
+	\underline{x}\underline{y} \geq 0 \iff xy \geq \underline{x}y + x\underline{y} - \underline{x}\underline{y} \]
 
-The idea behind these constraints is to create a convex lower bound and a concave upper bound for the bilinear term \(xy\).
-These bounds are constructed as follows: \[ a = (x - \underline{x}) \geq 0 \] \[ b = (y - \underline{y}) \geq 0 \] Since a and b are both positive,
-we can multiply them to get: \[ ab = xy - \underline{x}y - \underline{y}x + \underline{x}\underline{y} \geq 0 \] Thus, we get our first under
-estimator for $xy$: \[ xy \geq \underline{x}y + \underline{y}x - \underline{x}\underline{y} \] To get the all the possible lower and upper bounds by
-what is given we can apply this pattern to $a\in\{x - \underline{x}, \overline{x} - x\}$ and $b\in\{y - \underline{y}, \overline{y} - y\}$.
-For any of the four possible combination of $a$ and $b$ we get $ab\geq0$ and can therefor come up with either an upper or lower bound for $xy$.
+To derive all
+possible lower and upper bounds, we can apply this pattern to $a \in \{x - \underline{x}, \overline{x} - x\}$ and $b \in \{y - \underline{y},
+	\overline{y} - y\}$.
+For any of the four possible combinations of $a$ and $b$, we get $ab \geq 0$ and can therefore establish either an upper or lower bound for $xy$.
 
 \begin{figure}[h]
 	\centering
@@ -228,17 +180,15 @@ For any of the four possible combination of $a$ and $b$ we get $ab\geq0$ and can
 		\caption{Difference to the lower bound}
 		\label{fig:mccormick_0_lower}
 	\end{subfigure}
-	\caption{McCormick relaxation bounds for the bilinear term \( xy \).}
+	\caption{McCormick relaxation bounds for the bilinear term $ xy $.}
 	\label{fig:mccormick_bounds_0}
 \end{figure}
 
-Figure \ref{fig:mccormick_0_upper} illustrates the deviation between the actual bilinear term \(xy \) and the smallest upper bound provided by the
-relaxation constraints.
-Similarly, Figure \ref{fig:mccormick_0_lower} shows the deviation to the greatest lower bound.
-For the range \( -2 \leq x \leq 2 \) and \( 0 \leq y \leq 50 \).
-It is evident that the bounds improve as \( x \) and \( y \) approach their respective limits.
+Figure \ref{fig:mccormick_0_upper} shows the difference to the upper bound, while Figure \ref{fig:mccormick_0_lower} shows the difference to the
+lower bound for the range $ -2 \leq x \leq 2 $ and $ 0 \leq y \leq 50 $.
+It is evident that the bounds become tighter as $ x $ and $ y $ approach their respective limits.
 
-\begin{figure}[h]
+\begin{figure}[h!]
 	\centering
 	\begin{subfigure}[b]{0.45\textwidth}
 		\centering
@@ -253,77 +203,66 @@ It is evident that the bounds improve as \( x \) and \( y \) approach their resp
 		\caption{Difference to the lower bound}
 		\label{fig:mccormick_1_lower}
 	\end{subfigure}
-	\caption{McCormick relaxation bounds for the bilinear term \(  xy \) with stricter bounds on \( x \).}
+	\caption{McCormick relaxation with tighter bounds on $ x $.}
 	\label{fig:mccormick_bounds_1}
 \end{figure}
-
-Figures \ref{fig:mccormick_1_upper} and \ref{fig:mccormick_1_lower} present the results when \( x \) is more tightly bounded, specifically \( -2 \leq
-x \leq 0 \).
-One can observe that the maximum deviation is considerably reduced compared to the previous scenario, indicating that tighter bounds yield a more
-accurate relaxation.
+Figures \ref{fig:mccormick_1_upper} and \ref{fig:mccormick_1_lower} show the results when $ x $ is more tightly bounded, specifically $ -2 \leq x
+	\leq 0 $.
+It is also clear that the maximum deviation is significantly reduced compared to the previous scenario, demonstrating that tighter bounds lead to a
+more accurate relaxation.
 
 \subsubsection{Improve Bounds}
 
-To improve the bounds of the McCormick relaxation, we can use tighter bounds for the variables involved in the bilinear terms.
-By reducing the range of the variables, we can achieve a more accurate approximation of the bilinear terms.
-This can be done by analyzing the specific problem and determining the realistic bounds for the variables.
+To refine the McCormick relaxation bounds, we enforce tighter limits on the variables in the bilinear terms.
+Narrower ranges yield a more accurate approximation of these products by reducing conservatism in the relaxation.
 
-For example, if we know that the variable \( x \) is always within a smaller range, such as \( -1 \leq x \leq 1 \), we can use these tighter bounds
-to improve the McCormick relaxation.
-Similarly, if the variable \( y \) is within a smaller range, such as \( 0 \leq y \leq 25 \), we can use these bounds to achieve a more accurate
-approximation.
+For example, if the variable $ x $ is always in the range $-1 \leq x \leq 1$ and $ y $ is within $ 0 \leq y \leq 25 $, applying these stricter bounds
+enhances the approximation accuracy.
 
-To apply tighter bounds to the velocity, we can use the known current velocity and the maximum and minimum acceleration values.
-This allows us to provide a more accurate range for the velocity at each time point, especially for the first few time points.
+For the vehicle velocity, we can derive tighter bounds using the current velocity and the known acceleration limits.
+Let $ v_0 $ be the current velocity, $\underline{a}$ the minimum acceleration, and $\overline{a}$ the maximum acceleration.
+Then the velocity at the next time step $ v_1 $ is bounded by:
 
-Let \( v_0 \) be the current velocity, \( \underline{a} \) be the minimum acceleration, and \( \overline{a} \) be the maximum acceleration.
-The velocity at the next time point \( v_1 \) can be bounded as follows:
+\[ v_1 \in \Bigl[v_0 + \underline{a}\Delta t,\ v_0 +
+		\overline{a}\Delta t\Bigr] \] where $ \Delta t $ is the time step.
 
-\[ v_1 \in [v_0 + \underline{a} \Delta t, v_0 +
-		\overline{a} \Delta t] \] where \( \Delta t \) is the time step.
-
-For subsequent time points, we can iteratively apply these bounds to obtain tighter ranges for the velocity.
-For example, the velocity at the second time point \( v_2 \) can be bounded as:
+By iteratively applying these bounds for subsequent time steps, we can obtain increasingly precise constraints for the velocity.
+This leads to a tighter and more efficient McCormick relaxation for the bilinear terms.
 
 \[ v_2 \in [v_0 + 2\underline{a} \Delta t, v_0 +
 		2\overline{a} \Delta t] \]
-
-By applying these tighter bounds, we can improve the accuracy of the McCormick relaxation for the
-bilinear terms involving the velocity.
-This results in a more precise and efficient representation of the vehicle's motion, which is essential for accurate path tracking and motion
-planning.
-
-In summary, improving the bounds of the McCormick relaxation involves: 1.
-Analyzing the specific problem to determine realistic bounds for the variables.
+In summary, enhancing the McCormick relaxation bounds involves the following steps:
+1.
+Analyzing the problem in detail to determine accurate and realistic variable limits.
 2.
-Using tighter bounds for the variables involved in the bilinear terms.
+Employing tighter bounds for the variables that appear in the bilinear terms.
 3.
-Applying these tighter bounds to achieve a more accurate approximation of the bilinear terms.
+Using these refined limits to achieve a more precise approximation of the bilinear expressions.
 
-This approach ensures that the McCormick relaxation provides a more precise and efficient representation of the bilinear terms, which is crucial for
-the accurate modeling and control of vehicle dynamics.
+This strategy ensures that the McCormick relaxation delivers a more accurate and efficient representation of the bilinear terms, which is critical
+for the precise modeling and control of vehicle dynamics.
 
 \subsection{Final Model} \label{subsec:bicycle_resulting_model}
 
-The final linearized state transition model for the Frenet frame, incorporating the linearized non-linear terms and the McCormick relaxation for the bilinear terms, is given by:
+The final approximated dynamics model in the Frenet frame, which integrates the linearized non-linear terms with the McCormick relaxation for the bilinear terms, is given by:
 
 \begin{equation}
 	\label{eq:kst_final_dynamics}
-	f(s, n, \xi, v, \delta, a_{x,b}, v_\delta )\approx
+	\tilde{f}_{kst}(x_{kst}, u_{kst}) =
 	\begin{bmatrix}
 		v (\cos(\xi_0) + \sin(\xi_0)\xi_0) - \sin(\xi_0) w_{v,\xi}                                                                                                 \\[8pt]
 		v (\sin(\xi_0) - \cos(\xi_0)\xi_0) + \cos(\xi_0) w_{v,\xi}                                                                                                 \\[8pt]
 		\frac{v}{l_{wb}} (\tan(\delta_0) - \frac{\delta_0}{\cos^2(\delta_0)}) + \frac{w_{v,\delta}}{\cos^2(\delta_0)}  - a_{i(s)} w_{s,\dot{s}} - b_{i(s)} \dot{s} \\[8pt]
-		a_{x,b}                                                                                                                                                    \\[8pt]
+		a                                                                                                                                                          \\[8pt]
 		v_\delta
 	\end{bmatrix}
 \end{equation}
-Where $w_{v,\xi}$, $w_{v,\delta}$, and $w_{s,\dot{s}}$ are auxiliary variables introduced by the McCormick relaxation to approximate the bilinear
+Here, the auxiliary variables $w_{v,\xi}$, $w_{v,\delta}$, and $w_{s,\dot{s}}$ are introduced via the McCormick relaxation to linearize the bilinear
 terms $v\xi$, $v\delta$, and $s\dot{s}$, respectively.
-The Curvature is treated as a piece-wise linear function, where $a_{i(s)}$ and $b_{i(s)}$ are the slope and intercept of the linear function in the
-interval $[s_{i-1}, s_i]$, which can be select by the position $s$.
-The index will be treated as a constant during planing for each time point, which we can achieve by predicted the road segment at each time point.
-The additional constraints for the McCormick relaxation are:
+The curvature is modeled as a piece wise linear function, where $a_{i(s)}$ and $b_{i(s)}$ denote the slope and intercept for the interval $[s_{i-1},
+			s_i]$, selected according to the current value of $s$.
+For planning purposes, the index $i(s)$ will be treated as a constant at each time step by predicting the relevant road segment.
+The following additional constraints enforce the McCormick relaxation:
 \begin{figure}[h]
 	\centering
 	\begin{subfigure}[b]{0.3\textwidth}
@@ -366,57 +305,282 @@ The additional constraints for the McCormick relaxation are:
 \end{figure}
 
 \subsubsection{Coupling Constraints} \label{sec:kst_coupling_constraints}
-The coupling constraints are simple as \[ s\in[\underline{s}, \overline{s}], n\in[\underline{n}(s), \overline{n}(s)], \xi \in [\underline{\xi},
-		\overline{\xi}], v\in[\underline{v}, \overline{v}], \delta \in [\underline{\delta}, \overline{\delta}], \] \[ v_\delta \in [\underline{v_\delta},
-		\overline{v_\delta}], a_{x,b} \in [\underline{a}_{x,b}, \overline{a}_{x,b}\min\{1, \frac{v_S}{v}\}] \] where $v_S$ is parameter which is used to
-encounter limiting engine power and breaking power.
+% Revised introduction to coupling constraints
+The coupling constraints limit the state and control variables to ranges that reflect vehicle performance and road conditions.
+In our optimization setup, these constraints help maintain realistic and consistent bounds.
+They are specified as follows:
 
-Last but not least we have to consider the friction circle.
-\[
-	\sqrt{a_{x,b}^2 + (\frac{v^2}{l_{wb}} \tan(\delta))^2} \leq a_{max}
-\]
-Utilizing that $\tan(\delta) \leq \frac{\tan(\overline{\delta})}{\overline{\delta}}\delta$ leads to a bit more conservative constraint.
-\[
-	a_{x,b}^2 + (\frac{1}{l_{wb}}\frac{\tan(\overline{\delta})}{\overline{\delta}})^2 v^4 \delta^2 \leq a_{max}^2
-\]
+\begin{align}
+	 & s \in [\underline{s}, \overline{s}], \quad n \in [\underline{n}(s), \overline{n}(s)], \quad \xi
+	\in [\underline{\xi}, \overline{\xi}], \quad v \in [\underline{v}, \overline{v}], \quad \delta \in [\underline{\delta}, \overline{\delta}] \label{eq:coupling_kst_0} \\
+	 & v_\delta \in [\underline{v_\delta}, \overline{v_\delta}], \quad a \in \Bigl[\underline{a}_{x,b},\, \overline{a}_{x,b}\min\Bigl\{1,
+		\frac{v_S}{v}\Bigr\}\Bigr] \label{eq:coupling_kst_1}
+\end{align}
+where $ v_S $ is a parameter representing a scaling factor, which is used to encounter limiting engine power and
+breaking power.
 
-Next, we derive an upper bound for the term \(v^4 \delta^2\).
-This term appears in the friction circle constraint and can significantly impact the vehicle's dynamics.
-By finding an upper bound, we can simplify the constraint and ensure that the model remains computationally efficient while maintaining accuracy.
+Finally, we must consider the friction circle constraint.
+\begin{equation}
+	\sqrt{a^2 + (\frac{v^2}{l_{wb}} \tan(\delta))^2} \leq a_{max}
+	\label{eq:friction_circle}
+\end{equation}
+We define $v^* := max\{|\underline{v}|, |\overline{v}|\}$ and $\delta^* := max\{|\underline{\delta}|, |\overline{\delta}|\}$.
+Utilizing that $\tan(\delta) \leq \frac{\tan(\delta^*)}{\delta^*}\delta$ leads to a bit more conservative constraint.
+\begin{equation}
+	a^2 + (\frac{1}{l_{wb}}\frac{\tan(\delta^*)}{\delta^*})^2 v^4 \delta^2 \leq a_{max}^2
+	\label{eq:friction_circle_stricter}
+\end{equation}
 
-\subsubsection{Upper Bound for \(v^4 \delta^2\)}
+Next, we derive an upper bound $w$ for the term $v^4 \delta^2$, which will be used to further simplify our friction circle constraints.
 
-Our goal is to find the parameters for the following term: \[ a v^2 + b \delta^2 \] Such that this term equals the term \(v^4 \delta^2\) for the
-absolute maximum values of \(v\) and \(\delta\) $v^* = max\{|\underline{v}|, |\overline{v}|\}$, $\delta^* = max\{|\underline{\delta}|,
-	|\overline{\delta}|\}$.
+\subsubsection{Upper Bound for $v^4 \delta^2$}
 
-We end up with the following values:
+We are applying a diamond shaped set, by introducing the hyperplanes:
+\begin{align}
+	d_v  v + d_\delta  \delta \leq w \label{eq:first_hyperplane} \\
+	d_v  v - d_\delta  \delta \leq w                             \\
+	-d_v v + d_\delta \delta  \leq w                             \\
+	-d_v v - d_\delta \delta  \leq w \label{eq:last_hyperplane}
+\end{align}
+where $d_v = \frac{1}{v^*}$ and $d_\delta = \frac{1}{\delta^*}$.
 
-\[ a = max\left\{\frac{(v^*)^4 (\delta^*)^2 - \frac{(\delta^*)^3}{v^* + \delta^*}}{(v^*)^2},
-	0\right\} \]
+To determine an appropriate value for $w$, we set \eqref{eq:friction_circle_stricter} as an equality and solve for $\delta$.
+\begin{equation}
+	\delta = h(a) \frac{1}{v^2}
+	\label{eq:delta_v_relation}
+\end{equation}
+where \[h(a):=\frac{l_{wb} \delta^*}{\tan(\delta^*)}\sqrt{{a_{max}}^2 - a^2}\]
+We want to push the hyperplane as close the bounds as possible, such that is tangent to the bounds, which lets us solve for $w$ by the deriving \eqref{eq:delta_v_relation} after $v$ and setting it equal to slope of the first hyperplane.
+\begin{equation}
+	\frac{\partial\delta}{\partial v} = -2 h(a) \frac{1}{v^3} \overset{!}{=} -\frac{d_v}{d_\delta} \iff v = \sqrt[3]{2h(a)\frac{d_\delta}{d_v}}
+\end{equation}
+Substituting the value of $v$ into \eqref{eq:delta_v_relation}, we get:
+\begin{equation}
+	\delta = h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}
+\end{equation}
+These values for $v$ and $\delta$ must lie on the first hyperplane, resulting in:
+\begin{equation}
+	w = w(a) = d_v \sqrt[3]{2h(a)\frac{d_\delta}{d_v}} + d_\delta h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}
+\end{equation}
 
-\[ b = \begin{cases}
-		(v^*)^4                         & \text{if } a = 0 \\
-		\frac{\delta^*}{v^* + \delta^*} & \text{otherwise}
-	\end{cases} \]
+To obtain a convex upper bound for $w$, we fit an irrational function of the form:
+\begin{equation}
+	w(a) \approx \tilde{w}(a) := c_1 - \frac{1}{(|a| - c_2)^{2n}}
+	\label{eq:fitting_irrational}
+\end{equation}
+where $c_1 = w(0)$ and $c_2 = a_{max} + c_1^{-\frac{1}{2n}}$.
 
-We can use this upper bound to enforce the friction circle by the following constraint:
+Based on our vehicle parameters $\delta^*=0.910$, $l_{wb}=2.4$, and $a_{max}=11.5$, we evaluated this approach on a velocity limit of $v^*=14$.
+Figure \ref{fig:w_vs_a} illustrates the function $w(a)$ and its approximation with $n=2$ as a function of the acceleration $a$.
 
-\[ a_{x,b}^2 +
-	(\frac{1}{l_{wb}}\frac{\tan(\overline{\delta})}{\overline{\delta}})^2 (a v^2 + b \delta^2) \leq a_{max}^2 \]
+\begin{figure}[h]\centering
+	\begin{tikzpicture}
+		\begin{axis}[
+				xlabel={$a$},
+				ylabel={$w$},
+				width=0.6\textwidth,
+				height=0.4\textwidth,
+				grid=major,
+				legend pos=south west,
+				xmin=-12, xmax=12,
+				ymin=0
+			]
+			\addplot[domain=-11.5:11.5,samples=400, blue, thick] { (1/14)*((51.282*sqrt(132.25 - x^2))^(1/3)) + (1/0.910)*(1.667*sqrt(132.25 - x^2))*((51.282*sqrt(132.25 - x^2))^(-2/3)) };
+			\addlegendentry{$w(a)$}
+			\addplot[domain=-11.5:11.5,samples=400,red, thick] { 0.9040595325562741-1/((abs(x)-12.525535603937156)^4) };
+			\addlegendentry{\eqref{eq:fitting_irrational} for $n=2$}
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Plot of $w$ versus $a$ and its approximation.}
+	\label{fig:w_vs_a}
+\end{figure}
 
-Since $a_{x,b}$,
-$v$, and $\delta$ are the only variables in this constraint and each of them only occur squared, without any interaction, we have a convex constraint
-which we can use to enforce the friction circle.
+% \pgfkeys{/pgf/fpu=true}
+The following figures \ref{fig:resulting_diamonds} visualize the friction circle \eqref{eq:friction_circle}, its tighter constraint
+\eqref{eq:friction_circle_stricter} and the resulting diamond-shaped bounds for $v$ and $\delta$ for a fixed value of $a$.
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+					xlabel={$v$},
+					ylabel={$\delta$},
+					width=\textwidth,
+					height=0.9\textwidth,
+					axis lines=middle,
+					grid=major,
+					legend pos=north west,
+					xmin=-17, xmax=17,
+					ymin=-2, ymax=2,
+					legend to name=namedlegend, % Shared legend
+					legend style={draw=none, cells={anchor=west}, font=\footnotesize},
+				]
+
+				% Define constants
+				\def\vmax{14}
+				\def\deltaMax{0.91}
+				\def\lwb{2.4}
+				\def\amax{11.5}
+				\def\avar{0}
+
+				% Diamond constraints
+				\def\dv{1/\vmax}
+				\def\ddelta{1/\deltaMax}
+				\def\wvar{0.9040595325562741}
+
+				\addplot[domain=-1:14, samples=400, dashed, thick, black]
+				({x},{(\wvar-\dv*x )*\deltaMax});
+
+				% Improved friction constraint
+				\addplot[domain=2:15, samples=200, thick, blue]
+				({x}, {sqrt(\amax^2 - \avar^2) * (1/(x^2)) * (\lwb * \deltaMax) / tan(\deltaMax r)});
+
+				% Friction-circle constraints
+				\addplot[domain=0.1:15, samples=200, thick, red]
+				({x}, {rad(atan(\amax*\lwb/(x^2)))});
+
+				\addplot[domain=-1:14, samples=400, dashed, thick, black]
+				({x},{(\dv*x-\wvar )*\deltaMax});
+
+				\addplot[domain=-14:1, samples=400, dashed, thick, black]
+				({x},{(\wvar+\dv*x )*\deltaMax});
+
+				\addplot[domain=-14:1, samples=400, dashed, thick, black]
+				({x},{(-\wvar - \dv*x )*\deltaMax});
+
+				% Friction-circle constraints
+				\addplot[domain=0.1:15, samples=200, thick, red]
+				({x}, {-rad(atan(\amax*\lwb/(x^2)))});
+
+				\addplot[domain=-15:-0.1, samples=200, thick, red]
+				({x}, {rad(atan(\amax*\lwb/(x^2)))});
+
+				\addplot[domain=-15:-0.1, samples=200, thick, red]
+				({x}, {-rad(atan(\amax*\lwb/(x^2)))});
+
+				% Improved friction constraint
+				\addplot[domain=-15:-2, samples=200, thick, blue]
+				({x}, {sqrt(\amax^2 - \avar^2) * (1/(x^2)) * (\lwb * \deltaMax) / tan(\deltaMax r)});
+
+				\addplot[domain=2:15, samples=200, thick, blue]
+				({x}, {-sqrt(\amax^2 - \avar^2) * (1/(x^2)) * (\lwb * \deltaMax) / tan(\deltaMax r)});
+
+				\addplot[domain=-15:-2, samples=200, thick, blue]
+				({x}, {-sqrt(\amax^2 - \avar^2) * (1/(x^2)) * (\lwb * \deltaMax) / tan(\deltaMax r)});
+
+				% Define legend
+				\legend{Diamond Constraint, Tighter Friction Constraint, Friction Constraint}
+			\end{axis}
+		\end{tikzpicture}
+		\caption{Plot of the resulting diamond at $a=0$.}
+		\label{fig:resulting_diamond_0}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+					xlabel={$v$},
+					ylabel={$\delta$},
+					width=\textwidth,
+					height=0.9\textwidth,
+					axis lines=middle,
+					grid=major,
+					legend pos=north west,
+					xmin=-13, xmax=13,
+					ymin=-2, ymax=2,
+				]
+
+				% Define constants
+				\def\vmax{14}
+				\def\deltaMax{0.91}
+				\def\lwb{2.4}
+				\def\amax{11.5}
+				\def\avar{11}
+
+				% Diamond constraints
+				\def\dv{1/\vmax}
+				\def\ddelta{1/\deltaMax}
+				\def\wvar{0.5995469115149037}
+
+				\addplot[domain=-1:10, samples=400, dashed, thick, black]
+				({x},{(\wvar-\dv*x )*\deltaMax});
+
+				\addplot[domain=-1:10, samples=400, dashed, thick, black]
+				({x},{(\dv*x-\wvar )*\deltaMax});
+
+				\addplot[domain=-10:1, samples=400, dashed, thick, black]
+				({x},{(\wvar+\dv*x )*\deltaMax});
+
+				\addplot[domain=-10:1, samples=400, dashed, thick, black]
+				({x},{(-\wvar - \dv*x )*\deltaMax});
+
+				% Friction-circle constraints
+				\addplot[domain=0.1:15, samples=200, thick, red]
+				({x}, {rad(atan(sqrt(\amax^2 - \avar^2)*\lwb/(x^2)))});
+
+				\addplot[domain=0.1:15, samples=200, thick, red]
+				({x}, {-rad(atan(sqrt(\amax^2 - \avar^2)*\lwb/(x^2)))});
+
+				\addplot[domain=-15:-0.1, samples=200, thick, red]
+				({x}, {rad(atan(sqrt(\amax^2 - \avar^2)*\lwb/(x^2)))});
+
+				\addplot[domain=-15:-0.1, samples=200, thick, red]
+				({x}, {-rad(atan(sqrt(\amax^2 - \avar^2)*\lwb/(x^2)))});
+
+				% Improved friction constraint
+				\addplot[domain=2:15, samples=200, thick, blue]
+				({x}, {sqrt(\amax^2 - \avar^2) * (1/(x^2)) * (\lwb * \deltaMax) / tan(\deltaMax r)});
+
+				\addplot[domain=-15:-2, samples=200, thick, blue]
+				({x}, {sqrt(\amax^2 - \avar^2) * (1/(x^2)) * (\lwb * \deltaMax) / tan(\deltaMax r)});
+
+				\addplot[domain=2:15, samples=200, thick, blue]
+				({x}, {-sqrt(\amax^2 - \avar^2) * (1/(x^2)) * (\lwb * \deltaMax) / tan(\deltaMax r)});
+
+				\addplot[domain=-15:-2, samples=200, thick, blue]
+				({x}, {-sqrt(\amax^2 - \avar^2) * (1/(x^2)) * (\lwb * \deltaMax) / tan(\deltaMax r)});
+			\end{axis}
+		\end{tikzpicture}
+		\caption{Plot of the resulting diamond at $a=11$.}
+		\label{fig:resulting_diamond_1}
+	\end{subfigure}
+	% Shared legend
+	\ref{namedlegend}
+	\caption{Comparison of the resulting diamond constraints for different acceleration values.}
+	\label{fig:resulting_diamonds}
+\end{figure}
+
+In conclusion, this approach constructs a convex approximation of the friction circle and allows for weighting either $v$ or $\delta$ by setting
+$v^*$.
+The final constraint can be stated as follows:
+\begin{equation}
+	a^2 + (\frac{1}{l_{wb}}\frac{\tan(\delta^*)}{\delta^*})^2 w \leq a_{max}^2
+	\label{eq:final_friction_circle}
+\end{equation}
+where $w$ is new introduced auxiliary variable, which is bounded by:
+\begin{equation}
+	0 \leq w \leq \tilde{w}(a)
+	\label{eq:final_friction_circle_bounds}
+\end{equation}
+Our final model is now complete and ready for use in the optimization process.
+It is represented by the tuple
+\begin{equation}
+	M_{kst}=(x_{kst}, u_{kst}, \tilde{f}_{kst}, \{w_{v,\xi}, w_{v,\delta}, w_{s,\dot{s}}, w\}, C) \label{model:kst} \end{equation} where $C$ consists of
+the coupling constraints \eqref{eq:coupling_kst_0}, \eqref{eq:coupling_kst_1}, the McCormick bounds \eqref{fig:mccormick_constraints}, the introduced
+hyperplanes \eqref{eq:first_hyperplane}-\eqref{eq:last_hyperplane}, and our approximated friction circle \eqref{eq:final_friction_circle} with
+\eqref{eq:final_friction_circle_bounds}.
 
 % \subsection{Linearize Quadratic Term}
 
-% In this section, we will linearize the quadratic term \(s^2\) in the state transition model.
+% In this section, we will linearize the quadratic term $s^2$ in the state transition model.
 % For quadratic terms, which occur in equality constraints, we can use the McCormick relaxation technique, which is typically used for bilinear terms,
 % but can also be applied to quadratic terms.
 % However, in the case of quadratic terms, we can achieve better bounds.
 % For the lower bound, which must be convex, we can simply use the term itself, as a quadratic term is always convex.
-% The best upper bound can be obtained by connecting the points defined by the bounds on \(s\).
+% The best upper bound can be obtained by connecting the points defined by the bounds on $s$.
 % \[
 % 	s^2 \leq (\underline{s} + \overline{s})s - \underline{s}\overline{s}
 % \]

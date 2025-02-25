@@ -1,124 +1,60 @@
 \section{Convex Discrete-Time Optimization} \label{sec:convex_discrete_time_optimization}
 
-\subsection{Complexity} \label{subsec:complexity}
+\subsection{Computational Complexity} \label{subsec:complexity}
 
-Finding an exact solution in a dynamic environment is highly challenging.
-The problem is inherently non-convex, and solvers cannot directly operate over a function space.
+Finding an exact solution to the optimal trajectory planning problem, as formulated in Section \ref{sec:problem_formulation}, is generally
+computationally intractable.
+Specifically, this problem belongs to the class of PSPACE-Hard problems, meaning that the required computational resources grow exponentially with
+the problem size.
+The complexity arises from several factors, including the continuous nature of the state space, the non-convex constraints imposed by vehicle
+dynamics, and the need to account for obstacles and environmental uncertainties over a planning horizon.
+This challenge is closely related to the classic Movers' Problem [14], which is PSPACE- Hard and involves finding a collision-free path for a robot
+in an environment with obstacles.
+Motion planning for autonomous vehicles introduces additional complexities, such as dynamic constraints and time dependencies, further increasing the
+computational burden.
+Given these challenges, exact solutions are impractical for real-time applications.
+Instead, numerical optimization techniques, heuristics, and approximate solvers are employed to compute near-optimal solutions efficiently.
+The following sections describe the methods used in this work to address these challenges while ensuring computational feasibility.
 
-\subsection{Numerical Methods} \label{subsec:numerical_methods}
+\subsection{Discrete-Time Problem Formulation}
 
-To address this problem numerically, we first define the constraints by modeling the vehicle and its environment.
-We then reformulate the problem, discretize it, and approximate it.
-Our goal is to obtain a solution that is both computationally efficient and reliable.
+To make the trajectory planning problem more tractable, we discretize the continuous- time problem into a finite set of time steps.
+Let $\mathcal{X}$ denote the set of valid vehicle states and $\mathcal{U}$ the set of feasible control inputs.
 
-To achieve this, we employ a convex solver, necessitating adherence to disciplined convex programming (DCP) rules.
-
-\subsection{Variational Method} \label{subsec:variational_method}
-
-\subsubsection{Direct Methods}
-
-To project the function space into a finite-dimensional vector space, we define a set of basis functions that span a subspace of the original space.
-A function in this subspace is then represented as a linear combination of the basis functions:
-
-\begin{equation}
-	\tilde{\pi}(t) = \sum_{i=1}^{N} \pi_i \phi_i(t)
-\end{equation}
-
-While this approach restricts the search space, potentially deviating from the true optimal solution, it allows for numerical tractability.
-One of the most widely used techniques for trajectory approximation is numerical integration with collocation.
-In this approach, the trajectory is required to satisfy the constraints at a discrete set of time points $\{t_i\}_{i=1}^{m}$.
-Numerical integration techniques are then employed to approximate the trajectory between these points.
-
-\subsubsection{Discrete-Time Problem Formulation}
-
-Using direct methods, we now reformulate the optimization problem over a finite-dimensional vector space.
-
-Let $\mathcal{X}$ be the set of valid vehicle states and $\mathcal{U}$ the set of all feasible control inputs.
-
-The trajectory is defined at discrete time points $\{t_i\}_{i=1}^{m}$, where $\pi(t_i) = x_i$.
-The objective function is then defined over $\mathcal{X} \times \mathcal{U}$ as $J: \mathcal{X} \times \mathcal{U} \to \mathbb{R}$.
+The trajectory is defined at discrete time points $\{t_i\}_{i=1,\dots,m}$, where $\pi(t_i) = x_i$.
+The objective function is then formulated over $\mathcal{X} \times \mathcal{U}$ as $J: \mathcal{X} \times \mathcal{U} \to \mathbb{R}$.
 
 \subsubsection{Problem Definition: Discrete-Time Optimal Trajectory Planning}
 
-Given a 7-tuple $(\mathcal{X}, \mathcal{U}, x_{\text{initial}}, X_{\text{goal}}, f, J, \{t_i\}_{i=1}^{m})$, the objective is to find:
+Given a 7-tuple $(\mathcal{X}, \mathcal{U}, x_{\text{initial}}, X_{\text{goal}}, f, J, \{t_i\}_{i=1,\dots,m})$, find:
 
 \begin{align}
 	u^* & = \underset{u \in \mathcal{U}^{T-1}}{\operatorname{arg\,min}} \sum_{i=1}^{T-1}
-	J(x_{i+1}, u_{i})                                                                                                                                      \\ \text{s.t.
-	}   & \quad x_1 = x_{\text{initial}}                                                                                                                   \\
-	    & \quad x_T \in X_{\text{goal}} \subseteq \mathcal{X}                                                                                              \\
-	    & \quad (x_i, u_i) \in \mathcal{C} \subseteq \mathcal{X} \times \mathcal{U}      & \forall i \in \{1, \dots, m-1\} \label{eq:coupling_constraints} \\
-	    & \quad x_{i+1} = x_i + (t_{i+1} - t_i) f(x_i, u_i)                              & \forall i \in \{1, \dots, m-1\} \label{eq:discrete_dynamics}
+	J(x_{i+1}, u_{i})                                                                                                                                              \\ \text{s.t.
+	}   & \quad x_1 = x_{\text{initial}}                                                                                                                           \\
+	    & \quad x_T \in X_{\text{goal}} \subseteq \mathcal{X}                                                                                                      \\
+	    & \quad (x_i, u_i) \in \mathcal{C} \subseteq \mathcal{X} \times \mathcal{U}      & \text{for all } i \in \{1, \dots, m-1\} \label{eq:coupling_constraints} \\
+	    & \quad x_{i+1} = x_i + (t_{i+1} - t_i) f(x_i, u_i)                              & \text{for all } i \in \{1, \dots, m-1\} \label{eq:discrete_dynamics}
 \end{align}
 
-Given an initial state $x_{\text{initial}}$ and a control sequence over the time horizon, we use the vehicle model dynamics $f$ and numerical
-integration to compute the state at each time step.
-This formulation introduces a coupling constraint $\mathcal{C}$ that governs the relationship between state and control inputs.
-
-One challenge is that this formulation does not yet conform to disciplined convex programming (DCP) principles.
-We will address this issue by discussing applicable modeling techniques, including approximations and their implications, focusing first on the point
-mass model.
-
-\subsubsection{Convex Optimization}
-
-A set $K\subset \mathbb{R}^n$ is called convex if, for all $x, y\in K$ and $\lambda\in [0, 1]$, the following condition holds
-
-\begin{equation}
-	\lambda x + (1-\lambda) y \in K
-	\label{eq:convex_set_criteria}
-\end{equation}
-
-A real-valued function $f$ defined over a convex subset $X$ of a vector space is called convex if, for all $x,y\in X$ and $\lambda\in [0,1]$, the inequality below is satisfied:
-
-\begin{equation}
-	f(\lambda x + (1-\lambda) y) \leq \lambda f(x) + (1-\lambda) f(y)
-	\label{eq:convex_function_criteria}
-\end{equation}
-
-A function $f$ is said to be concave if $-f$ is convex.
-
-An optimization problem is defined by a feasible set $X\subset \mathbb{R}^n$ and an objective function $f:X\to \mathbb{R}$.
-The goal is to find:
-
-\[ min_{x\in X}f(x) \]
+This formulation introduces a coupling constraint C that imposes restrictions on both the state and control inputs.
+The dynamics are approximated using a first-order Euler integration scheme, where the state at time $t_i+1$ is computed based on the state at time
+$t_i$ and the control input $u_i$.
 
 \subsubsection{Disciplined Convex Programming (DCP)}
 
-For an optimization problem to be efficiently and reliably solvable, it must adhere to the principles of Disciplined Convex
-Programming (DCP).
-These rules can be summarized as follows:
-
-An optimization problem $(X,f)$ satisfies the DCP rules if the feasible set $X$ is defined by a series of equality and inequality constraints, where each constraint conforms to one of the following patterns:
+The DCP framework imposes specific rules on how optimization problems must be formulated, which helps in verifying the convexity of the problem and
+guarantees that the problem can be solved efficiently.
+The key principles of DCP are as follows:
 \begin{itemize}
-	\item $affine = affine$
-	\item $convex\leq concave$
-	\item $concave\geq convex$
-\end{itemize}
-Additionally, the objective function $f$ must be convex.
-By adhering to these rules, we ensure that state-of-the-art solvers can efficiently find optimal solutions.
-
-To be more precise, each constraint in a convex optimization problem consists of a left-hand side (LHS) and a right-hand side (RHS), both of which
-can be expressed as functions $f:\mathbb{R}^n\to \mathbb{R}$ and $g:\mathbb{R}^n\to \mathbb{R}$.
-The DCP rules can be interpreted as follows:
-\begin{itemize}
-	\item $affine = affine$ as $f, g$ are real-valued affine functions
-	\item $convex\leq concave$ as $f$ is convex over $\mathbb{R}^n$ and $g$ is concave over $\mathbb{R}^n$
-	\item $concave\geq convex$ as $f$ is concave over $\mathbb{R}^n$ and $g$ is convex over $\mathbb{R}^n$
+	\item The objective function must be convex if it is to be minimized, or concave if it is to
+	      be maximized.
+	\item Constraints must be formulated in one of the following forms: \begin{itemize}
+		      \item An equality constraint between affine expressions: $\text{affine} = \text{affine}$
+		      \item An inequality constraint where a convex function is less than or equal to a
+		            concave function: $\text{convex} \leq \text{concave}$
+	      \end{itemize}
 \end{itemize}
 
-If a problem adheres to these rules, it is considered a convex optimization problem.
-However, these rules are not comprehensive.
-It is possible to create valid convex expressions and models that fall outside the scope of these rules.
-In such cases, additional analysis may be needed to verify convexity.
-
-Advanced solvers, such as 'CVX', apply these rules to systematically determine whether an expression is affine, convex, or concave.
-For further details on how these solvers handle disciplined convex programming, refer to their documentation:
-https://web.cvxr.com/cvx/beta/doc/dcp.html.
-
-Since solvers cannot operate directly on function spaces, the first step is to approximate the infinite-dimensional space of trajectories using a
-finite-dimensional vector space.
-Additionally, we transform the constraints, originally defined by set membership and predicates, into a system of equalities and inequalities, which
-are compatible with standard solver inputs.
-
-An alternative approach involves using penalty or barrier functions to incorporate constraints into the objective function.
-
+The use of DCP in this work involves defining the cost function and constraints in a manner that satisfies the DCP rules.
+We will use the term "convex constraint" or "convex form" to refer to constraints that adhere to these rules.

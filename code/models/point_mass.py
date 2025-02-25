@@ -284,8 +284,6 @@ class PointMassModel(AbstractVehicleModel):
         if dt is None:
             raise ValueError("dt must be specified")
         # choose one of the four approaches here:
-        # return self._approach_2(state_vec, control_vec, dt, car_cur_state.steering_angle, car_cur_state.orientation)
-        return self._approach_2_initial(state_vec, control_vec, dt, car_cur_state.orientation)
         return self._approach_1(state_vec, control_vec, dt, car_cur_state.steering_angle)
 
     def _approach_1(self, state_vec, control_vec, dt, cur_steering_angle):

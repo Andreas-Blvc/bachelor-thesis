@@ -1,7 +1,9 @@
 \section{Motion Planning Using Point Mass} \label{sec:motion_planning_using_point_mass}
 
-In Section \ref{section:basic_pm}, we introduced the point mass model with global coordinates and no orientation.
+In Section \ref{subsec:point_mass_model}, we introduced the point mass model with global coordinates and no orientation.
 We now extend this model to the Frenet frame, which allows for a more structured approach to motion planning along a predefined road.
+The idea and the equations are based on the work of Eilbrecht et al.
+\cite{eilbrecht_challenges_2020}.
 
 To achieve this, we first define the curvature of the reference path, which quantifies the rate of change of the tangent angle with respect to arc length:
 \begin{equation}
@@ -13,8 +15,8 @@ Additionally, let $\psi$ be the orientation of the vehicle, and define the align
 \end{equation}
 This alignment error measures the deviation of the vehicle's heading from the reference path.
 
-Using these definitions, along with established kinematic relationships and coordinate frame transformations, we can systematically derive the motion
-dynamics in the Frenet frame.
+Using these definitions, along with established kinematic relationships and coordinate frame transformations \cite{eilbrecht_challenges_2020}, we can
+systematically derive the motion dynamics in the Frenet frame.
 These equations describe how the vehicle's velocity components in the body-fixed frame relate to changes in Frenet frame coordinates.
 
 The first-order derivatives are given by:
@@ -39,24 +41,22 @@ where the transformed acceleration terms in the Frenet frame are given by:
 	   \label{def:aytn}
 \end{align}
 
-These expressions incorporate the effects of curvature and alignment, ensuring that motion planning remains accurate and consistent with the road
-geometry.
 In subsequent sections, we will leverage these equations to develop motion planning strategies that optimize trajectory feasibility and control
 performance.
 
 \subsection{Conversion of Global Cartesian Coordinates to Frenet Frame Coordinates} \label{subsec:pm_conversion_of_cartesian_to_frenet}
 
-We now define the state variables $x_{tn}$, which represent the vehicle's position, orientation, and velocities in the Frenet frame, and control inputs $u_{tn}$ for our point mass model in the Frenet frame:
+We now define the state variables $x_0$, representing the vehicle's position, orientation, and velocities in the Frenet frame, along with the control inputs $u_0$ for our point mass model in the Frenet frame:
 
 \begin{equation}
-	x_{tn} = \begin{bmatrix}
-		s       \\
-		n       \\
-		\xi     \\
-		\dot{s} \\
-		\dot{n} \\
+	x_0 = \begin{bmatrix}
+		s       &
+		n       &
+		\xi     &
+		\dot{s} &
+		\dot{n} &
 		\dot{\psi}
-	\end{bmatrix}
+	\end{bmatrix}^T
 \end{equation}
 
 The state vector consists of the Frenet frame coordinates that define the vehicle's location, the alignment error representing the deviation of the
@@ -66,38 +66,36 @@ components.
 We define the following three control inputs:
 
 \begin{equation}
-	u_{tn} = \begin{bmatrix}
-		a_{x} \\
-		a_{y} \\
+	u_0 = \begin{bmatrix}
+		a_{x} &
+		a_{y} &
 		a_\psi
-	\end{bmatrix}
+	\end{bmatrix}^T
 \end{equation}
 
 Using the previously derived equations, we can formulate the model dynamics in the Frenet frame as:
 
 \begin{equation}
-	\label{eq:frenet_frame_pm_dynamics}
-	f_{tn}(x_{tn}, u_{tn}) = \begin{bmatrix}
-		\dot{s}                                   \\
-		\dot{n}                                   \\
-		\dot{\psi} - C(s)\dot{s}                  \\
-		\frac{ a_{x,tn} + 2\dot{n}
-		C(s)\dot{s}+nC'(s)\dot{s}^2 } { 1-nC(s) } \\ a_{y,tn} - C(s)\dot{s}^2(1-nC(s)) \\ a_\psi\end{bmatrix} \end{equation}
+	\label{eq:frenet_frame_pm_dynamics_0}
+	f_0(x_0, u_0) = \begin{bmatrix}
+		\dot{s}                                  \\
+		\dot{n}                                  \\
+		\dot{\psi} - C(s)\dot{s}                 \\
+		\frac{a_{x,tn} + 2\dot{n}
+		C(s)\dot{s}+nC'(s)\dot{s}^2} { 1-nC(s) } \\ a_{y,tn} - C(s)\dot{s}^2(1-nC(s)) \\ a_\psi\end{bmatrix} \end{equation}
 
 With this
 formulation, we are now able to model vehicle motion in the Frenet frame along a predefined road.
-This approach facilitates the definition of road topology constraints in a straightforward manner, ensuring that the resulting constraints align with
-the principles of disciplined convex programming (DCP).
 However, the inclusion of curvature terms introduces non-convexity into the system dynamics.
 In the following section, we will explore methods to address this challenge and develop techniques to handle the resulting non-convex constraints
 effectively.
 
-\subsection{Constraints} \label{subsec:constraints}
+\subsection{System Linearization} \label{subsec:constraints}
 
-First thing we are going to do is that we decouple the input.
-If you take a look at the dynamics equations \ref{eq:frenet_frame_pm_dynamics}, the last two entries both contain the control input $a_x$, $a_y$ if
-you plug in the equations \ref{def:axtn} and \ref{def:aytn}.
-By making the following Assumption.
+First, we decouple the input.
+By examining the dynamics equations \eqref{eq:frenet_frame_pm_dynamics_0} and substituting the equations \eqref{def:axtn} and \eqref{def:aytn}, we
+observe that the last two entries both contain the control inputs $a_x$ and $a_y$.
+We proceed by making the following assumption:
 
 \subsubsection{Assumption: Alignment Error}
 
@@ -106,47 +104,75 @@ Orientation of the vehicle $\psi$ equals the angle of the road $\theta$:
 	\xi = \psi - \theta = 0
 \end{equation}
 which directly implies the following three points, which will help us in further steps:
-\begin{itemize}
-	\item $[a_x, a_y] = [a_{x,tn}, a_{y,tn}]$
-	\item $\dot{\psi} = \dot{\theta} = \frac{d\theta}{ds} \cdot \frac{ds}{dt} = C(s)\dot{s}$
-	\item $a_\psi = \ddot{\psi} = \ddot{\theta} = C'(s) \dot{s}^2 + C(s)\ddot{s}$
-\end{itemize}
+\begin{align}
+	[a_x, a_y] & = [a_{x,tn}, a_{y,tn}]                                                \\
+	\dot{\psi} & = \dot{\theta} = \frac{d\theta}{ds} \cdot \frac{ds}{dt} = C(s)\dot{s} \\
+	a_\psi     & = \ddot{\psi} = \ddot{\theta} = C'(s) \dot{s}^2 + C(s)\ddot{s}
+\end{align}
 
-At first glance seems like we are removing the orientation from our model, but we actually just force the vehicle to always be aligned with the road.
-And since we allow lateral acceleration of the vehicle, it is not fixed to a constant offset to the reference and can still move left or right.
-Once the trajectory has been planned we let further layers handle the problem of finding the correct control namely steering and longitudinal
-acceleration for the vehicle, this will be based on more complex models.
+At first glance, it seems like we are removing the orientation from our model, but we actually just force the vehicle to always be aligned with the
+road.
+And since we allow lateral acceleration of the vehicle, it is not fixed to a constant offset to the reference path and can still move left or right.
 
 With this assumption we end up with dynamics equation, which are affine linear in $a_{x,tn}$ and $a_{y,tn}$.
-(TODO EXPLAIN WHY).
 This allows us to introduce artificial control inputs to linearize the dynamics.
+
 \begin{equation}
-	\label{def:artificial_controls}
+	\label{eq:artificial_controls}
 	\tilde{u} := \begin{bmatrix}
 		u_t \\
 		u_n
-	\end{bmatrix} = \begin{bmatrix}
-		\frac{
-			a_{x,tn} + 2\dot{n}
-		C(s)\dot{s} + nC'(s)\dot{s}^2 }{ 1 - nC(s) } \\ a_{y,tn} - C(s)\dot{s}^2(1 - nC(s))\end{bmatrix} \end{equation}
+	\end{bmatrix} := \begin{bmatrix}
+		\frac{a_{x,tn} + 2\dot{n}
+		C(s)\dot{s}+nC'(s)\dot{s}^2} { 1-nC(s) } \\ a_{y,tn} - C(s)\dot{s}^2(1-nC(s))\end{bmatrix} \end{equation}
 
-In summary, by
-fixing one state variable, which leads to slightly less realistic vehicle model, but which led to affine linear dynamics in the controls inputs.
-This enabled us to introduce artificial variables, which linearizes the dynamics entirely as follows.
+This procedure is
+called Feedback Linearization and described in depth by \cite{khalil_nonlinear_2002}.
+We want to shortly introduce the topic.
+
+\subsubsection{Feedback Linearization}
+
+Feedback linearization is a nonlinear control technique that transforms a nonlinear system into an equivalent linear system by means of a suitable
+change of variables and an appropriate state-feedback law.
+This approach allows one to apply classical linear control design methods to inherently nonlinear systems.
+
+Consider a general nonlinear system of the form:
+\begin{equation}
+	\dot{x} = f(x) + G(x)\,u,
+\end{equation}
+where
+\begin{itemize}
+	\item $x \in \mathbb{R}^n$ is the state vector,
+	\item $f(x)$ represents the system's dynamics,
+	\item $G(x)$ is the input matrix,
+	\item $u \in \mathbb{R}^m$ is the control input vector.
+\end{itemize}
+
+For feedback linearization, we typically assume the system is \emph{fully actuated}, which requires that \[ \text{rank}\bigl(G(x)\bigr) = n, \] i.e.,
+$G(x)$ must be invertible for all $x$ in the region of interest.
+This condition ensures that the control input $u$ directly influences every component of the state vector.
+
+If $G(x)$ is invertible, then we can solve for the control input $u$ in terms of the state $x$, its dynamics, and a new artificial control input $v$.
+Specifically,
+\begin{equation}
+	u = G(x)^{-1}\,\bigl[v - f(x)\bigr].
+\end{equation}
+By choosing $u$ in this way, the nonlinear dynamics $f(x)$ are effectively canceled, leaving the new input $v$ to be designed (using standard linear
+control techniques) to achieve the desired closed-loop behavior.
 
 \subsubsection{Resulting Simplified Model}
 
-Since the orientation is fixed, we can remove it from the states variables, and we end up with the following states variables.
+Since the orientation is fixed, we can remove it from the state variables, and we end up with the following state variables.
 \[
-	x_{tn} = \begin{bmatrix} s, & n, & \dot{s}, & \dot{n} \end{bmatrix}
+	x_1 = \begin{bmatrix} s, & n, & \dot{s}, & \dot{n} \end{bmatrix}^T
 \]
-We now use the new defined artificial controls inputs, for controlling the system.
+We use the new defined artificial controls inputs, for controlling the system.
 \[
-	\tilde{u} = \begin{bmatrix} u_t, & u_n \end{bmatrix}
+	\tilde{u} = \begin{bmatrix} u_t, & u_n \end{bmatrix}^T
 \]
 The dynamics are given by:
 \begin{equation}
-	f(x_{tn}, \tilde{u}) = \begin{bmatrix}
+	f_1(x_1, \tilde{u}) = \begin{bmatrix}
 		\dot{s} \\
 		\dot{n} \\
 		u_t     \\
@@ -157,22 +183,22 @@ The dynamics are given by:
 
 \subsubsection{Constraints}
 
-We have tackled the dynamics constraints of our discrete-time optimal trajectory planning problem \ref{eq:discrete_dynamics}.
-Next we are going to define our constraints coupling constraints on the states variables and the controls inputs and see which Problem arise and how
-we can deal with them.
+We have addressed the dynamics constraints of our discrete-time optimal trajectory planning problem \eqref{eq:discrete_dynamics}.
+Next, we will define the coupling constraints on the state variables and control inputs, discuss the arising challenges, and explore potential
+solutions.
 
-Let us first have a look on the vehicle constraints.
-Let $\square$ be one of the variables used in trajectory planning, the upper bound is annotated with $\overline{\square}$ and the lower bound with
-$\underline{\square}$ which are both constant during planning.
+First, let's examine the vehicle constraints \cite{eilbrecht_challenges_2020}.
+Let $\square$ represent one of the variables used in trajectory planning.
+The upper bound is denoted by $\overline{\square}$, and the lower bound by $\underline{\square}$, both of which remain constant during planning.
 
-Constraints on the velocity is defined in a body fixed manner, with upper and lower bound, where we use the following annotations.
+Constraints on the velocity are defined in a body-fixed manner, with upper and lower bounds, using the following annotations.
 
 \begin{align}
 	\underline{v_x} \leq v_x \leq \overline{v_x} \\
 	\underline{v_y} \leq v_y \leq \overline{v_y}
 \end{align}
 
-We can easily apply \ref{eq:first_derivative_lat} and \ref{eq:first_derivative_long} to get resulting constraints on our state variables.
+We can easily apply \eqref{eq:first_derivative_lat} and \eqref{eq:first_derivative_long} to get resulting constraints on our state variables.
 The equations reduce together with $\xi = 0$ to:
 
 \begin{align}
@@ -182,35 +208,31 @@ The equations reduce together with $\xi = 0$ to:
 
 For the acceleration two types of constraints are usually defined, the first one which constrains the relations of the longitudinal and lateral acceleration as:
 \begin{equation}
-	a_x^2 + a_y^2 \leq c \in \mathbb{R}^+
+	a_x^2 + a_y^2 \leq c
 \end{equation}
-for some constant radius $c$, the second similar to the velocity as follows:
+for some constant radius $c\in \mathbb{R}^+$, the second similar to the velocity as follows:
 \begin{align}
 	\underline{a_x} \leq a_x \leq \overline{a_x} \\
 	\underline{a_y} \leq a_y \leq \overline{a_y}
 \end{align}
 
-Using our derived equations we can define a mapping from the models state variables and artificial variables to our body fixed accelerations.
-(TODO: the main paper mentions $a_b = a_{tn}$ which I believe should be \[
-	a_b + \begin{bmatrix}
-		-\dot{s}(1-nC(s))C(s)\dot{s} \\
-		\dot{n}C(s)\dot{s}
-	\end{bmatrix} = a_{tn}\])
+Using our derived equations, we can define a mapping from the model's state variables and artificial control inputs to the body-fixed accelerations.
 
-\begin{align}
-	g(x_{tn}, \tilde{u}) :=
+\begin{equation}
+	g(x_1, \tilde{u}) :=
 	\begin{bmatrix}
-		(1 - nC(s)) u_t - (2\dot{n}C(s)\dot{s} + nC' \dot{s}^2) -\dot{s}(1-nC(s))C(s)\dot{s} \\
-		u_n + C(s) \dot{s}^2 (1 - nC(s)) +  \dot{n}C(s)\dot{s}
+		(1 - nC(s)) u_t - (2\dot{n}C(s)\dot{s} + nC' \dot{s}^2) \\
+		u_n + C(s) \dot{s}^2 (1 - nC(s))
 	\end{bmatrix}  = \begin{bmatrix}
-		                 a_x \\
-		                 a_y
-	                 \end{bmatrix}
-\end{align}
-Combining the constraints on the vehicle derive from the body fixed notion and the straight forward constraint given by the road constraints we can define our coupling constraint set $\mathcal{C}$ as:
+		a_x \\
+		a_y
+	\end{bmatrix}
+	\label{def:g}
+\end{equation}
+Combining the vehicle constraints derived from the body-fixed frame and the straightforward constraints given by the road, we can define our coupling constraint set $\mathcal{C}$ as:
 \begin{equation}
 	\mathcal{C} := \left\{
-	\begin{bmatrix} x_{tn} \\ \tilde{u} \end{bmatrix} \; \middle|\;
+	\begin{bmatrix} x_1 \\ \tilde{u} \end{bmatrix} \; \middle|\;
 	\begin{aligned}
 		 & \underline{s} \leq s \leq \overline{s},                                     \\
 		 & \underline{n}(s) \leq n \leq \overline{n}(s),                               \\
@@ -220,29 +242,29 @@ Combining the constraints on the vehicle derive from the body fixed notion and t
 		 & \underline{a_{\psi}} \leq C' \dot{s}^2 + C(s) u_t \leq \overline{a_{\psi}}, \\
 		 & \begin{bmatrix}
 			   \underline{a_x} \\ \underline{a_y}
-		   \end{bmatrix} \leq g(x_{tn}, \tilde{u}) \leq \begin{bmatrix}
-			                                                \overline{a_x} \\\overline{a_y}
-		                                                \end{bmatrix} \\
-		 & ||g(x_{tn}, \tilde{u})||^2 \leq c
+		   \end{bmatrix} \leq g(x_1, \tilde{u}) \leq \begin{bmatrix}
+			                                             \overline{a_x} \\\overline{a_y}
+		                                             \end{bmatrix}    \\
+		 & ||g(x_1, \tilde{u})||^2 \leq c
 	\end{aligned}
 	\right\}
 \end{equation}
 
-This set is highly non-convex, and we now face the problem to 'convexify' those constraints.
-We will do so by finding an inner polytope of the set $\mathcal{C}$ stated as follows.
+This set is highly non-convex, and we now face the challenge of transforming these constraints into a convex form.
+We will address this by finding an inner polytope of the set $\mathcal{C}$ as follows.
 
 \subsubsection{Problem Definition: Finding an Inner Polytope}
 \label{problem:inner_polytope}
-Given set $\mathcal{C}$ over the state variables $x_{tn}$ and control inputs $\tilde{u}$, find $\underline{\mathcal{C}}$, such that:
+Given set $\mathcal{C}$ over the state variables $x_1$ and control inputs $\tilde{u}$, find $\underline{\mathcal{C}}$, such that:
 \begin{equation}
 	\underline{\mathcal{C}} = \left\{ \begin{bmatrix}
-		x_{tn} \\ \tilde{u} \end{bmatrix} \; \middle|\;
+		x_1 \\ \tilde{u} \end{bmatrix} \; \middle|\;
 	N \begin{bmatrix}
-		x_{tn} \\ \tilde{u} \end{bmatrix} \leq b
+		x_1 \\ \tilde{u} \end{bmatrix} \leq b
 	\right\} \subseteq \mathcal{C}
 \end{equation}
 
-We will demonstrate two methods how one can archive, both them try to archive the following.
+We will demonstrate two methods to achieve this goal, both aiming to accomplish the following:
 
 We want to find the set $\tilde{\underline{\mathcal{C}}}$ over the variables $\dot{s}$ and $\tilde{u}$, such that:
 
@@ -256,7 +278,7 @@ We want to find the set $\tilde{\underline{\mathcal{C}}}$ over the variables $\d
 	\end{bmatrix}
 	\middle|\;
 	\begin{bmatrix}
-		x_{tn} \\ \tilde{u}
+		x_1 \\ \tilde{u}
 	\end{bmatrix} \in \mathcal{C}, \text{for all } \begin{bmatrix}
 		s \\
 		n \\
@@ -269,8 +291,9 @@ We want to find the set $\tilde{\underline{\mathcal{C}}}$ over the variables $\d
 	\right\}
 \end{equation}
 
-To be more specific, we want to find a set of linear constraints, which each spans a half space and let $\tilde{\underline{\mathcal{C}}}$ be
-intersection of all those half spaces, then the following should hold.
+Specifically, we aim to find a set of linear inequalities, each representing a half-space, such that the intersection of these half-spaces forms the
+set $\tilde{\underline{\mathcal{C}}}$.
+The following condition should then be satisfied:
 
 \begin{equation}
 	\label{eq:forall_formula}
@@ -295,35 +318,38 @@ intersection of all those half spaces, then the following should hold.
 		 & \underline{a_{\psi}} \leq C' \dot{s}^2 + C(s) u_t \leq \overline{a_{\psi}} & \land \\
 		 & \begin{bmatrix}
 			   \underline{a_x} \\ \underline{a_y}
-		   \end{bmatrix} \leq g(x_{tn}, \tilde{u}) \leq \begin{bmatrix}
-			                                                \overline{a_x} \\\overline{a_y}
-		                                                \end{bmatrix}               & \land   \\
-		 & ||g(x_{tn}, \tilde{u})||^2 \leq c )
+		   \end{bmatrix} \leq g(x_1, \tilde{u}) \leq \begin{bmatrix}
+			                                             \overline{a_x} \\\overline{a_y}
+		                                             \end{bmatrix}                  & \land   \\
+		 & ||g(x_1, \tilde{u})||^2 \leq c )
 	\end{aligned}
 \end{equation}
 
-The problem therefore reduces to the Elimination of the $\forall$ quantifier.
-
 \subsection{Eliminating the For-All Operator} \label{subsec:eliminating_the_for_all_operator}
-\subsubsection{Fitting a Box}
 
-The first approach is the computationally less expensive one, but comes in cost with smaller resulting set, but is it turn it does still perform
-really well.
-The idea is to find intervals for the variables of interest namely $\dot{s}$, $u_t$ and $u_n$ such that for the values variables may take from those
-intervals the implications from \ref{eq:forall_formula} holds.
-Each of the condition of that implications follow the following pattern.
-Let $x \in \{\dot{s}, u_t, u_n\}$ and $y$ a vector containing the remaining variables are part of the condition.
+Solving the problem of finding an inner polytope of the set $\mathcal{C}$ requires addressing the universal quantifier in \eqref{eq:forall_formula}.
+We will explore two methods to eliminate this operator and find a polytope that satisfies the constraints for all possible values of the state
+variables $s$, $n$, and $\dot{n}$.
+
+\subsubsection{Interval Fitting for State Variables and Control Inputs}
+
+The first approach is computationally less expensive but results in a smaller feasible set.
+Despite this, it performs remarkably well.
+The idea is to find intervals for the variables of interest, namely $\dot{s}$, $u_t$, and $u_n$, such that for any values these variables may take
+within those intervals, the implications from \eqref{eq:forall_formula} hold.
+Each condition of these implications follows a specific pattern.
+Let $x \in \{\dot{s}, u_t, u_n\}$ and $y$ be a vector containing the remaining variables that are part of the condition.
 \begin{equation}
 	\label{eq:cur_condition}
 	c_{min} \leq f(x, y) \leq c_{max}
 \end{equation}
-with $x \in \mathbb{R}$, $y \in \mathbb{R}^n$, and $f: \mathbb{R}^{n+1} \to \mathbb{R}$, where $c_{min}, c_{max} \in \mathbb{R}$ are constants.
-$x$ is chosen such that all the remaining variables contained in $y$ are bounded.
-Further, $x$ is chosen such that $f$ is affine in $x$, represented by:
+where $x \in \mathbb{R}$, $y \in \mathbb{R}^n$, and $f: \mathbb{R}^{n+1} \to \mathbb{R}$, with constants $c_{min}, c_{max} \in \mathbb{R}$.
+The variable $x$ is selected such that all other variables contained in $y$ are bounded.
+Additionally, $x$ is chosen so that $f$ is affine in $x$, represented by:
 \begin{equation}
 	f(x, y) = a(y) x + b(y)
 \end{equation}
-with $a, b : \mathbb{R}^n \to \mathbb{R}$, since $a$ and $b$ are continues functions over a bounded domain $Y$ one can find bounds on $a(y)$ and $b(y)$:
+where $a, b : \mathbb{R}^n \to \mathbb{R}$. Since $a$ and $b$ are continuous functions over a bounded domain $Y$, we can find bounds on $a(y)$ and $b(y)$:
 \begin{equation}
 	a_{min} \leq a(y) \leq a_{max}, \quad b_{min} \leq b(y) \leq b_{max}
 \end{equation}
@@ -333,13 +359,13 @@ Our goal is to find an interval $[\underline{x}, \overline{x}]$ for $x$ such tha
 \end{equation}
 
 We define $X := [\underline{x}, \overline{x}]$.
-We can calculate $X$ with a case distinction over the possible signs $a(y)$ may take.
+To calculate $X$, we perform a case distinction based on the possible signs of $a(y)$.
 Let's start with
 
 \textbf{1.
 }
 $a(y) > 0$:
-We can subtract \ref{eq:cur_condition} with $b(y)$ and divide by $a(y)$:
+We can subtract \eqref{eq:cur_condition} with $b(y)$ and divide by $a(y)$:
 \[
 	\frac{c_{min}-b(y)}{a(y)} \leq x \leq \frac{c_{max}-b(y)}{a(y)}
 \]
@@ -369,15 +395,16 @@ Since $a(y) = 0$ for some $y\in Y$, we have to test if this condition holds:
 \[
 	c_{min} \leq b_{min} \text{ and } b_{max} \leq c_{max}
 \]
-if it does not hold $X$ is given by $X=\emptyset$, and otherwise we exclude all $y\in Y$ for which $a(y)=0$ and go to the first case.
+If this condition does not hold, then $X=\emptyset$.
+Otherwise, we exclude all $y \in Y$ for which $a(y)=0$ and proceed to the first case.
 
 \textbf{3.}
 $a(y) < 0$:
-We can again subtract $b(y)$ from \ref{eq:cur_condition} and divide by $a(y)$, but the directions of the inequalities changes this time:
+We can again subtract $b(y)$ from \eqref{eq:cur_condition} and divide by $a(y)$, but this time the direction of the inequalities changes:
 \[
 	\frac{c_{max}-b(y)}{a(y)} \leq x \leq \frac{c_{min}-b(y)}{a(y)}
 \]
-and by looking at the worst cases of the lower and upper bound we can calculate $X$:
+and by looking at the worst cases of the lower and upper bound, we can calculate $X$:
 \[
 	\underline{x} =
 	\begin{cases}
@@ -399,87 +426,61 @@ and by looking at the worst cases of the lower and upper bound we can calculate 
 
 \textbf{4.}
 $a(y) \leq 0$:
-similar to the second case we have to if $c_{min} \leq b_{min} \text{ and } b_{max} \leq c_{max}$ holds, if not $X=\emptyset$ else we ignore the values for $a(y)$ takes the value zero and go to third case.
+Similar to the second case, we need to check if $c_{min} \leq b_{min}$ and $b_{max} \leq c_{max}$ hold.
+If not, set $X=\emptyset$.
+Otherwise, ignore the values where $a(y)$ equals zero and proceed to the third case.
 
 \textbf{5.}
-We have so far considered all the cases where $a(x)$ can not take both positive and negative values, we remain with the last case, where $a_{min}<0$
-and $0<a_{max}$.
-Since $a(y)=0$ for some values we check $c_{min} \leq b_{min} \text{ and } b_{max} \leq c_{max}$ and set $X=\emptyset$ if it does not hold, otherwise
-$X$ is given by:
+We have so far considered all the cases where $a(y)$ cannot take both positive and negative values.
+We now consider the last case, where $a_{min} < 0$ and $a_{max} > 0$.
+Since $a(y) = 0$ for some values, we first check if $c_{min} \leq b_{min}$ and $b_{max} \leq c_{max}$.
+If this condition does not hold, we set $X = \emptyset$.
+Otherwise, $X$ is given by:
 
-\[ \underline{x} = \max \left\{ \frac{c_{min} - b_{min}}{a_{max}}, \frac{c_{max} - b_{max}}{a_{min}} \right\} \]
+\[ \underline{x} = \max \left\{ \frac{c_{min} - b_{min}}{a_{max}}, \frac{c_{max} - b_{max}}{a_{min}}
+	\right\} \]
 
 \[ \overline{x} = \min \left\{ \frac{c_{max} - b_{max}}{a_{max}}, \frac{c_{min} - b_{min}}{a_{min}} \right\} \]
 
 If we end up with $x_{max} < x_{min}$, set $X=\emptyset$.
 
-All of this applies nicely to our scenario, since one can go step by step through the constraints and apply these rules.
-Of course the resulting Polytope is of a box shape based on the interval approach and therefore reduces our set of possible state variables and
-control inputs further.
-
-\textbf{Evaluation of the Inner Polytope}
-
-We start by defining the intervals for the state variables and control inputs:
-\begin{align*}
-	0  & \leq s \leq 10,     \\
-	0  & \leq n \leq 2,      \\
-	-2 & \leq \dot{n} \leq 2
-\end{align*}
-
-We set $C(s) = \frac{1}{400}$ constant.
-Next, we plug in concrete values for the upper and lower bounds of the constraints:
-\begin{align*}
-	0               & \leq \dot{s}(1 - nC(s)) \leq 10,            \\
-	-5              & \leq C(s) \dot{s} \leq 5,                   \\
-	-2              & \leq C'(s) \dot{s}^2 + C(s) u_t \leq 2,     \\
-	\begin{bmatrix}
-		-3 \\ -4
-	\end{bmatrix} & \leq g(x_{tn}, \tilde{u}) \leq \begin{bmatrix}
-		                                               6 \\ 4
-	                                               \end{bmatrix}.
-\end{align*}
-
-Applying the approach outlined above, we can determine the intervals for $\dot{s}$, $u_t$, and $u_n$ that satisfy the constraints.
-\begin{align*}
-	0     & \leq \dot{s} \leq 10 \\
-	-2.9  & \leq u_t \leq 5.9    \\
-	-3.99 & \leq u_n \leq 3.75
-\end{align*}
+All of this applies nicely to our scenario, as we can systematically apply these rules to each constraint step by step.
+The resulting polytope, based on the interval approach, is box-shaped.
+This shape further reduces our set of possible state variables and control inputs.
 
 \subsubsection{Cylindrical Algebraic Decomposition}
 
-% https://pdf.sciencedirectassets.com/272313/1-s2.0-S0747717120X00034/1-s2.0-S0747717119300859/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGEaCXVzLWVhc3QtMSJHMEUCIQDv1oLeMw%2BnRWE0h7eQREn2av5%2Fyma7r75pKvvjSHlrXwIgV7nFb3g04oCEggSau0SfQkIX7JmFrWaGLYqigDP09qwqvAUIiv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARAFGgwwNTkwMDM1NDY4NjUiDLCCP%2B5UfB4z%2F9ZIdiqQBQ7ZhV1OWpdCAEagdXayFOLycbob6NgxpF3z1LcaO5LcnynbNCjIKVBEA2QYuDnScIYeJxkFH6YYFi9ph8XVV3LjzYoAzcX4EU%2B1a1CzJpd2b%2F%2B1b4UukWAcQGXtUYi%2FLRVKDyoNr9CRPVmeu3ELpNmykuQQnJYzCLwsJSUc9ExIdZ8a%2BeQa3cjRFcVni7K%2BnFhH%2Fq%2Fy8P0WW4qt%2F1Hh48UXm2c8wSRTSXpaxOUeZLJzr4WbqT5jUQJsdLwfNCawDcAQrfoDGmtGnKiGS%2B03IulLdq5kKFvEcg8VzoT2zCl2geVu%2BxWFtuwkspvAX%2FVoyRDUeqEpfWkd1Ow2hK%2FFd6xoLEBc6ER4A6leFr5%2FE8wtKfvCDnNqH7G24pUVllhuuT1Vo4GyMHKsbobZbZc9aenU6gpDDoXAc0Pn0JSUTo8zL%2FZCdOqIdVFGbkWPE9sGjWjoFJbHwqudjGZdRYGFekI%2BgsqEu2l1J9AtmTVsr8zLaAQ43%2FUJGR4v8TE%2F05QmO93bo7IkSrsF3OZ4wQPalWuqcyvm6aTa3YsWooRV7q1jc3KMsuMVei9IMFn2gdkUZDATKuYLuZWBs6zwvbVXC0Z7bq6PWH2JHTQdVIxQxsmBSfaV3YOa%2BI3hl5zBNeSAfoDXEEImdqLUsw06mmUvy2IP%2Bzt95a%2FA8Cp9U1yGLmYJZu83DaEnHHVAJ7scbh9c1itOliyghGaTuLzyZi3JbQJB7HW6Put0XOt7zpBHU0NzO7UpQWq%2FTzmHSUSSSkey821Yz%2BFjqciZsQuhzwiOvqHDimSa0kJmeMbpjC5YKax0BOCWjST1UD%2FMnguAu1yTvZS6NrWkCqd7x5bQl3cDg5DSNm2VWTg%2FkZx4JUOZmLxqMKiM0b0GOrEBKzrzEOw7KtIOIpTMjE%2Bs2GvYtsAhgwXJiN5L0r%2FLXqOg6%2B1c%2FNqDSsVeNzrG%2FIH7FgIVEi3BlBViJT9jkjRXQlb0eBFchDzGXKYxs6Cd3S3IOuznUnycfU4IkP5RTiH8ezMEpJ8kCPHRxMrFsjZjLzwTnyBJQrmoztOqL9NSJ7oOjHhKzntHaI9XbPAqb17bMrsnqgR1hppRBXBtCNuJ2CXGgTf8O5OJJSLuZHeyuk1b&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20250218T085718Z&X-Amz-SignedHeaders=host&X-Amz-Expires=300&X-Amz-Credential=ASIAQ3PHCVTYZ3CJJ6RU%2F20250218%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=773e914dc853ee1f296df8ec3ecf005187519e5ef698f2c1f9146864c5cb004a&hash=1f88efcdfe5ff01d947ced0dcd867ca316abe9378c414f7a661aa7397787d115&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S0747717119300859&tid=spdf-619c46db-0fd6-4248-b3db-2dbf2175b738&sid=3036b6bb946a2440116b8422b092c52ae3aagxrqb&type=client&tsoh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&ua=02075c54500504035f53&rr=913ccf147b209248&cc=de
-
 The second approach is to use Cylindrical Algebraic Decomposition (CAD) to find the inner polytope.
 This method is computationally more expensive but provides a more accurate result.
-The idea is to find for a given formula (containing quantifier) an equivalent formula without quantifiers, which will contain only the free variables
-that are not bound to a quantifier.
-This can be done by using CAD.
+The idea is to find an equivalent formula without quantifiers for a given formula containing quantifiers.
+This can be done using CAD.
 
 CAD is a method used in computer algebra for solving systems of polynomial equations and inequalities.
-Let's say you have a set of polynomial equations and inequalities.
-If one applies CAD to this set, it will decompose the space into a finite number cylindrical cells.
-Each cell is described by a sequence of polynomial inequalities.
-The cells have the property that they have a constant truth value over the input set of polynomial equations and inequalities.
-This way one has to only pick one point from each cell to check the truth value of the input set of polynomial equations and inequalities.
-The number of cells grows doubly exponentially with the number of variables in the input set of polynomial equations and inequalities.
-For CAD exist several implementations.
+Given a set of polynomial equations and inequalities, CAD decomposes the space into a finite number of cylindrical cells.
+Each cell is described by a sequence of polynomial inequalities and has a constant truth value over the input set of polynomial equations and
+inequalities.
+This way, one only needs to pick one point from each cell to check the truth value of the input set.
+The number of cells grows doubly exponentially with the number of variables in the input set.
+Several implementations of CAD exist.
 
-We are going to illustrate how the Algorithm works and it is not scope of this work to explain the implementations.
-Instead, we are giving you a toolbox how one can do it.
+We will illustrate how the algorithm works, but it is beyond the scope of this work to explain the implementations in detail.
+Instead, we provide a basic example to illustrate the algorithm without delving into the details.
+You can find more information in the literature \cite{caviness_quantifier_1998, england_cylindrical_2020}.
 
 \subsubsection{Example}
-Since we are focusing on eliminating $\forall$ quantifiers, we will tackle the following problem:
+To illustrate the process of eliminating $\forall$ quantifiers, consider the following problem:
 
-\[ \forall x, x^2 + bx + 1 \geq
-	0 \]
+\[ \forall x, x^2 + bx + 1 \geq 0
+\]
 
-Since the Quantifier Elimination problem is usually done the on an existential quantifier, we first solve the problem for \[
-	\exists x, x^2 + bx + 1 < 0 \] and once we have the solution for this problem we can take the compliment over $\mathbb{R}$ to get the solution for
-the original problem.
-The first thing is to extract is to apply CAD to the polynomial $x^2 + bx + 1$, which results in 7 cells illustrated in the figure
-\ref{fig:example_cells}.
-Most of the cells are open and if the edge of the cell is part of it then it is depicted dashed with the same color.
+Since quantifier elimination is typically performed on existential quantifiers, we first solve the problem for:
+
+\[ \exists x, x^2 + bx + 1 < 0 \]
+
+Once we have the solution for this problem, we can take the complement over
+$\mathbb{R}$ to obtain the solution for the original problem.
+We start by applying CAD to the polynomial $x^2 + bx + 1$, which results in 7 cells, as illustrated in Figure \ref{fig:example_cells}.
+Most of the cells are open, and if the edge of the cell is part of it, it is depicted with the same color but dashed.
 
 \begin{figure}[h]
 	\centering
@@ -535,17 +536,16 @@ Most of the cells are open and if the edge of the cell is part of it then it is 
 	\caption{Illustrating the cells with shaded regions.}
 	\label{fig:example_cells}
 \end{figure}
-
-We now have to check the truth value of the polynomial inequality $x^2 + bx + 1 < 0$ for each cell, by picking one random sample and evaluating the
+We now need to check the truth value of the polynomial inequality $x^2 + bx + 1 < 0$ for each cell by picking a random sample and evaluating the
 inequality.
-The cells with a truth value of true colored in green then get project the $b$-axis.
-The resulting intervals are the result of the existential quantifier elimination $(-\infty, -2) \cup (2, \infty)$.
-As an input of the Algorithm one has to define an order of precedence for the variables.
-The algorithm in its first phase projects the space iterative from $\mathbb{R}^n$ to $\mathbb{R}^{n-1}$ until it reaches $\mathbb{R}^1$.
-This is done by removing one of the remaining variables in each iteration which is last in the order of precedence.
-Therefor if one defines $b$ as the first variable, the sets of polynomial inequalities of each cell will always contain an interval for $b$, which is
-the corresponding projection on the axis.
-This allows to just read the resulting intervals.
+The cells where the inequality holds true are colored in green and then projected onto the $b$-axis.
+The resulting intervals are the solution to the existential quantifier elimination, which is $(-\infty, -2) \cup (2, \infty)$.
+As an input to the algorithm, one must define an order of precedence for the variables.
+In its first phase, the algorithm projects the space iteratively from $\mathbb{R}^n$ to $\mathbb{R}^{n-1}$ until it reaches $\mathbb{R}^1$.
+This is done by removing one of the remaining variables in each iteration, starting with the last in the order of precedence.
+Therefore, if $b$ is defined as the first variable, the sets of polynomial inequalities for each cell will always contain an interval for $b$, which
+corresponds to the projection on the axis.
+This allows us to directly read the resulting intervals, which is shown in Figure \ref{fig:remaining_cells}.
 
 \begin{figure}[h]
 	\centering
@@ -589,33 +589,25 @@ This allows to just read the resulting intervals.
 	\caption{Illustrating the remaining cells.}
 	\label{fig:remaining_cells}
 \end{figure}
+Since $(-\infty, -2) \cup (2, \infty)$ is the solution for $\exists x, x^2 + bx + 1 < 0$, the solution for the original problem is obtained by taking
+the complement of this set:
 
-Since $(-\infty, -2) \cup (2, \infty)$ is an equivalent formula for $\exists x, x^2 + bx + 1 < 0$, the solution for the original problem is given by
-negotiate both formulas.
+\[ \forall x, x^2 + bx + 1 \geq 0 \iff b \in [-2, 2] \]
 
-\[
-	\forall x, x^2 + bx + 1 \geq 0 \iff b \in [-2, 2]
-\]
+Using this technique for
+eliminating quantifiers from formulas, we can apply it to find an inner polytope.
 
-Using this technique for eliminating quantifiers of formulas, we can apply it to our of finding an inner polytope.
+\subsubsection{Comparison of Interval Fitting and CAD Approaches}
 
-\subsubsection{Compare both Approaches}
-
-During our benchmarks, the first approach, despite its simplicity, performed remarkably well.
+In our benchmarks, the first approach, despite its simplicity, performed remarkably well.
 We used the following parameters for the benchmarks:
 \begin{itemize}
-	\item $C(s) \in \left[-\frac{1}{200}, 0\right]$
-	\item $s \in [0, 10]$
-	\item $n \in [0, 2]$
-	\item $v_x \in [0, 10]$
-	\item $v_y \in [-2, 2]$
-	\item $a_x \in [-3, 6]$
-	\item $a_y \in [-4, 4]$
-	\item $\dot{\psi} \in [-5, 5]$
-	\item $a_\psi \in [-2, 2]$
+	\item $C(s) \in \left[-\frac{1}{200}, 0\right]$, $s \in [0, 10]$, $n \in [0, 2]$
+	\item $v_x \in [0, 10]$, $v_y \in [-2, 2]$, $a_x \in [-3, 6]$, $a_y \in [-4, 4]$
+	\item $\dot{\psi} \in [-5, 5]$, $a_\psi \in [-2, 2]$
 \end{itemize}
 
-The results are shown in the following figures.
+The results are shown in the following figures \ref{fig:qe-comparison}.
 
 \begin{figure}[h]
 	\centering
@@ -634,8 +626,8 @@ The results are shown in the following figures.
 		\centering
 		\includegraphics[width=\textwidth]{figures/inner_polytope/region_u1u2_plot_gr1.eps}
 	\end{subfigure}
-
 	\caption{In Green our first approach and in Blue using CAD.}
+	\label{fig:qe-comparison}
 \end{figure}
 
 In conclusion, eliminating the quantifiers with the first approach leads to a near-optimal result, comparable to the one achieved using the second
@@ -644,7 +636,7 @@ However, using CAD has a significant downside that we have not yet mentioned.
 It is not guaranteed that the resulting formula is convex.
 Typically, you will encounter disjunctions of polynomial inequalities, which cannot be handled by a convex solver without resorting to integer
 programming or an equivalent approach.
-It is also not guaranteed that each polynomial inequality adheres to the DCP rules, even if the set described by the resulting formula is convex.
+It is also not guaranteed that each polynomial inequality follows the DCP rules, even if the set described by the resulting formula is convex.
 Additional techniques would be required to use the second approach for our planner.
 
 In cases where the resulting set is convex, we used a sampling approach to obtain an inner approximation described by half-spaces.
@@ -667,7 +659,7 @@ Our inner polytope from the problem \ref{problem:inner_polytope} is now given by
 	\label{eq:pm_coupling_constraints}
 	\underline{\mathcal{C}} = \tilde{\underline{\mathcal{C}}} \times [\underline{s}, \overline{s}] \times [\underline{n}, \overline{n}] \times [\underline{\dot{n}}, \overline{\dot{n}}]
 \end{equation}
-with $\tilde{\underline{\mathcal{C}}}$ resulting from $\forall$-elimination.
+with $\tilde{\underline{\mathcal{C}}}$ resulting from one of the presented $\forall$-elimination approach.
 
 \subsubsection{Limitations and Outlook}
 
@@ -678,37 +670,35 @@ While the $\forall$-elimination approach provides a computationally efficient me
 	      The approach tends to be conservative because it ensures that the constraints hold for all possible values within the intervals.
 	      This often leads to smaller intervals, which may exclude feasible solutions that could be considered by less conservative methods.
 	\item \textbf{Dependence on Affine Functions:}
-	      The method relies on the assumption that the function $f(x, y)$ is affine in $x$.
-	      If this assumption does not hold, the approach may not be applicable or may yield inaccurate results.
-	\item \textbf{Worst-Case Scenarios:}
-	      The intervals are determined based on worst-case scenarios, which can be overly pessimistic and exclude feasible solutions that are not captured by
-	      the worst-case analysis.
+	      The first method relies on the assumption that the function $f(x, y)$ is affine in $x$ and all variables in $y$ are bounded.
+	      If this assumption does not hold, the approach may not be applicable.
 \end{itemize}
 
 Overall, while the $\forall$-elimination approach is useful for its simplicity and computational efficiency, it may lead to overly restrictive
 solutions that do not fully exploit the feasible region.
 
-Imagine your scenario consists of a tight turn and long straight road.
-In such scenarios, the model, will restrict $\dot{s}$ to an interval that is valid for both the tight turn and the straight road.
-One can easily imagine that model will find a result, but it will not be able to drive fast on the straight road, then it is possible to drive on
-tight the turn.
+Consider a scenario with a tight turn followed by a long straight road.
+In such cases, the model will restrict $\dot{s}$ to an interval that is valid for both the tight turn and the straight road.
+Consequently, the model will find a solution, but it will not be able to drive fast on the straight road, even though it is possible to drive faster
+on the straight road than on the tight turn.
 
-Solving such issues can be done by introducing segments of the road, one for the straight road and one for the tight turn.
+To address this issue, we can introduce segments of the road, one for the straight road and one for the tight turn.
 We can independently construct the coupling constraints set for each segment.
-But this leads to a new Problem, how to switch between the segments.
-We have come up with a solution where we use the current vehicle velocity to predict at which time the vehicle will reach the end of the segment.
-Since one knows the vehicles current position, velocity and the distance to the end of the segment, one can calculate the time it will take to reach.
+However, this introduces a new problem: how to switch between the segments.
+Our solution involves using the current vehicle velocity to predict when the vehicle will reach the end of the segment.
+Knowing the vehicle's current position, velocity, and the distance to the end of the segment, we can calculate the time it will take to reach the
+end.
 
-What both approaches both do not consider and may lead to a far larger set, if you would restrict $\dot{n}$ for example to a smaller interval.
-The first approach handles the problem by using the bounds on $s$, $n$ and $\dot{n}$ to find the intervals for $\dot{s}$, which then is used for
+Further, both approaches do not consider the possibility of achieving a larger feasible set by restricting $\dot{n}$ to a smaller interval.
+The first approach handles the problem by using the bounds on $s$, $n$, and $\dot{n}$ to find the intervals for $\dot{s}$, which are then used for
 $u_t$ and finally for $u_n$.
-But changing the order may lead to better results for desired driving behavior.
+However, changing the order may lead to better results for desired driving behavior.
 
-Since the first approach is so simple we implemented a non-linear program which defines the relations between the intervals that arise with variables
+Given the simplicity of the first approach, we implemented a non-linear program that defines the relationships between the intervals with variables
 as upper and lower bounds.
-Constraining them additional we can define an objective that can model certain driving behavior.
-As for example one should be able to slow down as quickly as possible, or the upper speed limit should as large as possible.
-The latter one leads for example to the following intervals.
+By adding constraints, we can define an objective that models certain driving behaviors.
+For example, one might want to be able to slow down as quickly as possible or maximize the upper speed limit.
+The latter objective leads to the following intervals:
 
 \begin{figure}[h]
 	\centering
@@ -740,219 +730,52 @@ The latter one leads for example to the following intervals.
 	\caption{Comparison of two sets of intervals for state variables and control inputs.}
 \end{figure}
 
-As you can see the intervals on the right could be considered better, since one only loses a bit off longitudinal acceleration, but therefore can
-driver faster.
+As you can see, the intervals on the right are preferable, as they only slightly reduce longitudinal acceleration while allowing for higher speeds.
 
-But nevertheless, we managed to build our first vehicle model for motion planning, which can be solved by convex solver.
-We will now increase the complexity for the next model, in which we will tackle the problem of introducing a vehicle orientation and a steering angle
-during the planning.
-This will allow us to get a more realistic trajectory for the vehicle, especially for lower speeds and turns.
+In conclusion, we have successfully developed our first vehicle model for motion planning that can be solved using a convex solver.
+Next, we will introduce a transformation that maps the state variables and control inputs of the planning model to a steering angle, which can be
+used to control a vehicle based on the equations from \cite{eilbrecht_challenges_2020}.
+A similar approach is demonstrated in \cite{werling_optimal_2010}, which served as an additional inspiration.
 
 \subsection{Determining the Steering Angle} \label{subsec:determining_the_steering_angle}
+% \cite{Optimal trajectories for time-critical street scenarios using discretized terminal manifolds}
+Typically, a vehicle is controlled through throttle, brakes, and a steering angle.
+To incorporate these controls, we need to move away from visualizing our model as a box aligned with the road.
+Instead, we will treat the model as a point and define its orientation based on its velocity.
+Using the equations \eqref{eq:first_derivative_long} and \eqref{eq:first_derivative_lat} with $v_y = 0$, we can solve for $v_x$.
+\begin{equation}
+	v := v_x = \sqrt{(1-nC(s))^2\dot{s}^2 + \dot{n}^2}
+\end{equation}
+Dividing $\dot{n}$ by $\dot{s}$ yields:
+\begin{equation}
+	\frac{\dot{n}}{\dot{s}} = (1-nC(s))\tan(\xi) = (1-nC(s))\tan(\psi - \theta)
+\end{equation}
+which we can solve for $\psi$ to get the orientation of the vehicle.
+\begin{equation}
+	\psi = \theta + \arctan(\frac{\dot{n}}{\dot{s}(1-nC(s))})
+\end{equation}
 
-Given: A car model which has state:
-
-\[
-	x_{car} = \begin{bmatrix}
-		p_x        \\
-		p_y        \\
-		\delta     \\
-		v          \\
-		\psi       \\
-		\dot{\psi} \\
-		\beta      \\
-	\end{bmatrix}
-\]
-\\
-$p_x$ Global Position, $p_y$ Global Postion, $\delta$ Steering Angle, $v$ Velocity, $\psi$ Orientation, $\dot{\psi}$ Yaw Rate, $\beta$ Slip Angle.
-\\
-and control inputs:
-\[
-	u_{car} = \begin{bmatrix}
-		\dot{\delta} \\
-		a            \\
-	\end{bmatrix}
-\]
-\\
-$\dot{\delta}$ Steering Angle Rate, $a$ Longitudinal Acceleration
-\\
-\\
-The used planning model has its own state definition $x_{planning}$ and control inputs $u_{planning}$.
-\\
-\\
-A planning model has to provide a mapping from the car states to its states:
-\[
-	x_{car}\mapsto x_{planning}
-\]
-\\
-and a mapping from its control inputs to the control inputs of the car:
-\[
-	u_{planning} \mapsto u_{car}
-\]
-
-\[
-	x_{planning} = \begin{bmatrix}
-		s       \\
-		n       \\
-		\dot{s} \\
-		\dot{n} \\
-	\end{bmatrix}
-\]
-\\
-($s$, $n$) Frenet Frame Coordinates along the road, ($\dot{s}$, $\dot{n}$) Change of the Frenet Frame Coordinates along the road,
-
-\[
-	u_{planning} = \begin{bmatrix}
-		u_t \\
-		u_n \\
-	\end{bmatrix}
-\]
-\\
-$u_t$, $u_n$ artificial control inputs, which can be mapped ($a_{s}$, $a_{n}$) Acceleration of the Frenet Frame Coordinates along the road using $g$.
-
-\[
-	x_{car} = \begin{bmatrix}
-		p_x        \\
-		p_y        \\
-		\delta     \\
-		v          \\
-		\psi       \\
-		\dot{\psi} \\
-		\beta      \\
-	\end{bmatrix} \mapsto \begin{bmatrix}
-		self.road.get\_road\_position(x, y)[0] \\
-		self.road.get\_road\_position(x, y)[1] \\
-		v \cos(\psi - \theta(s))               \\
-		v \sin(\psi - \theta(s))               \\
-	\end{bmatrix}
-\]
-\\
-For control input we additional require the current state $x = [s, n, \dot{s}, \dot{n}]^T$ of the planning model and we need to store the current steering angle of the car $\delta_{cur}$:
-
-\subsubsection{Approach 1}
-
-\[
-	\xi = \arctan(\frac{\dot{n}}{\dot{s} (1 - n C(s))})
-\]
-\[
-	v = \sqrt{(\dot{s} (1 - n C(s)))^2 + \dot{n}^2}
-\]
-\[
-	\dot{\psi} = \frac{u_n - \tan(\xi) u_t}{v (\tan(\xi) \sin(\xi) + \cos(\xi))}
-\]
-
-\[
-	a = \frac{u_t + v \dot{\psi} \sin(\xi)}{\cos(\xi)}
-\]
-\[
-	\dot{C} = \dot{C}(s) = C'(s)\dot{s} \approx \frac{C(s + \dot{s} \Delta t) - C(s)}{\Delta t}
-\]
-\[
-	\dot{\xi} = \frac{1}{1 + (\frac{\dot{n}}{\dot{s} (1 - n C(s))})^2} \frac{u_n \dot{s} (1 - n C(s)) - \dot{n} (u_t - C(s) (u_t n + \dot{s} \dot{n}) - \dot{C} \dot{s} n)}{(\dot{s} (1 - n C(s)))^2}
-\]
-\[
-	\delta = \arctan((\dot{\xi} + C(s) \dot{s}) \frac{l_{wb}}{v})
-\]
-\[
-	v_\delta = \max(\min(\frac{\delta - \delta_{cur}}{\Delta t}, \overline{v_\delta}), \underline{v_\delta})
-\]
-
-\[
-	u_{planning}, x_{planning} \mapsto \begin{bmatrix}
-		v_\delta \\
-		a        \\
-	\end{bmatrix} = \begin{bmatrix}
-		\dot{\delta} \\
-		a            \\
-	\end{bmatrix}
-\]
-
-\subsubsection{Approach 2}
-
-\[
-	[s_0, n_0, \dot{s}_0, \dot{n}_0]^T := [s, n, \dot{s}, \dot{n}]^T
-\]
-
-\[
-	[s _1, n _1, \dot{s} _1, \dot{n} _1]^T := \begin{bmatrix}
-		s_0       \\
-		n_0       \\
-		\dot{s}_0 \\
-		\dot{n}_0 \\
-	\end{bmatrix} + \Delta t \begin{bmatrix}
-		\dot{s}_0 \\
-		\dot{n}_0 \\
-		u_n       \\
-		u_t       \\
-	\end{bmatrix}
-\]
-
-\[
-	v_0 = \sqrt(\dot{s}_0^2 + \dot{n}_0^2)
-\]
-
-\[
-	v_1 = \sqrt(\dot{s}_1^2 + \dot{n}_1^2)
-\]
-
-\[
-	a = \frac{v_1 - v_0}{\Delta t}
-\]
-
-\[
-	v_\delta = \arctan(l_{wb} (planned_psi_2 - (cur_psi + 1/l_wb * v_0 * np.tan(cur_steering_angle) * dt)) / (v_1 * dt)) / dt
-\]
-
-\pagebreak
-
-\[
-	x_1 = \begin{bmatrix}
-		s_1 \\ n_1 \\ \dot{s}_1 \\ \dot{n}_1 \\
-	\end{bmatrix} = x_0 + \begin{bmatrix}
-		\dot{s}_0 \\ \dot{n}_0 \\ u_t \\ u_n
-	\end{bmatrix} dt
-\]
-
-\[
-	\begin{bmatrix}
-		a_s \\
-		a_n \\
-	\end{bmatrix} = g(u_t, u_n)
-\]
-
-\[
-	\begin{aligned}
-		\xi_0 & = \arctan\left(\frac{\dot{n}_0}{\dot{s}_0}\right) \\
-		\xi_1 & = \arctan\left(\frac{\dot{n}_1}{\dot{s}_1}\right)
-	\end{aligned}
-\]
-
-\[
-	\begin{aligned}
-		v_0 & = \sqrt{\dot{s}_0^2 + \dot{n}_0^2} \\
-		v_1 & = \sqrt{\dot{s}_1^2 + \dot{n}_1^2}
-	\end{aligned}
-\]
-
-\[
-	\begin{aligned}
-		\psi_0 & = \xi_0 + \theta(s_0) \\
-		\psi_1 & = \xi_1 + \theta(s_1)
-	\end{aligned}
-\]
-
-\[
-	\dot{\psi} = \frac{\psi_1 - \psi_0}{dt}
-\]
-
-\[
-	u_{planning}, x_{planning} \mapsto \frac{1}{dt} \begin{bmatrix}
-		\arctan(l_{wb}\frac{\dot{\psi}}{v_1})-\delta_{cur} \\
-		v_1 - v_0                                          \\
-	\end{bmatrix} = \begin{bmatrix}
-		\dot{\delta} \\
-		a            \\
-	\end{bmatrix}
-\]
+Using the state variables and $g$ from \eqref{def:g}, we can calculate $a_{x,tn}$ and $a_{y,tn}$ from \eqref{def:axtn} and \eqref{def:aytn},
+respectively.
+By substituting these values into equations \eqref{eq:second_derivative_long} and \eqref{eq:second_derivative_lat}, and setting $a_y = 0$, we can
+determine the longitudinal acceleration and the change in orientation.
+Additionally, we assume $|\xi| \leq \frac{\pi}{2}$ to ensure that $\cos{\xi} \neq 0$.
+\begin{align}
+	\dot{\psi} = \frac{a_{y,tn} - \tan(\xi) a_{x,tn}}{v (\tan(\xi) \sin(\xi) + \cos(\xi))} \\
+	a := a_x = \frac{a_{x,tn} + v \dot{\psi} \sin(\xi)}{\cos{\xi}}
+\end{align}
+Our Bicycle models \eqref{eq:dpsi_steering_angle} enables us to calculate the steering angle.
+\begin{equation}
+	\delta = \arctan(l_{wb}\frac{\dot{\psi}}{v})
+\end{equation}
+With those equations, we can define a transformation.
+\begin{equation}
+	T(x_1, \tilde{u}) = [p_x, p_y, \psi, \dot{\psi}, v, a, \delta] \label{eq:pm_state_transformation} \end{equation}
 
 \subsection{Final Model} \label{subsec:pm_resulting_model}
+
+Our final model is represented by the following tuple.
+\begin{equation}
+	M_{pm} = (x_1, \tilde{u}, f_1, \underline{\mathcal{C}}, T)
+	\label{model:point_mass}
+\end{equation}

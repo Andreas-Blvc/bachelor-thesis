@@ -1,6 +1,4 @@
-\section{Introduction} \label{sec:introduction}
-
-The problem of autonomous driving can be divided into four main components, each representing a crucial aspect of the system.
+\section{Overview} \label{sec:overview}
 
 \begin{figure}[h!]
 	\centering
@@ -35,35 +33,34 @@ The problem of autonomous driving can be divided into four main components, each
 	\label{fig:autonomous_driving_overview}
 \end{figure}
 
-The process begins with the user providing a travel destination, which serves as the input to the first component, Route Planning.
-In this phase, the system generates a sequence of waypoints through a predefined road network.
+The problem of autonomous driving can be divided into four main components, each representing an essential aspect of the system.
+Figure 1.1 illustrates this decomposition, highlighting the motion planning layer as the focus of this work.
 
-Next, the Behavioral Layer refines the waypoints by considering environmental factors such as other vehicles, obstacles, and road signs.
-This layer defines the driving behavior at any given time, ensuring the vehicle adapts to dynamic traffic conditions.
-
-With a behavior strategy in place, the Motion Planning Layer generates a trajectory that adheres to strict physical and safety constraints, ensuring
-feasibility and compliance with rules of the road.
-
+The process begins with the user providing a travel destination, which serves as the input to the Route Planning component.
+This phase generates a sequence of waypoints through a predefined road network.
+Next, the Behavioral Layer refines the waypoints by considering environmental factors such as other vehicles, obstacles, and road signs, ensuring the
+vehicle adapts to dynamic traffic conditions.
+Once a behavioral strategy is determined, the Motion Planning Layer generates a trajectory that satisfies physical and safety constraints, ensuring
+feasibility and compliance with road rules.
 Finally, the Local Feedback component executes the plan by generating precise control commands—steering, throttle, and brake inputs—based on
 real-time vehicle and environmental feedback.
 
 Finding an exact solution to the motion planning problem is computationally intractable in most cases.
-Therefore, numerical approaches are employed.
-These methods fall into three main categories:
+As a result, numerical methods are commonly used to approximate solutions.
+These approaches fall into three main categories:
 
 \begin{enumerate}
-	\item Graph-Based Algorithms: These algorithms discretize the vehicle's possible states
-	      and connect valid state transitions with edges.
-	      A graph search algorithm can then be used to find an optimal trajectory.
+	\item Graph-Based Algorithms discretize the vehicle's state space and connect valid
+	      transitions with edges, allowing a graph search algorithm to determine an optimal
+	      trajectory
 
-	\item Incremental Tree Approaches: This category involves generating branches of feasible trajectories by randomly applying control commands and simulating
-	      the resulting states.
-	      The tree expands incrementally, exploring potential paths until a suitable trajectory is found.
+	\item Incremental Tree Approaches expand a search tree by randomly applying control
+	      commands and simulating state transitions until a feasible trajectory is found.
 
-	\item Optimization-Based Methods: These methods formulate the problem as an optimization task over a function space.
-	      Optimization techniques aim to minimize an objective function (e.g., minimizing travel time or maximizing safety) while respecting constraints.
-	      This is the approach we focus on.
+	\item Optimization-Based Methods formulate the problem as an optimization task over a function space, minimizing an objective function (e.g., travel time, energy efficiency)
+	      while respecting constraints.
 \end{enumerate}
 
+We focus on optimization-based motion planning, which offers a structured and efficient approach to trajectory generation.
 Our objective is to design a motion planner that consistently provides near real-time solutions.
-We achieve this by leveraging modern, reliable solvers that can efficiently handle the optimization problem.
+To achieve this, we leverage modern optimization solvers.

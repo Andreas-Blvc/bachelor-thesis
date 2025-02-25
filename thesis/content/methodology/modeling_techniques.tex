@@ -43,8 +43,8 @@ the constraint.
 Auxiliary variables can be used for modeling in many ways.
 In our models we are the defining the road with as a function over $s$ the distance along the road.
 One common part objective may be to minimize the offset to the center of the road.
-The first formulation that may come to mind is: \[ \min g(x, u) + \left( n - \frac{\overline{n}(s) - \underline{n}(s)}{2} \right) \] This is a valid
-formulation, but it is not convex.
+The first formulation that may come to mind is: \[ \min g(x, u) + \left( n - \frac{\overline{n}(s) - \underline{n}(s)}{2} \right)^2 \] This is a
+valid formulation, but it is not convex.
 Instead, we are using different approach to formulate the offset to the center of the road.
 \[
 	\min \left\{ \overline{n}(s) - n, n - \underline{n}(s) \right\}
@@ -54,47 +54,51 @@ This formulation is concave, if $\overline{n}(s)$ is concave and $\underline{n}(
 By introducing the auxiliary variable $d$ which is constrained by: \[ 0 \leq d \leq \min \left\{ \overline{n}(s) - n, n - \underline{n}(s) \right\}
 \] we can reformulate the objective as: \[ \min g(x, u) - d^2 \] This formulation is convex and can be solved efficiently.
 
-To visualize these formulations, we can plot them using a constant value for \(\overline{n}(s)\) and \(\underline{n}(s)\).
+To visualize these formulations, we can plot them using a constant value for \(\overline{n}(s)\) and \(\underline{n}(s)\) in Figure
+\ref{fig:auxiliary_variables}.
 Let's assume \(\overline{n}(s) = 5\) and \(\underline{n}(s) = 1\).
 
 \begin{figure}[H]
 	\centering
-	\begin{tikzpicture}
-		\begin{axis}[
-				xlabel={$n$},
-				legend pos=outer north east,
-				grid=major,
-				width=0.8\textwidth,
-				height=0.5\textwidth
-			]
-			\addplot[domain=1:5, samples=100, thick, blue] {5-x};
-			\addplot[domain=1:5, samples=100, thick, red] {x-1};
-		\end{axis}
-	\end{tikzpicture}
-	\caption{Plot of distance to road boundaries}
-	\label{fig:road_boundaries}
-\end{figure}
-
-In this plot \ref{fig:road_boundaries}, the blue line represents \(\overline{n}(s) - n\), the red line represents \(n - \underline{n}(s)\).
-
-We can also plot the objective function for the new formulation.
-
-\begin{figure}[H]
-	\centering
-	\begin{tikzpicture}
-		\begin{axis}[
-				xlabel={$d$},
-				ylabel={Objective Value},
-				legend pos=outer north east,
-				grid=major,
-				width=0.8\textwidth,
-				height=0.5\textwidth
-			]
-			\addplot[domain=0:2, samples=100, thick, blue] {-x^2};
-		\end{axis}
-	\end{tikzpicture}
-	\caption{Plot of the objective function}
-	\label{fig:objective_functions}
+	\begin{subfigure}{0.48\textwidth}
+		\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+					xlabel={$n$},
+					legend style={at={(axis cs:7,2.2)},anchor=north east},
+					grid=major,
+					width=\textwidth,
+					height=0.8\textwidth,
+					xmax=7,
+				]
+				\addplot[domain=1:5, samples=100, thick, blue] {5-x};
+				\addplot[domain=1:5, samples=100, thick, red] {x-1};
+				\legend{$5 - n$, $n - 1$}
+			\end{axis}
+		\end{tikzpicture}
+		\caption{Distance to Road Boundaries}
+		\label{fig:road_boundaries}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{0.48\textwidth}
+		\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+					xlabel={$d$},
+					legend pos=south west,
+					grid=major,
+					width=\textwidth,
+					height=0.8\textwidth
+				]
+				\addplot[domain=0:2, samples=100, thick, blue] {-x^2};
+				\legend{$-d^2$}
+			\end{axis}
+		\end{tikzpicture}
+		\caption{Objective Function}
+		\label{fig:objective_functions}
+	\end{subfigure}
+	\caption{Plots the distance to the road boundaries and the objective function.}
+	\label{fig:auxiliary_variables}
 \end{figure}
 
 While \(-\min(5 - x, x - 1)\) is a convex function, it is piece wise linear, which can lead to difficulties in optimization.
@@ -128,35 +132,10 @@ constraint.
 Penalty methods are particularly useful when dealing with complex constraints that are difficult to handle directly.
 By incorporating these constraints into the objective function, we can leverage efficient unconstrained optimization algorithms to find solutions.
 
-\subsection{Lagrangian Relaxation}
-
-Lagrangian relaxation is a technique used to simplify complex optimization problems by relaxing some of the constraints and incorporating them into
-the objective function using Lagrange multipliers.
-This approach transforms the original problem into a simpler one that can be solved more easily.
-
-Consider an optimization problem with a constraint \( g(x) \leq 0 \).
-In Lagrangian relaxation, we introduce a Lagrange multiplier \( \lambda \geq 0 \) and form the Lagrangian function:
-\[
-	L(x, \lambda) = f(x) + \lambda g(x)
-\]
-
-The relaxed optimization problem can be written as:
-\begin{align*}
-	\min_{x} \quad          & L(x, \lambda)  \\
-	\text{subject to} \quad & \lambda \geq 0
-\end{align*}
-
-By solving the relaxed problem for different values of \( \lambda \), we can obtain a lower bound on the optimal value of the original problem.
-The quality of the bound depends on the choice of \( \lambda \), and finding the best value of \( \lambda \) is an optimization problem in itself.
-
-Lagrangian relaxation is particularly useful in combinatorial optimization problems, where it can provide strong bounds and guide the search for
-optimal solutions.
-It is also a key component of more advanced techniques, such as the Lagrangian duality and the subgradient method.
-
 \subsection{Conclusion}
 
 In this chapter, we have explored various modeling techniques that are essential for solving complex optimization problems.
-We discussed the use of soft constraints, auxiliary variables, penalty methods, and Lagrangian relaxation, each of which offers unique advantages for
-handling different types of constraints and objectives.
+We discussed the use of soft constraints, auxiliary variables and penalty methods, each of which offers unique advantages for handling different
+types of constraints and objectives.
 By understanding and applying these techniques, we can formulate and solve optimization problems more effectively, leading to better solutions and
 improved performance in practical applications.

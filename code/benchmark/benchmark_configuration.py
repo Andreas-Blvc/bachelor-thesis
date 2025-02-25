@@ -32,16 +32,16 @@ class LateralOffset(Enum):
 
 class Road(Enum):
     ElchTest_One = './data/elchtest_1.pkl'
-    Right_Turn = './data/right_turn.pkl'
+    # Right_Turn = './data/right_turn.pkl'
     Left_Turn = './data/left_turn.pkl'
-    Left_Turn_Small = './data/left_turn_small.pkl'
+    # Left_Turn_Small = './data/left_turn_small.pkl'
     Straight = './data/straight.pkl'
     Lane_Change = './data/lane_change.pkl'
     Slalom = './data/slalom.pkl'
     Feasible_Curve = './data/feasible_curve.pkl'
     Infeasible_Curve = './data/infeasible_curve.pkl'
     Random = './data/random.pkl'
-    PmFeasibleCurve = './data/pm_feasible_curve.pkl'
+    # PmFeasibleCurve = './data/pm_feasible_curve.pkl'
 
 
 # specifies the duration into the future (in seconds) for which the path planning algorithm optimizes the trajectory.

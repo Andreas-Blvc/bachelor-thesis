@@ -1,1 +1,71 @@
 \section{Related Work} \label{sec:related_work}
+
+Since the early demonstrations in the DARPA Grand and Urban Challenges [1][2], the motion planning literature for self-driving vehicles has evolved
+to address a broad range of environments—from structured highways and city roads to unstructured parking lots and off-road terrains.
+A unifying theme across these scenarios is the need to produce collision- free, dynamically-feasible trajectories that also account for comfort and
+operational constraints.
+
+\subsection{Classical Path Planning Approaches}
+Initial research in autonomous driving often used graph-based or search-based algorithms, which discretize the state space into grids or motion
+“primitives” and then apply search algorithms such as A* or D* [3].
+While these methods can systematically find a solution if one exists, they can become computationally expensive in higher-dimensional state spaces,
+especially when including vehicle dynamics.
+Another popular family of methods is sampling-based planners, including Rapidly-exploring Random Trees (RRT) and Probabilistic Roadmaps (PRM) [4].
+For on-road driving, variants like RRT* incorporate cost optimization and can quickly explore feasible regions.
+However, sampling alone does not guarantee smoothness or dynamic feasibility, often requiring a secondary smoothing or optimization step.
+
+\subsection{Optimization-Based Trajectory Planning}
+In contrast to sampling-based methods, optimization-based trajectory planning explicitly encodes the cost criteria and constraints—such as collision
+avoidance, road boundary constraints, and vehicle dynamics—into an objective function.
+A trajectory is then optimized continuously rather than constructed through random sampling.
+One prominent approach employs Frenet frames to transform the planning problem from a Cartesian to a curvilinear coordinate system, simplifying the
+computation of collision and road boundary constraints [5].
+This representation has proven effective for lane-keeping, lane changes, and freeway driving, where the environment can be reasonably approximated by
+a reference path.
+
+A closely related technique is Model Predictive Control (MPC) [6][7], which casts trajectory planning as a finite-horizon optimal control problem,
+repeatedly solved online.
+By incorporating vehicle dynamics, actuator limits, and predicted movements of surrounding vehicles, MPC can adapt in real time to changing traffic
+conditions.
+Variants such as Nonlinear MPC (NMPC) can handle more complex or higher-fidelity vehicle models (e.g., for aggressive maneuvers), but typically
+require significant computational resources.
+Recent work has explored stochastic MPC formulations to account for measurement and prediction uncertainties [8], aiming to provide robust
+performance under noisy sensor data and uncertain driver intentions.
+
+\subsection{Hierarchical and Multi-Layered Architectures}
+
+Many autonomous driving systems employ a hierarchical architecture that separates global route planning from local trajectory optimization.
+At the global level, simpler search-based or graph-based methods can select a route through the road network (e.g., from a start location to a
+destination).
+At the local level, an optimization-based planner refines this route into a dynamically-feasible, collision-free trajectory in real time [9].
+This layered approach leverages the strengths of each method: global planners handle large- scale navigation, while local planners ensure feasibility
+and handle dynamic obstacles, road curvature, and driving rules.
+
+\subsection{Interaction-Aware Planning and Social Compliance}
+A significant challenge in urban environments is predicting how other road users—vehicles, cyclists, and pedestrians—will move and interact.
+Behavior prediction and interaction- aware planning thus play a critical role in modern autonomous driving pipelines [10].
+One line of research integrates game-theoretic or multiagent models into the trajectory planning stage, enabling the autonomous vehicle to reason
+about how human drivers might respond.
+Alternatively, rules can be added to make the vehicle behave more cautiously around pedestrians or follow right-of-way rules at intersections.
+
+\subsection{Learning-Based Approaches}
+Recent advances in machine learning have led to the development of learning-based trajectory planning systems.
+These can take the form of imitation learning—where the planner learns a cost function or policy from human driving data [11]—or deep reinforcement
+learning, where the agent optimizes a reward function through simulation [12].
+Nevertheless, pure data-driven methods can lack the stability and formal guarantees of classical optimization.
+As a result, hybrid methods that use learning to shape the objective or constraints, while retaining an optimization-based trajectory generator for
+low-level feasibility, have seen increased popularity [13].
+
+\subsection{Summary}
+In summary, the field of motion planning for autonomous driving has seen significant advancements over the years, evolving from classical path
+planning approaches to more sophisticated optimization-based and learning-based methods.
+Each approach has its strengths and weaknesses, and the choice of method often depends on the specific driving scenario and requirements.
+Classical methods like graph-based and sampling-based planners provide systematic solutions but can struggle with high-dimensional state spaces and
+dynamic feasibility.
+Optimization-based methods offer a more continuous and constraint-aware approach, particularly effective in structured environments.
+Hierarchical architectures combine global and local planning to handle large-scale navigation and real-time trajectory optimization.
+Interaction-aware planning addresses the complexities of urban environments by predicting and responding to the behavior of other road users.
+Finally, learning-based approaches leverage data-driven techniques to improve planning performance, though they often benefit from hybridization with
+classical methods to ensure stability and feasibility.
+As research continues, the integration of these diverse techniques promises to enhance the safety, efficiency, and robustness of autonomous driving
+systems.

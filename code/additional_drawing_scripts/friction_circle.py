@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Define constants
-v_star = 14  # max velocity, adjust as needed
-delta_star = 0.910   # max steering angle, adjust as needed=
+v_star = 10  # max velocity, adjust as needed
+delta_star = 0.698   # max steering angle, adjust as needed=
 l_wb = 2.4  # wheelbase length
 a_max = 11.5  # max acceleration
 
@@ -17,7 +17,7 @@ V, Delta = np.meshgrid(v_values, delta_values)
 a_values = np.linspace(0, 2, 2)  # Different values of a to visualize effect
 fig, ax = plt.subplots()
 
-for a_i in [-11.49]:
+for a_i in [-5]:
     # Make a_i broadcastable
     A = np.full_like(V, a_i)
 
@@ -62,35 +62,35 @@ plt.show()
 
 # test it
 
-import cvxpy as cp
-import numpy as np
-# Define constants
-c_1 = 0.9040595325562741  # Example value
-c_2 = 12.525535603937156  # Example value
-n = 2
-
-# Define variables
-a = cp.Variable()  # The variable in the denominator term
-w = cp.Variable()  # The main variable we want to optimize
-
-# Constraints
-constraints = [
-    0 <= w,
-    w <= c_1 - cp.power((-a + c_2), (-2*n)),
-    w <= c_1 - cp.power((a + c_2), (-2*n)),
-    # a <= 12.5,
-    # a**2 <= 11.5**2,
-]
-
-# Define an example objective function (can be changed)
-objective = cp.Minimize(w + a)  # Example: Minimize w
-
-# Solve the problem
-problem = cp.Problem(objective, constraints)
-problem.solve()
-
-# Print results
-print("Optimal a:", a.value)
-print("Optimal w:", w.value)
+# import cvxpy as cp
+# import numpy as np
+# # Define constants
+# c_1 = 0.9040595325562741  # Example value
+# c_2 = 12.525535603937156  # Example value
+# n = 2
+#
+# # Define variables
+# a = cp.Variable()  # The variable in the denominator term
+# w = cp.Variable()  # The main variable we want to optimize
+#
+# # Constraints
+# constraints = [
+#     0 <= w,
+#     w <= c_1 - cp.power((-a + c_2), (-2*n)),
+#     w <= c_1 - cp.power((a + c_2), (-2*n)),
+#     # a <= 12.5,
+#     # a**2 <= 11.5**2,
+# ]
+#
+# # Define an example objective function (can be changed)
+# objective = cp.Minimize(w + a)  # Example: Minimize w
+#
+# # Solve the problem
+# problem = cp.Problem(objective, constraints)
+# problem.solve()
+#
+# # Print results
+# print("Optimal a:", a.value)
+# print("Optimal w:", w.value)
 
 
