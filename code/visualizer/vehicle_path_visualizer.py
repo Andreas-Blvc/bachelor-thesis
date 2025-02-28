@@ -170,7 +170,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
     if save_only:
         # SAVING FEATURE
         save_path = f"{path}animation.mp4"  # Default save path
-        writer = FFMpegWriter(fps=1 / dt(0), metadata={'artist': 'Me'}, bitrate=1800)
+        writer = FFMpegWriter(fps=int(1 / dt(0)), metadata={'artist': 'Me'}, bitrate=1800)
         anim.save(save_path, writer=writer)
         return
 

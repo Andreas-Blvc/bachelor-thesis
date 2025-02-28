@@ -1,3 +1,20 @@
 {"rule":"MISSING_GENITIVE","sentence":"^\\QMcCormick relaxation constraints for the bilinear terms.\\E$"}
 {"rule":"MISSING_GENITIVE","sentence":"^\\QMcCormick envelopes provide a way to approximate bilinear terms with convex functions, thereby enabling the use of efficient convex optimization algorithms.\\E$"}
 {"rule":"MISSING_GENITIVE","sentence":"^\\QLagrangian relaxation is particularly useful in combinatorial optimization problems, where it can provide strong bounds and guide the search for optimal solutions.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QThe idea and the equations are based on the work of Eilbrecht et al. \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qcompat=1.9 cycle list=CornflowerBlue Dandelion ForestGreen BrickRed ,\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qcompat=1.9 cycle list=CornflowerBlue Dandelion ForestGreen BrickRed ,\\E$"}
+{"rule":"COMMA_PARENTHESIS_WHITESPACE","sentence":"^\\Qcompat=1.9 cycle list=CornflowerBlue Dandelion ForestGreen BrickRed ,\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qcompat=1.9 cycle list=CornflowerBlue Dandelion ForestGreen BrickRed ,\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qtable,svgnames,dvipsnames xcolor\\E$"}
+{"rule":"COMMA_PARENTHESIS_WHITESPACE","sentence":"^\\Qtable,svgnames,dvipsnames xcolor\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qtable,svgnames,dvipsnames xcolor\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QIch versichere, dass ich diese Bachelor's Thesis selbständig verfasst und nur die angegebenen Quellen und Hilfsmittel verwendet habe.\\E$"}
+{"rule":"COMMA_PARENTHESIS_WHITESPACE","sentence":"^\\Q,\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QIn the previous chapter, xyz was discussed.\\E$"}
+{"rule":"DOUBLE_PUNCTUATION","sentence":"^\\Q../Now we will look at.../In this chapter...\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qfillbetween\\E$"}
+{"rule":"IF_IS","sentence":"^\\Q\\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q if \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q if \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q if \\E(?:Dummy|Ina|Jimmy-)[0-9]+$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QVariants like RRT* and PRM* were later developed to achieve asymptotic optimality (convergence towards the optimal path as samples increase) for metrics like path length.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QFor example, Esterle et al. 's MIQP formulation (with a triple-integrator model and piecewise-linear orientation constraints) can be solved with modern optimizers fast enough for decision-level planning \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QBy approximating non-holonomy in this way, they maintain a convex formulation (MIQP) for the planner while still respecting vehicle orientation limits, and show that the resulting trajectories remain feasible when validated with a full nonlinear model \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q.\\E$"}

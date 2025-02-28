@@ -1,7 +1,7 @@
 import os
 import subprocess
 import csv
-import urllib.parse
+import math
 
 from path_planner import Objectives
 from self_driving_cars import DynamicSingleTrackModel
@@ -49,6 +49,11 @@ class Benchmark:
             "Car Control Inputs"
         )
 
+    def run_simulation(self):
+        os.makedirs(self.path, exist_ok=True)
+        simulation = list(self.car.drive())
+        print(f"Done, amount car states: {len(simulation)}")
+
     def save_animation(self):
         os.makedirs(self.path, exist_ok=True)
         animate(self.car, interactive=False, save_only=True, path=self.path)
@@ -58,8 +63,6 @@ class Benchmark:
         return animate(self.car, interactive=False)
 
     def save_stats(self):
-        if not self.animation_called:
-            print("Stats are not available, because animation hat not been called.")
         if len(self.car.car_states) == 0:
             return
         plot_states_or_inputs(
@@ -200,10 +203,15 @@ class Benchmark:
             # road completion:
             f"{100 * self.car.convert_vec_to_state(self.car.car_states[-1][0]).get_traveled_distance() / self.car.road.length:.2f}%"
             if len(self.car.car_states) > 0 else "0%",
+            # objective name:
+            f"{objective_name}",
             # objective value:
-            f"{objective_name}: {objective_val:.2f}",
+            f"{objective_val:.2f}",
             # avg solve time:
             f"{sum(self.car.solve_times) * 1000 / len(self.car.solve_times):.2f}ms"
+            if len(self.car.car_states) > 0 else "-",
+            # Standard deviation solve time:
+            f"{math.sqrt(sum((x - sum(self.car.solve_times) / len(self.car.solve_times)) ** 2 for x in self.car.solve_times) / len(self.car.solve_times)) * 1000:.2f}ms"
             if len(self.car.car_states) > 0 else "-",
             # max solve time:
             f"{max(self.car.solve_times) * 1000:.2f}ms"
@@ -212,7 +220,7 @@ class Benchmark:
             f"{min(self.car.solve_times) * 1000:.2f}ms"
             if len(self.car.car_states) > 0 else "-",
             # url animation:
-            f'=HYPERLINK("{url_animation}"; "Animation")',
+            f'=HYPERLINK("{url_animation}"; "Animation")' if self.animation_called else "-",
             # url stats:
             f'=HYPERLINK("{url_stats}"; "Stats")',
         ]

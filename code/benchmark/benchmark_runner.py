@@ -16,7 +16,7 @@ def run(config: BenchmarkConfiguration):
     time_horizon = config.time_horizon
     roads = [(load_road(road_name), road_name) for road_name in config.roads]
     benchmarks = []
-    steering_velocity_range = (-8, 8)
+    steering_velocity_range = (-0.4, 0.4)
     steering_range = ((-40 / 180) * np.pi, (40 / 180) * np.pi)
     l_wb = 0.883+1.508
 

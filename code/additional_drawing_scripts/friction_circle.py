@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Define constants
-v_star = 10  # max velocity, adjust as needed
+v_star = 5  # max velocity, adjust as needed
 delta_star = 0.698   # max steering angle, adjust as needed=
 l_wb = 2.4  # wheelbase length
 a_max = 11.5  # max acceleration
@@ -17,7 +17,7 @@ V, Delta = np.meshgrid(v_values, delta_values)
 a_values = np.linspace(0, 2, 2)  # Different values of a to visualize effect
 fig, ax = plt.subplots()
 
-for a_i in [-5]:
+for a_i in [0]:
     # Make a_i broadcastable
     A = np.full_like(V, a_i)
 
@@ -37,6 +37,19 @@ for a_i in [-5]:
     print(a_max + w ** (-1/4))
     print(w, d_v, d_delta)
 
+    cur_v = 5
+
+    term = (l_wb / cur_v ** 2) * np.sqrt(a_max ** 2 - a_i ** 2)
+
+    # Compute both possible solutions for Delta
+    delta_1 = np.arctan(term)
+    delta_2 = np.arctan(-term)
+    print('ACTUAL', 'delta_min, delta_max', delta_1, delta_2)
+
+    # v > 0:
+    delta_max = (w - d_v * cur_v)/d_delta
+    delta_min = (-w + d_v * cur_v)/d_delta
+    print('delta_min, delta_max', delta_min, delta_max)
 
     diamond_constraint_1 = d_v * V + d_delta * Delta - w
     diamond_constraint_2 = d_v * V - d_delta * Delta - w

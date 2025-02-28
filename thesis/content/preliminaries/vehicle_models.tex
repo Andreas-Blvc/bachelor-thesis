@@ -1,12 +1,8 @@
-\section{Vehicle Models} \label{sec:vehicle_models}
+% \section{Vehicle Models} \label{sec:vehicle_models}
 
-A vehicle model defines the position and orientation of a vehicle in the real world and predicts how these states evolve over time.
-The choice of model significantly impacts the accuracy and computational complexity of motion planning.
-Simpler models, while computationally efficient, may lack precision, whereas more complex models provide higher fidelity but require greater
-computational resources.
-
-This section introduces two fundamental models used in trajectory planning [15]: the point mass model, which provides a simplified kinematic
-representation, and the bicycle model, which captures essential vehicle dynamics.
+This section introduces two fundamental models used in trajectory planning: the double integrator model, which offers a simplified kinematic
+representation, and the kinematic bicycle model, which captures essential vehicle dynamics.
+Both models are detailed in \cite{noauthor_dateien_2021}.
 In both models, the system's state is represented by a vector $x$, containing relevant variables such as position, velocity, and orientation, while
 the control inputs, represented by a vector $u$, influence state transitions over time.
 The vehicle dynamics for both models can be generally expressed as:
@@ -16,14 +12,14 @@ The vehicle dynamics for both models can be generally expressed as:
 where $f(x, u)$ represents the system dynamics as a function of the state vector $x$ and the
 control inputs $u$.
 
-\subsection{Point Mass Model} \label{subsec:point_mass_model}
+\section{Double Integrator Model} \label{subsec:point_mass_model}
 
-The point mass model (PM) represents the vehicle as a point in space with velocity components along the x- and y-axes.
+The double integrator model (DI) represents the vehicle as a point in space with velocity components along the x- and y-axes.
 It simplifies vehicle motion by ignoring orientation and steering dynamics, making it computationally efficient for trajectory optimization.
 The vehicle state is represented by four variables:
 
 \begin{equation}
-	x = \begin{bmatrix} p_x \\ p_y \\ v_x \\ v_y \end{bmatrix}
+	x = \begin{bmatrix} p_x & p_y & v_x & v_y \end{bmatrix}^T
 	\label{eq:states_pm}
 \end{equation}
 where $p_x$ and $p_y$ define the position in a fixed global coordinate system, while $v_x$ and $v_y$
@@ -32,7 +28,7 @@ represent the velocity components in the respective directions.
 The control inputs are:
 
 \begin{equation}
-	u = \begin{bmatrix} a_x \\ a_y \end{bmatrix}
+	u = \begin{bmatrix} a_x & a_y \end{bmatrix}^T
 	\label{eq:controls_pm}
 \end{equation}
 where $a_x$ and $a_y$ denote accelerations along the $x$- and $y$-axes.
@@ -40,11 +36,11 @@ The system follows the linear dynamics:
 
 \begin{equation}
 	\dot{x} = \begin{bmatrix}
-		v_x \\
-		v_y \\
-		a_x \\
+		v_x &
+		v_y &
+		a_x &
 		a_y
-	\end{bmatrix}
+	\end{bmatrix}^T
 \end{equation}
 
 Additionally, the control inputs are constrained by:
@@ -52,21 +48,22 @@ Additionally, the control inputs are constrained by:
 \begin{equation}
 	\sqrt{u_1^2 + u_2^2} \leq a_{\max}
 \end{equation}
-where $a_max$ limits the maximum allowable acceleration.
-Despite its simplicity, the point mass model is widely used for trajectory planning due to its convex formulation and computational efficiency.
+where $a_{max}$ limits the maximum allowable acceleration.
+Despite its simplicity, the double integrator model is widely used for trajectory planning due to its convex formulation and computational
+efficiency.
 However, it lacks the ability to represent steering dynamics and vehicle orientation, making it less suitable for applications requiring
 high-precision maneuvering.
 
-\subsection{Bicycle Model} \label{subsec:bicycle_model}
+\section{Kinematic Bicycle Model} \label{subsec:bicycle_model}
 
-The bicycle model, also known as the kinematic single-track model (KST), provides a more detailed representation of vehicle motion by incorporating
-orientation and steering dynamics.
+The kinematic bicycle model, also known as the kinematic single-track model (KST), provides a more detailed representation of vehicle motion by
+incorporating orientation and steering dynamics.
 This model is well-suited for trajectory planning in autonomous driving as it captures essential vehicle behavior while remaining computationally
 tractable.
 
 The state vector consists of five variables:
 \begin{equation}
-	x = \begin{bmatrix} p_x \\ p_y \\ \delta \\ v \\ \psi \end{bmatrix}
+	x = \begin{bmatrix} p_x & p_y & \delta & v & \psi \end{bmatrix}^T
 	\label{eq:states_kst}
 \end{equation}
 where:
@@ -79,20 +76,20 @@ where:
 
 The control inputs are:
 \begin{equation}
-	u = \begin{bmatrix} v_{\delta} \\ a_{x} \end{bmatrix}
+	u = \begin{bmatrix} v_{\delta} & a \end{bmatrix}^T
 	\label{eq:controls_kst}
 \end{equation}
-where $v_{\delta}$ is the steering velocity, and $a_{\text{long}}$ is the longitudinal acceleration.
+where $v_{\delta}$ is the steering velocity, and $a$ is the longitudinal acceleration.
 
 The vehicle's motion follows the kinematic equations:
 \begin{align}
-	 & \dot{p}_x = v\cos(\psi)                                                   \\
+	 & \dot{p}_x = v\cos(\psi)                           \label{eq:kst_dpx}      \\
 	 & \dot{p}_y = v\sin(\psi)                                                   \\
 	 & \dot{\delta} = v_{\delta}                                                 \\
-	 & \dot{v} = a_{\text{long}}                                                 \\
-	 & \dot{\psi} = \frac{v}{l_{wb}} \tan(\delta) \label{eq:dpsi_steering_angle} \\
+	 & \dot{v} = a                                                               \\
+	 & \dot{\psi} = \frac{v}{l_{wb}} \tan(\delta) \label{eq:dpsi_steering_angle}
 \end{align}
-where $l_wb$ represents the wheelbase length.
+where $l_{wb}$ represents the wheelbase length.
 
 The single-track name arises from approximating both front and rear wheels as single contact points, assuming no lateral slip.
 This simplification makes the model suitable for path planning while still capturing fundamental steering dynamics.
@@ -145,13 +142,14 @@ Additional constraints ensure realistic vehicle behavior.
 A maximum acceleration
 constraint is imposed:
 \begin{equation}
-	\sqrt{u_2^2 + (x_4\dot{x}_5)^2} \leq a_{\max}
+	\label{eq:friction_constraint}
+	\sqrt{a^2 + (v\dot{\psi}_5)^2} \leq a_{\max}
 \end{equation}
 
 For both models, the vehicle is additionally constrained by its velocity range, steering angle range, and the rate of change of the steering angle.
 These constraints are natural and should not be overlooked.
 
-\subsection{Curve Following Coordinate System} \label{subsec:curve_following_coordinate_system}
+\section{Curve Following Coordinate System} \label{subsec:curve_following_coordinate_system}
 
 In addition to the global coordinate system, a curve-following coordinate system, commonly known as the Frenet frame, can be used to simplify the
 representation of vehicle motion along a predefined path.

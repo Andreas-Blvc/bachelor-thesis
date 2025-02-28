@@ -1,0 +1,71 @@
+\section{Conclusion} \label{subsec:conclusion}
+
+In this thesis, we investigated predictive planning and control strategies using two distinct vehicle models (a double integrator model and a
+kinematic bicycle model) under a variety of road scenarios and velocity conditions.
+Our principal objectives were to analyze solver performance, quantify completion rates, and examine how friction-circle constraints affect high-speed
+maneuvers.
+
+\paragraph{Solver Times}
+The double integrator model consistently outperformed the bicycle model in terms of solver time, requiring on average around 3.8--3.9,ms compared to
+9.4--9.5,ms for the bicycle model under both time discretization configurations.
+These results also demonstrated that the double integrator model exhibited more stable performance, indicated by smaller time deviations.
+
+\paragraph{Completion Rates}
+With respect to scenario feasibility, both models failed all runs of the intentionally infeasible curve scenario.
+When the curve was enlarged to a marginally feasible radius at lower speeds, both models succeeded.
+As speeds increased, failure rates rose across the board, underscoring the critical impact of higher velocities on path-following constraints.
+Notably, the bicycle model faced more failures in sharp-turn scenarios (Elchtest, Lane Change), especially at high speeds, mainly due to restrictive
+friction-circle approximations.
+Conversely, the double integrator model, while simpler, proved more robust in these scenarios because it does not dynamically couple speed and
+steering to friction limits.
+
+\paragraph{Friction-Circle Constraints}
+Our investigations into the friction circle revealed that high-speed maneuvers became infeasible for the bicycle model under strict friction
+approximations: once the model selects a higher velocity, allowable steering angles shrink, making sharp maneuvers impossible.
+The terminal cost function further exacerbated this by incentivizing high speed at the expense of feasible steering control.
+By introducing soft constraints on road-boundary proximity, some numerical instabilities were alleviated, but the fundamental trade-off between
+maintaining high speed and ensuring adequate steering authority remained a challenge.
+
+Overall, the double integrator model achieved faster and more stable solver performance, but at the cost of less physical realism regarding friction
+limits.
+The kinematic bicycle model provided a more accurate vehicle representation, but suffered from higher solver times and increased failure rates in
+tightly constrained, high-speed scenarios.
+
+\section{Future Work} \label{subsec:future_work}
+
+While the presented results underline the strengths and weaknesses of both models, several avenues for future work arise:
+
+\begin{itemize} \item \textbf{Improved Friction Modeling:}
+	      The friction-circle approximation can be refined by incorporating velocity-dependent tire models or more sophisticated dynamics (e.g., Pacejka
+	      models).
+	      These enhancements would reduce infeasibilities at high speeds, but may require advanced solvers or tailored approximations to maintain computational
+	      efficiency.
+	\item \textbf{Adaptive Time Discretization:}
+	      Although two time-discretization configurations were explored, a more adaptive approach could dynamically adjust the horizon or time-step sizes
+	      during runtime based on scenario complexity or solver convergence metrics.
+	      This may further optimize computational resources, especially in high-speed maneuvers.
+
+	\item \textbf{Soft Constraints and Penalty Tuning:}
+	      Our preliminary introduction of soft constraints highlights the potential for balancing feasibility against other objectives.
+	      Systematic tuning of penalty weights (e.g., for road-boundary offsets) and investigating robust methods to handle constraint violations could improve
+	      success rates for the bicycle model.
+
+	\item \textbf{Multi-Stage Approaches:}
+	      A hierarchical or multi-stage planning approach (e.g., generating coarse global paths first, then refining with a local high-fidelity model) could
+	      blend the computational simplicity of the double integrator model with the accuracy of the bicycle model.
+	      This may reduce the need for global friction-circle approximations without sacrificing real-world realism.
+
+	\item \textbf{Hardware Deployment and Real-Time Performance:}
+	      Deploying the proposed methods on embedded hardware or real test vehicles remains an important step.
+	      Evaluating trade-offs between model fidelity and real-time feasibility could guide the choice of model and solver in production systems.
+
+	\item \textbf{Extended Cost Functions:}
+	      Future extensions might include advanced cost functions considering comfort, energy efficiency, and safety margins.
+	      Additionally, refining velocity maximization objectives to account for friction and steering constraints explicitly may prevent infeasibilities
+	      observed in certain high-speed or narrow-lane scenarios.
+\end{itemize}
+
+By addressing these areas, subsequent research can build upon the findings of this thesis to develop more robust, efficient, and realistic motion
+planners.
+The interplay between solver performance, model fidelity, and scenario constraints remains an active and critical frontier in predictive control for
+autonomous driving.

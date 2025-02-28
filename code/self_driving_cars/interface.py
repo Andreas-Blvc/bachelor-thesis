@@ -19,7 +19,7 @@ class AbstractSelfDrivingCar(ABC):
     @abstractmethod
     def drive(self) -> Generator[Tuple[np.ndarray, List[np.ndarray]], None, None]:
         """
-        yields car states
+        yields current state and the planned path
         """
         pass
 

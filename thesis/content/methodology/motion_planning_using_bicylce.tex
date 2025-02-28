@@ -1,5 +1,5 @@
 \section{Motion Planning using Bicycle Model} \label{sec:motion_planning_using_bicylce}
-Instead of using the point mass model, we can employ the bicycle model to represent vehicle dynamics more accurately.
+Instead of using the double integrator model, we can employ the bicycle model to represent vehicle dynamics more accurately.
 We have already introduced the bicycle model with a steering angle and an orientation.
 Now, we will combine this model with the concepts from the previous chapter.
 Our objective is to represent the state variables in the road-aligned frame.
@@ -61,7 +61,7 @@ This ensures a more accurate and computationally efficient representation of the
 To simplify the model, we make the following assumption: $nC(s)$ is close to zero.
 This is valid since $n$ represents the vehicle's lateral position relative to the reference path, and $C(s)$ is the curvature of the reference path,
 which is typically small enough for this assumption to hold.
-We will analyze the terms that introduce non-linearity into the model.
+We will analyze the terms that introduce nonlinearity into the model.
 
 \subsubsection{Non-Linear Terms}
 
@@ -79,15 +79,15 @@ Given our assumption that $nC(s) \approx 0$, we can simplify the first term as f
 \[ \frac{v \cos\xi}{1 - nC(s)} \approx v
 	\cos\xi \]
 
-\subsubsection{First Order Taylor Polynomial} To linearize the trigonometric terms, we use the first-order Taylor
-polynomial approximation around a reference point.
+\subsubsection{First Order Taylor Polynomial} To linearize the trigonometric terms, we use the first-order
+approximation around a reference point.
 The first-order Taylor expansion of a function $f(x)$ around a point $x_0$ is given by:
 
 \[ f(x) \approx f(x_0) + \frac{df}{dx}
 	(x_0) (x - x_0) \]
 
 Using the first-order Taylor polynomial to approximate the trigonometric functions $\sin$, $\cos$, and $\tan$
-around the reference points $\xi_0$ and $\delta_0$, we obtain the following linearizations:
+around the reference points $\xi_0$ and $\delta_0$, we obtain the following linearization:
 
 \[ \cos(\xi) \approx \cos(\xi_0) -
 	\sin(\xi_0) (\xi - \xi_0) \] \[ \sin(\xi) \approx \sin(\xi_0) + \cos(\xi_0) (\xi - \xi_0) \] \[ \tan(\delta) \approx \tan(\delta_0) +
@@ -111,11 +111,11 @@ Since our reference values $\xi_0$ and $\delta_0$ are treated as constants durin
 These are known as bilinear terms, which occur when the product of two variables appears in the equations,
 rendering the system non-linear.
 Since $C(s)$ is a function of $s$, we will introduce an additional assumption.
-We have previously demonstrated that our road can be modeled in segments, a technique we employed for the Point Mass Model to achieve less
-conservative coupling constraints.
-In this context, we will apply the same approach to linearize our dynamics.
+As discussed in \nameref{subsubsec:limitations_and_outlook}, segmenting the road model helps reduce conservatism in coupling constraints, a technique
+we previously applied to the double integrator model.
+In this context, another advantage is that we can model the curvature as a piece-wise linear function, which will be beneficial in subsequent steps.
 
-\subsubsection{Assumption: Piece Wise Linear Curvature}
+\subsubsection{Assumption: Piece-Wise Linear Curvature}
 
 We assume that the curvature can be approximated as a piece-wise linear function.
 
@@ -134,36 +134,36 @@ In the next section, we will introduce a relaxation method to achieve this.
 
 \subsection{Convex Relaxation of Bilinear Terms} \label{subsec:convex_relaxation_for_bilinear_terms}
 
-To handle bilinear terms of the form $xy$, we introduce a new variable $w$ and apply the McCormick relaxation.
-The McCormick relaxation is a technique that linearizes bilinear terms by introducing auxiliary variables and constraints.
+To handle bilinear terms of the form $v_1v_2$, we introduce a new variable $w$ and apply the McCormick relaxation.
+The McCormick relaxation is a technique that linearizes bilinear terms by introducing auxiliary variables and
+constraints~\cite{mccormick_computability_1976}.
 This technique allows us to represent the bilinear terms as a set of linear constraints, which can be solved efficiently using convex optimization
 methods.
-This relaxation only works if the variables $x$ and $y$ are bounded:
+This relaxation only works if the variables $v_1$ and $v_2$ are bounded:
 
-\[ \underline{x} \leq x \leq \overline{x}, \qquad
-	\underline{y} \leq y \leq \overline{y} \] with constants $\underline{x}, \overline{x}, \underline{y}, \overline{y} \in \mathbb{R}$.
+\[ \underline{v_1} \leq v_1 \leq \overline{v_1}, \qquad
+	\underline{v_2} \leq v_2 \leq \overline{v_2} \] with constants $\underline{v_1}, \overline{v_1}, \underline{v_2}, \overline{v_2} \in \mathbb{R}$.
 
-We introduce an auxiliary variable $w$ to approximate the bilinear term $xy$.
-Linear constraints are applied to bound $w$ and ensure it accurately represents the bilinear term $xy$.
-These constraints are derived from the bounds of the variables $x$, $y$, and the bilinear term $xy$, as shown below:
+We introduce an auxiliary variable $w$ to approximate the bilinear term $v_1v_2$.
+Linear constraints are applied to bound $w$ and ensure it accurately represents the bilinear term $v_1v_2$.
+These constraints are derived from the bounds of the variables $v_1$, $v_2$, and the bilinear term $v_1v_2$, as shown below:
 
 \[
 	\begin{aligned}
-		w & \geq \underline{x} y + x \underline{y} - \underline{x} \underline{y}, \\
-		w & \geq \overline{x} y + x \overline{y} - \overline{x} \overline{y},     \\
-		w & \leq \overline{x} y + x \underline{y} - \overline{x} \underline{y},   \\
-		w & \leq \underline{x} y + x \overline{y} - \underline{x} \overline{y}.
+		w & \geq \underline{v_1} v_2 + v_1 \underline{v_2} - \underline{v_1} \underline{v_2}, \\
+		w & \geq \overline{v_1} v_2 + v_1 \overline{v_2} - \overline{v_1} \overline{v_2},     \\
+		w & \leq \overline{v_1} v_2 + v_1 \underline{v_2} - \overline{v_1} \underline{v_2},   \\
+		w & \leq \underline{v_1} v_2 + v_1 \overline{v_2} - \underline{v_1} \overline{v_2}.
 	\end{aligned}
 \]
-The idea behind these constraints is to create a convex lower bound and a concave upper bound for the bilinear term $xy$.
-For example, the first bound is constructed as follows: \[ a = (x - \underline{x}) \geq 0, b = (y - \underline{y}) \geq 0 \] Since $a$ and $b$ are
-both non-negative, we can multiply them to get and obtain our first lower bound: \[ ab = xy - \underline{x}y - x\underline{y} +
-	\underline{x}\underline{y} \geq 0 \iff xy \geq \underline{x}y + x\underline{y} - \underline{x}\underline{y} \]
+The idea behind these constraints is to create a convex lower bound and a concave upper bound for the bilinear term $v_1v_2$.
+For example, the first bound is constructed as follows: \[ a = (v_1 - \underline{v_1}) \geq 0, b = (v_2 - \underline{v_2}) \geq 0 \] Since $a$ and
+$b$ are both non-negative, we can multiply them to get and obtain our first lower bound: \[ ab = v_1v_2 - \underline{v_1}v_2 - v_1\underline{v_2} +
+	\underline{v_1}\underline{v_2} \geq 0 \iff v_1v_2 \geq \underline{v_1}v_2 + v_1\underline{v_2} - \underline{v_1}\underline{v_2} \]
 
-To derive all
-possible lower and upper bounds, we can apply this pattern to $a \in \{x - \underline{x}, \overline{x} - x\}$ and $b \in \{y - \underline{y},
-	\overline{y} - y\}$.
-For any of the four possible combinations of $a$ and $b$, we get $ab \geq 0$ and can therefore establish either an upper or lower bound for $xy$.
+To derive all possible lower and upper bounds, we can apply this pattern to $a \in \{v_1 - \underline{v_1}, \overline{v_1} -
+	v_1\}$ and $b \in \{v_2 - \underline{v_2}, \overline{v_2} - v_2\}$.
+For any of the four possible combinations of $a$ and $b$, we get $ab \geq 0$ and can therefore establish either an upper or lower bound for $v_1v_2$.
 
 \begin{figure}[h]
 	\centering
@@ -180,13 +180,13 @@ For any of the four possible combinations of $a$ and $b$, we get $ab \geq 0$ and
 		\caption{Difference to the lower bound}
 		\label{fig:mccormick_0_lower}
 	\end{subfigure}
-	\caption{McCormick relaxation bounds for the bilinear term $ xy $.}
+	\caption{McCormick relaxation bounds for the bilinear term $ v_1v_2 $.}
 	\label{fig:mccormick_bounds_0}
 \end{figure}
 
 Figure \ref{fig:mccormick_0_upper} shows the difference to the upper bound, while Figure \ref{fig:mccormick_0_lower} shows the difference to the
-lower bound for the range $ -2 \leq x \leq 2 $ and $ 0 \leq y \leq 50 $.
-It is evident that the bounds become tighter as $ x $ and $ y $ approach their respective limits.
+lower bound for the range $ -2 \leq v_1 \leq 2 $ and $ 0 \leq v_2 \leq 50 $.
+It is evident that the bounds become tighter than $ v_1 $ and $ v_2 $ approach their respective limits.
 
 \begin{figure}[h!]
 	\centering
@@ -203,13 +203,46 @@ It is evident that the bounds become tighter as $ x $ and $ y $ approach their r
 		\caption{Difference to the lower bound}
 		\label{fig:mccormick_1_lower}
 	\end{subfigure}
-	\caption{McCormick relaxation with tighter bounds on $ x $.}
+	\caption{McCormick relaxation with tighter bounds on $ v_1 $.}
 	\label{fig:mccormick_bounds_1}
 \end{figure}
-Figures \ref{fig:mccormick_1_upper} and \ref{fig:mccormick_1_lower} show the results when $ x $ is more tightly bounded, specifically $ -2 \leq x
+Figures \ref{fig:mccormick_1_upper} and \ref{fig:mccormick_1_lower} show the results when $ v_1 $ is more tightly bounded, specifically $ -2 \leq v_1
 	\leq 0 $.
 It is also clear that the maximum deviation is significantly reduced compared to the previous scenario, demonstrating that tighter bounds lead to a
 more accurate relaxation.
+
+To illustrate the application of these relaxations in practice, consider a path-planning scenario with \( \underline{v} = 1 \), \( \overline{v} = 5
+\), and \( v_{start} = 1 \).
+In this scenario, the bilinear term \( v\xi \), which appears in the equation of motion for \(\dot{n} = v \sin{\xi} \approx v\xi\), is approximated
+using McCormick relaxations.
+
+\begin{figure}[h]
+	\centering
+	\resizebox{1\textwidth}{!}{\input{figures/velocity.pgf}}
+	\caption{Planned velocity profile.}
+	\label{fig:velocity}
+\end{figure}
+
+Figure \ref{fig:velocity} shows the planned velocity profile, which quickly reaches its upper limit.
+The alignment error $\xi$ is close to zero.
+Here, \( \xi \) is bounded within \(-45^{\circ} \leq \xi \leq 45^{\circ} \).
+It is noteworthy that \( \xi \) does not reach these bounds.
+
+\begin{figure}[h]
+	\centering
+	\resizebox{0.6\textwidth}{!}{\input{figures/state_transition_approximation.pgf}}
+	\caption{McCormick Relaxation on $v\xi$.}
+	\label{fig:dn-term-approx}
+\end{figure}
+
+Figure \ref{fig:dn-term-approx} compares the actual bilinear value \( v\xi \) with the relaxation variable \( w \) introduced via McCormick
+envelopes.
+This comparison highlights the accuracy of the relaxation approach in approximating the bilinear interaction and its effect on the state transition
+of \( n \).
+Once the velocity reaches its limit, the approximation becomes increasingly accurate.
+
+For a more detailed discussion on McCormick relaxations and their applications in optimization, see
+\cite{mccormick_computability_1976,belotti_branching_2009}.
 
 \subsubsection{Improve Bounds}
 
@@ -226,21 +259,37 @@ Then the velocity at the next time step $ v_1 $ is bounded by:
 \[ v_1 \in \Bigl[v_0 + \underline{a}\Delta t,\ v_0 +
 		\overline{a}\Delta t\Bigr] \] where $ \Delta t $ is the time step.
 
+Of course, these bounds must always respect the physical velocity limits of the system, ensuring that $\underline{v} \leq v_i \leq \overline{v}$.
+
 By iteratively applying these bounds for subsequent time steps, we can obtain increasingly precise constraints for the velocity.
 This leads to a tighter and more efficient McCormick relaxation for the bilinear terms.
 
 \[ v_2 \in [v_0 + 2\underline{a} \Delta t, v_0 +
 		2\overline{a} \Delta t] \]
-In summary, enhancing the McCormick relaxation bounds involves the following steps:
-1.
-Analyzing the problem in detail to determine accurate and realistic variable limits.
-2.
-Employing tighter bounds for the variables that appear in the bilinear terms.
-3.
-Using these refined limits to achieve a more precise approximation of the bilinear expressions.
 
-This strategy ensures that the McCormick relaxation delivers a more accurate and efficient representation of the bilinear terms, which is critical
-for the precise modeling and control of vehicle dynamics.
+Figure \ref{fig:mccormick_problem} illustrates the McCormick relaxation without tighter bounds, while Figure \ref{fig:mccormick_problem_better}
+demonstrates the improvement with tighter bounds.
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick_problem.pgf}}
+		\caption{State transition approximation for \( n \) using bilinear term relaxation.}
+		\label{fig:mccormick_problem}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\resizebox{\textwidth}{!}{\input{figures/mccormick_improvement.pgf}}
+		\caption{State transition approximation for \( n \) using tighter bounds.}
+		\label{fig:mccormick_problem_better}
+	\end{subfigure}
+	\caption{Comparison of McCormick relaxation with and without tighter bounds.}
+\end{figure}
+
+Since the accuracy of the relaxation depends on the tightness of these bounds, using broader constraints can result in significant approximation
+errors over time.
 
 \subsection{Final Model} \label{subsec:bicycle_resulting_model}
 
@@ -305,8 +354,8 @@ The following additional constraints enforce the McCormick relaxation:
 \end{figure}
 
 \subsubsection{Coupling Constraints} \label{sec:kst_coupling_constraints}
-% Revised introduction to coupling constraints
-The coupling constraints limit the state and control variables to ranges that reflect vehicle performance and road conditions.
+The coupling constraints introduced by our discrete-time optimal trajectory problem \ref{subsubsec:discrete_time_optimal_trajectory_planning} limit
+the state and control variables to ranges that reflect vehicle performance and road conditions.
 In our optimization setup, these constraints help maintain realistic and consistent bounds.
 They are specified as follows:
 
@@ -316,64 +365,142 @@ They are specified as follows:
 	 & v_\delta \in [\underline{v_\delta}, \overline{v_\delta}], \quad a \in \Bigl[\underline{a}_{x,b},\, \overline{a}_{x,b}\min\Bigl\{1,
 		\frac{v_S}{v}\Bigr\}\Bigr] \label{eq:coupling_kst_1}
 \end{align}
-where $ v_S $ is a parameter representing a scaling factor, which is used to encounter limiting engine power and
-breaking power.
+where $ v_S $ is a parameter representing the switching velocity, which is used to encounter limiting engine power and
+breaking power, ensuring that acceleration remains feasible at different speeds, particularly at higher velocities where
+available power may be restricted.
 
-Finally, we must consider the friction circle constraint.
+The primary goal of the remaining section is to reformulate the friction circle constraint of our kinematic bicycle model
+\eqref{eq:friction_constraint} into a convex constraint, enabling efficient real-time optimization in control applications.
+The original constraint is given by:
 \begin{equation}
-	\sqrt{a^2 + (\frac{v^2}{l_{wb}} \tan(\delta))^2} \leq a_{max}
 	\label{eq:friction_circle}
+	\sqrt{a^2 + \left(v\dot{\psi}\right)^2} = \sqrt{a^2 + \left(\frac{v^2}{l_{wb}} \tan(\delta)\right)^2} \leq a_{max}.
 \end{equation}
-We define $v^* := max\{|\underline{v}|, |\overline{v}|\}$ and $\delta^* := max\{|\underline{\delta}|, |\overline{\delta}|\}$.
-Utilizing that $\tan(\delta) \leq \frac{\tan(\delta^*)}{\delta^*}\delta$ leads to a bit more conservative constraint.
+Since this constraint contains nonlinear terms, particularly \( \tan(\delta) \), it is not directly suitable for convex optimization.
+The following steps aim to approximate this constraint in a convex manner while maintaining physical validity.
+
+\subsubsection{Bounding the Steering Angle Nonlinearity}
+
+The term \( \tan(\delta) \) introduces nonlinearity, making optimization difficult.
+To simplify, we use a conservative upper bound:
 \begin{equation}
-	a^2 + (\frac{1}{l_{wb}}\frac{\tan(\delta^*)}{\delta^*})^2 v^4 \delta^2 \leq a_{max}^2
 	\label{eq:friction_circle_stricter}
+	\tan(\delta) \leq \frac{\tan(\delta^*)}{\delta^*} \delta.
+\end{equation}
+This transformation ensures:
+\begin{itemize}
+	\item The constraint is easier to handle.
+	\item The reformulation is conservative, meaning that feasible solutions under the new constraint remain valid for the original system.
+\end{itemize}
+Substituting this bound into the friction circle constraint gives a stricter approximation:
+\begin{equation}
+	\label{eq:friction_constraint_tight}
+	a^2 + \left(\frac{1}{l_{wb}}\frac{\tan(\delta^*)}{\delta^*}\right)^2 v^4 \delta^2 \leq a_{max}^2.
 \end{equation}
 
-Next, we derive an upper bound $w$ for the term $v^4 \delta^2$, which will be used to further simplify our friction circle constraints.
+\subsubsection{Introducing a Diamond-Shaped Overapproximation}
 
-\subsubsection{Upper Bound for $v^4 \delta^2$}
-
-We are applying a diamond shaped set, by introducing the hyperplanes:
+The term \( v^4 \delta^2 \) remains non-convex, so we introduce a convex upper bound by approximating it with a diamond-shaped constraint.
+The diamond shape is chosen because it provides a tight, convex overapproximation while being computationally efficient.
+We define a set of linear hyperplane constraints:
 \begin{align}
-	d_v  v + d_\delta  \delta \leq w \label{eq:first_hyperplane} \\
-	d_v  v - d_\delta  \delta \leq w                             \\
-	-d_v v + d_\delta \delta  \leq w                             \\
-	-d_v v - d_\delta \delta  \leq w \label{eq:last_hyperplane}
+	d_v v + d_\delta \delta  & \leq w, \label{eq:first_hyperplane} \\
+	d_v v - d_\delta \delta  & \leq w,                             \\
+	-d_v v + d_\delta \delta & \leq w,                             \\
+	-d_v v - d_\delta \delta & \leq w. \label{eq:last_hyperplane}
 \end{align}
-where $d_v = \frac{1}{v^*}$ and $d_\delta = \frac{1}{\delta^*}$.
+where the scaling factors \( d_v = \frac{1}{v^*} \) and \( d_\delta = \frac{1}{\delta^*} \) ensure the hyperplanes remain well-scaled with respect to the variables.
+Figure~\ref{fig:resulting_diamonds} illustrates how this diamond constraint tightly approximates the original non-convex term.
 
-To determine an appropriate value for $w$, we set \eqref{eq:friction_circle_stricter} as an equality and solve for $\delta$.
+\subsubsection{Deriving an Upper Bound for \( w \)}
+
+To ensure that the hyperplane approximation does not overly restrict the feasible set, we derive an upper bound \( w(a) \).
+First, we express \( \delta \) in terms of \( v \) by solving for \( \delta \) in \eqref{eq:friction_constraint_tight}:
 \begin{equation}
-	\delta = h(a) \frac{1}{v^2}
 	\label{eq:delta_v_relation}
+	\delta = h(a) \frac{1}{v^2},
+	\quad \text{where } h(a) := \frac{l_{wb} \delta^*}{\tan(\delta^*)} \sqrt{a_{max}^2 - a^2}.
 \end{equation}
-where \[h(a):=\frac{l_{wb} \delta^*}{\tan(\delta^*)}\sqrt{{a_{max}}^2 - a^2}\]
-We want to push the hyperplane as close the bounds as possible, such that is tangent to the bounds, which lets us solve for $w$ by the deriving \eqref{eq:delta_v_relation} after $v$ and setting it equal to slope of the first hyperplane.
+To find the tightest upper bound \( w(a) \), we determine where the hyperplane is tangent to this curve.
+Taking the derivative of \eqref{eq:delta_v_relation} with respect to $v$ and equating it to the slope of the first hyperplane $-\frac{d_v}{d_\delta}$:
 \begin{equation}
-	\frac{\partial\delta}{\partial v} = -2 h(a) \frac{1}{v^3} \overset{!}{=} -\frac{d_v}{d_\delta} \iff v = \sqrt[3]{2h(a)\frac{d_\delta}{d_v}}
+	\frac{\partial\delta}{\partial v} = -2 h(a) \frac{1}{v^3} \overset{!}{=} -\frac{d_v}{d_\delta} \quad \Rightarrow \quad v_{tight} = \sqrt[3]{2h(a)\frac{d_\delta}{d_v}}.
 \end{equation}
-Substituting the value of $v$ into \eqref{eq:delta_v_relation}, we get:
+Substituting $v_{tight}$ into the \( \delta(v) \) equation \eqref{eq:delta_v_relation} gives:
 \begin{equation}
-	\delta = h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}
+	\delta_{tight} = h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}.
 \end{equation}
-These values for $v$ and $\delta$ must lie on the first hyperplane, resulting in:
+Finally, enforcing that \( (v_{tight}, \delta_{tight}) \) lies on the first hyperplane results in:
 \begin{equation}
-	w = w(a) = d_v \sqrt[3]{2h(a)\frac{d_\delta}{d_v}} + d_\delta h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}
+	w(a) = d_v \sqrt[3]{2h(a)\frac{d_\delta}{d_v}} + d_\delta h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}.
 \end{equation}
 
-To obtain a convex upper bound for $w$, we fit an irrational function of the form:
+\subsubsection{Fitting a Convex Upper Bound for \( w(a) \)}
+
+Although \( w(a) \) provides a tight bound, it may not be convex.
+To ensure convexity, we fit a function of the form:
 \begin{equation}
-	w(a) \approx \tilde{w}(a) := c_1 - \frac{1}{(|a| - c_2)^{2n}}
+	\tilde{w}(a) = c_1 - \frac{1}{(|a| - c_2)^{2n}},
 	\label{eq:fitting_irrational}
 \end{equation}
-where $c_1 = w(0)$ and $c_2 = a_{max} + c_1^{-\frac{1}{2n}}$.
+where \( c_1 = w(0) \) and \( c_2 = a_{max} + c_1^{-\frac{1}{2n}} \).
+This choice ensures that \( \tilde{w}(a) \) is a smooth, convex approximation of \( w(a) \), making it well-suited for convex optimization solvers.
 
-Based on our vehicle parameters $\delta^*=0.910$, $l_{wb}=2.4$, and $a_{max}=11.5$, we evaluated this approach on a velocity limit of $v^*=14$.
+% Finally, we must consider the friction circle constraint.
+% \begin{equation}
+% 	\sqrt{a^2 + (\frac{v^2}{l_{wb}} \tan(\delta))^2} \leq a_{max}
+% 	\label{eq:friction_circle}
+% \end{equation}
+% We define $v^* := \max\{|\underline{v}|, |\overline{v}|\}$ and $\delta^* := \max\{|\underline{\delta}|, |\overline{\delta}|\}$.
+% Utilizing that $\tan(\delta) \leq \frac{\tan(\delta^*)}{\delta^*}\delta$ leads to a bit more conservative constraint.
+% \begin{equation}
+% 	a^2 + (\frac{1}{l_{wb}}\frac{\tan(\delta^*)}{\delta^*})^2 v^4 \delta^2 \leq a_{max}^2
+% 	\label{eq:friction_circle_stricter}
+% \end{equation}
+
+% Next, we derive an upper bound $w$ for the term $v^4 \delta^2$, which will be used to further simplify our friction circle constraints.
+
+% \subsubsection{Upper Bound for $v^4 \delta^2$}
+
+% We are applying a diamond shaped set, by introducing the hyperplanes:
+% \begin{align}
+% 	d_v  v + d_\delta  \delta \leq w \label{eq:first_hyperplane} \\
+% 	d_v  v - d_\delta  \delta \leq w                             \\
+% 	-d_v v + d_\delta \delta  \leq w                             \\
+% 	-d_v v - d_\delta \delta  \leq w \label{eq:last_hyperplane}
+% \end{align}
+% where $d_v = \frac{1}{v^*}$ and $d_\delta = \frac{1}{\delta^*}$.
+
+% To determine an appropriate value for $w$, we set \eqref{eq:friction_circle_stricter} as an equality and solve for $\delta$.
+% \begin{equation}
+% 	\delta = h(a) \frac{1}{v^2}
+% 	\label{eq:delta_v_relation}
+% \end{equation}
+% where \[h(a):=\frac{l_{wb} \delta^*}{\tan(\delta^*)}\sqrt{{a_{max}}^2 - a^2}\]
+% We want to push the hyperplane as close the bounds as possible, such that is tangent to the bounds, which lets us solve for $w$ by the deriving \eqref{eq:delta_v_relation} after $v$ and setting it equal to slope of the first hyperplane.
+% \begin{equation}
+% 	\frac{\partial\delta}{\partial v} = -2 h(a) \frac{1}{v^3} \overset{!}{=} -\frac{d_v}{d_\delta} \iff v = \sqrt[3]{2h(a)\frac{d_\delta}{d_v}}
+% \end{equation}
+% Substituting the value of $v$ into \eqref{eq:delta_v_relation}, we get:
+% \begin{equation}
+% 	\delta = h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}
+% \end{equation}
+% These values for $v$ and $\delta$ must lie on the first hyperplane, resulting in:
+% \begin{equation}
+% 	w = w(a) = d_v \sqrt[3]{2h(a)\frac{d_\delta}{d_v}} + d_\delta h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}
+% \end{equation}
+
+% To obtain a convex upper bound for $w$, we fit an irrational function of the form:
+% \begin{equation}
+% 	w(a) \approx \tilde{w}(a) := c_1 - \frac{1}{(|a| - c_2)^{2n}}
+% 	\label{eq:fitting_irrational}
+% \end{equation}
+% where $c_1 = w(0)$ and $c_2 = a_{max} + c_1^{-\frac{1}{2n}}$.
+
+Based the parameters $\delta^*=0.910$, $l_{wb}=2.4$, and $a_{max}=11.5$, we evaluated this heuristic approach on a velocity limit of $v^*=14$.
 Figure \ref{fig:w_vs_a} illustrates the function $w(a)$ and its approximation with $n=2$ as a function of the acceleration $a$.
 
-\begin{figure}[h]\centering
+\begin{figure}[h!]\centering
 	\begin{tikzpicture}
 		\begin{axis}[
 				xlabel={$a$},
@@ -388,7 +515,7 @@ Figure \ref{fig:w_vs_a} illustrates the function $w(a)$ and its approximation wi
 			\addplot[domain=-11.5:11.5,samples=400, blue, thick] { (1/14)*((51.282*sqrt(132.25 - x^2))^(1/3)) + (1/0.910)*(1.667*sqrt(132.25 - x^2))*((51.282*sqrt(132.25 - x^2))^(-2/3)) };
 			\addlegendentry{$w(a)$}
 			\addplot[domain=-11.5:11.5,samples=400,red, thick] { 0.9040595325562741-1/((abs(x)-12.525535603937156)^4) };
-			\addlegendentry{\eqref{eq:fitting_irrational} for $n=2$}
+			\addlegendentry{$\tilde{w}(a)$ for $n=2$}
 		\end{axis}
 	\end{tikzpicture}
 	\caption{Plot of $w$ versus $a$ and its approximation.}
@@ -396,10 +523,10 @@ Figure \ref{fig:w_vs_a} illustrates the function $w(a)$ and its approximation wi
 \end{figure}
 
 % \pgfkeys{/pgf/fpu=true}
-The following figures \ref{fig:resulting_diamonds} visualize the friction circle \eqref{eq:friction_circle}, its tighter constraint
+The following Figure \ref{fig:resulting_diamonds} visualizes the friction circle \eqref{eq:friction_circle}, its tighter constraint
 \eqref{eq:friction_circle_stricter} and the resulting diamond-shaped bounds for $v$ and $\delta$ for a fixed value of $a$.
 
-\begin{figure}[h]
+\begin{figure}[h!]
 	\centering
 	\begin{subfigure}{0.49\textwidth}
 		\centering

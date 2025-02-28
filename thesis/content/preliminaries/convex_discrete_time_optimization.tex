@@ -1,45 +1,46 @@
-\section{Convex Discrete-Time Optimization} \label{sec:convex_discrete_time_optimization}
+\section{Problem Formulation} \label{sec:convex_discrete_time_optimization}
+
+Motion planning for autonomous vehicles must simultaneously address two fundamental challenges: ensuring collision-free trajectories and accurately
+capturing the vehicle's dynamic behavior.
+In this section, we introduce a discrete-time formulation of the trajectory planning problem and discuss its inherent computational complexity.
+This lays the groundwork for our convex optimization approach.
 
 \subsection{Computational Complexity} \label{subsec:complexity}
 
-Finding an exact solution to the optimal trajectory planning problem, as formulated in Section \ref{sec:problem_formulation}, is generally
-computationally intractable.
-Specifically, this problem belongs to the class of PSPACE-Hard problems, meaning that the required computational resources grow exponentially with
-the problem size.
-The complexity arises from several factors, including the continuous nature of the state space, the non-convex constraints imposed by vehicle
-dynamics, and the need to account for obstacles and environmental uncertainties over a planning horizon.
-This challenge is closely related to the classic Movers' Problem [14], which is PSPACE- Hard and involves finding a collision-free path for a robot
-in an environment with obstacles.
-Motion planning for autonomous vehicles introduces additional complexities, such as dynamic constraints and time dependencies, further increasing the
-computational burden.
-Given these challenges, exact solutions are impractical for real-time applications.
-Instead, numerical optimization techniques, heuristics, and approximate solvers are employed to compute near-optimal solutions efficiently.
-The following sections describe the methods used in this work to address these challenges while ensuring computational feasibility.
+Optimal trajectory planning is computationally intractable and classified as PSPACE-Hard \cite{reif_complexity_1979}, with resource requirements
+growing exponentially with problem size.
+This complexity arises from the continuous state space, non-convex vehicle dynamics constraints, and the need to enforce collision avoidance while
+satisfying dynamic constraints.
+These challenges, akin to the classic Movers' Problem, are further complicated by time dependencies and evolving vehicle behavior.
+Exact solutions are impractical for real-time use, necessitating numerical optimization, heuristics, or approximate solvers for efficient
+near-optimal solutions.
 
 \subsection{Discrete-Time Problem Formulation}
 
-To make the trajectory planning problem more tractable, we discretize the continuous- time problem into a finite set of time steps.
+To render the trajectory planning problem tractable, we discretize the continuous-time formulation into a finite set of time steps.
 Let $\mathcal{X}$ denote the set of valid vehicle states and $\mathcal{U}$ the set of feasible control inputs.
+We define the trajectory at discrete time points $\{t_i\}_{i=1,\dots ,m}$, with the state at time $t_i$ denoted by $\pi(t_i) = x_i$.
+Our objective is to minimize a cumulative cost function $ J: \mathcal{X} \times \mathcal{U} \to \mathbb{R}, $ which penalizes deviations from desired
+behaviors, including collisions and dynamic infeasibilities.
 
-The trajectory is defined at discrete time points $\{t_i\}_{i=1,\dots,m}$, where $\pi(t_i) = x_i$.
-The objective function is then formulated over $\mathcal{X} \times \mathcal{U}$ as $J: \mathcal{X} \times \mathcal{U} \to \mathbb{R}$.
+\subsubsection{Discrete-Time Optimal Trajectory Planning}\label{subsubsec:discrete_time_optimal_trajectory_planning}
 
-\subsubsection{Problem Definition: Discrete-Time Optimal Trajectory Planning}
-
-Given a 7-tuple $(\mathcal{X}, \mathcal{U}, x_{\text{initial}}, X_{\text{goal}}, f, J, \{t_i\}_{i=1,\dots,m})$, find:
-
+Given a 7-tuple
+$
+	(\mathcal{X}, \mathcal{U}, x_{\text{initial}}, X_{\text{goal}}, f, J, \{t_i\}_{i=1,\dots ,m}),
+$
+the discrete-time optimal trajectory planning problem is defined as:
 \begin{align}
-	u^* & = \underset{u \in \mathcal{U}^{T-1}}{\operatorname{arg\,min}} \sum_{i=1}^{T-1}
-	J(x_{i+1}, u_{i})                                                                                                                                              \\ \text{s.t.
-	}   & \quad x_1 = x_{\text{initial}}                                                                                                                           \\
-	    & \quad x_T \in X_{\text{goal}} \subseteq \mathcal{X}                                                                                                      \\
-	    & \quad (x_i, u_i) \in \mathcal{C} \subseteq \mathcal{X} \times \mathcal{U}      & \text{for all } i \in \{1, \dots, m-1\} \label{eq:coupling_constraints} \\
-	    & \quad x_{i+1} = x_i + (t_{i+1} - t_i) f(x_i, u_i)                              & \text{for all } i \in \{1, \dots, m-1\} \label{eq:discrete_dynamics}
+	u^*     & = \underset{u \in \mathcal{U}^{m-1}}{\operatorname{arg\,min}} \sum_{i=1}^{m-1}
+	J(x_{i+1}, u_{i}), \label{eq:obj}                                                                                                                                   \\ \text{s.t.
+	} \quad & x_1  = x_{\text{initial}} \label{eq:init}                                                                                                                 \\
+	        & x_m          \in X_{\text{goal}} \subseteq \mathcal{X} \label{eq:goal}                                                                                    \\
+	        & (x_i, u_i)   \in \mathcal{C} \subseteq \mathcal{X} \times \mathcal{U}          & \text{for all}\, i \in \{1, \dots, m-1\} \label{eq:coupling_constraints} \\
+	        & x_{i+1}      = x_i + \Delta t_i \, f(x_i, u_i)                                 & \text{for all}\, i \in \{1, \dots, m-1\} \label{eq:discrete_dynamics}
 \end{align}
-
-This formulation introduces a coupling constraint C that imposes restrictions on both the state and control inputs.
-The dynamics are approximated using a first-order Euler integration scheme, where the state at time $t_i+1$ is computed based on the state at time
-$t_i$ and the control input $u_i$.
+where $\Delta t_i = t_{i+1} - t_i$, and $\mathcal{C}$ represents the set of coupling constraints that jointly enforce collision avoidance and the vehicle's dynamic limitations.
+The system dynamics are approximated using an integration scheme, as specified in \eqref{eq:discrete_dynamics}, which estimates the state at time
+$t_{i+1}$ based on the state at time $t_i$ and the control input $u_i$.
 
 \subsubsection{Disciplined Convex Programming (DCP)}
 
@@ -47,14 +48,13 @@ The DCP framework imposes specific rules on how optimization problems must be fo
 guarantees that the problem can be solved efficiently.
 The key principles of DCP are as follows:
 \begin{itemize}
-	\item The objective function must be convex if it is to be minimized, or concave if it is to
+	\item The objective function must be convex over the feasible set if it is to be minimized, or concave if it is to
 	      be maximized.
-	\item Constraints must be formulated in one of the following forms: \begin{itemize}
-		      \item An equality constraint between affine expressions: $\text{affine} = \text{affine}$
-		      \item An inequality constraint where a convex function is less than or equal to a
-		            concave function: $\text{convex} \leq \text{concave}$
+	\item Constraints must be formulated in one of the following forms:
+	      \begin{itemize}
+		      \item An equality constraint between affine expressions: \(\text{affine} = \text{affine}\),
+		      \item An inequality constraint where a convex function is bounded above by a concave function: \(\text{convex} \leq \text{concave}\).
 	      \end{itemize}
 \end{itemize}
-
 The use of DCP in this work involves defining the cost function and constraints in a manner that satisfies the DCP rules.
-We will use the term "convex constraint" or "convex form" to refer to constraints that adhere to these rules.
+We will use the term \textit{convex constraint} or \textit{convex form} to refer to constraints that adhere to these rules.

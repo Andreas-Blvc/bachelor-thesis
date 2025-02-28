@@ -12,6 +12,7 @@ def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     - y_bounds: tuple (y_L, y_U), bounds for y.
     - resolution: int, number of points for x and y grids.
     """
+    return _visualize_mccormick_export_latex(x_bounds, y_bounds, resolution)
     x_L, x_U = x_bounds
     y_L, y_U = y_bounds
 
@@ -37,7 +38,7 @@ def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     # First heatmap: Difference to upper bound
     Z_diff_upper = Z_upper - Z
     im1 = axes[0].imshow(Z_diff_upper, extent=[x.min(), x.max(), y.min(), y.max()],
-                         origin='lower', cmap='cividis', interpolation='bilinear')
+                         origin='lower', cmap='cividis', interpolation='bilinear', vmax=50)
     axes[0].set_title("Difference to upper bound")
     axes[0].set_xlabel("x")
     axes[0].set_ylabel("y")
@@ -47,7 +48,7 @@ def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     # Second heatmap: Difference to lower bound
     Z_diff_lower = Z - Z_lower
     im2 = axes[1].imshow(Z_diff_lower, extent=[x.min(), x.max(), y.min(), y.max()],
-                         origin='lower', cmap='cividis', interpolation='bilinear')
+                         origin='lower', cmap='cividis', interpolation='bilinear', vmax=50)
     axes[1].set_title("Difference to lower bound")
     axes[1].set_xlabel("x")
     axes[1].set_ylabel("y")
@@ -93,12 +94,12 @@ def _visualize_mccormick_export_latex(x_bounds, y_bounds, resolution=50):
     # Plot Difference to Upper Bound
     plt.figure(figsize=(5, 4))
     plt.imshow(Z_diff_upper, extent=(x.min(), x.max(), y.min(), y.max()),
-               origin='lower', cmap='cividis', interpolation='bilinear', aspect=aspect_ratio)
+               origin='lower', cmap='cividis', interpolation='bilinear', aspect=aspect_ratio, vmax=50)
     plt.xlabel("x")
     plt.ylabel("y")
     plt.colorbar(fraction=0.046, pad=0.04)
     plt.tight_layout()
-    plt.savefig("mccormick-bounds-1-upper.pgf", bbox_inches='tight')
+    plt.savefig("mccormick-bounds-0-upper.pgf", bbox_inches='tight')
     plt.close()
 
     # Compute McCormick lower bounds
@@ -110,12 +111,12 @@ def _visualize_mccormick_export_latex(x_bounds, y_bounds, resolution=50):
     # Plot Difference to Lower Bound
     plt.figure(figsize=(5, 4))
     plt.imshow(Z_diff_lower, extent=(x.min(), x.max(), y.min(), y.max()),
-               origin='lower', cmap='cividis', interpolation='bilinear', aspect=aspect_ratio)
+               origin='lower', cmap='cividis', interpolation='bilinear', aspect=aspect_ratio, vmax=50)
     plt.xlabel("x")
     plt.ylabel("y")
     plt.colorbar(fraction=0.046, pad=0.04)
     plt.tight_layout()
-    plt.savefig("mccormick-bounds-1-lower.pgf", bbox_inches='tight')
+    plt.savefig("mccormick-bounds-0-lower.pgf", bbox_inches='tight')
     plt.close()
 
 

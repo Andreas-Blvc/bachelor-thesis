@@ -1,6 +1,6 @@
 \section{Overview} \label{sec:overview}
 
-\begin{figure}[h!]
+\begin{figure}[b]
 	\centering
 	\begin{tikzpicture}[
 			node distance=1cm,
@@ -29,21 +29,82 @@
 		% \node[label] at (11.2, -1.25) {Control Commands};
 
 	\end{tikzpicture}
-	\caption{Overview of Autonomous Driving Problem Decomposition}
-	\label{fig:autonomous_driving_overview}
+	\caption{Overview of Motion Planning Problem Decomposition}
+	\label{fig:motion_planning_overview}
 \end{figure}
 
-The problem of autonomous driving can be divided into four main components, each representing an essential aspect of the system.
-Figure 1.1 illustrates this decomposition, highlighting the motion planning layer as the focus of this work.
+The motion planning system for autonomous driving is typically organized into a hierarchical, layered architecture that efficiently handles both
+large-scale navigation and local trajectory optimization.
+Figure \ref{fig:motion_planning_overview} illustrates this decomposition, adapted from ~\cite{paden_survey_2016}, and emphasizes the motion planning
+layer, which is the focus of this work.
 
-The process begins with the user providing a travel destination, which serves as the input to the Route Planning component.
-This phase generates a sequence of waypoints through a predefined road network.
-Next, the Behavioral Layer refines the waypoints by considering environmental factors such as other vehicles, obstacles, and road signs, ensuring the
-vehicle adapts to dynamic traffic conditions.
-Once a behavioral strategy is determined, the Motion Planning Layer generates a trajectory that satisfies physical and safety constraints, ensuring
-feasibility and compliance with road rules.
-Finally, the Local Feedback component executes the plan by generating precise control commands—steering, throttle, and brake inputs—based on
-real-time vehicle and environmental feedback.
+At the highest level, the Route Planning component takes a user-specified destination and uses search- or graph-based methods to generate a
+high-level route through the road network.
+This global planner addresses large-scale navigation by selecting a sequence of waypoints that outline the overall path from the start location to
+the destination.
+
+Following route planning, the Behavioral Layer refines the generated waypoints by incorporating environmental factors such as other vehicles,
+obstacles, and road signs.
+This step ensures that the vehicle adapts to dynamic traffic conditions and selects a behavioral strategy appropriate for the current driving
+context.
+
+Once the behavioral strategy is set, the Motion Planning Layer takes center stage.
+Building on insights from early demonstrations in the DARPA Grand and Urban Challenges \cite{thrun_stanley_2006,montemerlo_junior_2008}, the motion
+planning literature has evolved to tackle a wide variety of environments—from structured highways and urban roads to unstructured parking lots and
+off-road terrains.
+A unifying theme across these scenarios is the production of collision-free, dynamically feasible trajectories that account for comfort and
+operational constraints.
+
+In this context, an optimization-based local planner refines the global route into a smooth, continuous guiding trajectory in real
+time~\cite{van_hierarchical_2020}.
+Unlike the global route—represented as a series of discrete waypoints—this trajectory not only satisfies road rules and safety constraints but also
+ensures fluid, comfortable motion that adapts to dynamic obstacles, road curvature, and other real-time factors.
+
+Another critical element in the motion planning pipeline is the vehicle model.
+This model defines the vehicle's position and orientation in the real world and predicts how these states evolve over time.
+The choice of vehicle model significantly impacts both the accuracy and the computational complexity of the planning process: simpler models offer
+efficiency at the cost of precision, whereas more complex models yield higher fidelity with increased computational demands.
+
+Finally, the Local Feedback component executes the planned trajectory by generating precise control commands—steering, throttle, and brake
+inputs—based on real-time vehicle and environmental feedback.
+This closed-loop control ensures that the trajectory is followed accurately, even as conditions evolve.
+
+% Next, the Behavioral Layer refines these waypoints by considering environmental factors such as other vehicles, obstacles, and road signs, ensuring
+% the vehicle adapts to dynamic traffic conditions.
+% Once a behavioral strategy is determined, the Motion Planning Layer takes center stage.
+% Building on insights from early demonstrations in the DARPA Grand and Urban Challenges \cite{thrun_stanley_2006,montemerlo_junior_2008}, the motion
+% planning literature has evolved to handle a wide variety of environments—from structured highways and urban roads to unstructured parking lots and
+% off-road terrains.
+% A unifying theme across these scenarios is the need to produce collision-free, dynamically feasible trajectories that also account for comfort and
+% operational constraints.
+
+% In this context, an optimization-based local planner refines the global route into a dynamically feasible, collision-free trajectory in real time
+% \cite{van_hierarchical_2020}.
+% Unlike the global route, which is represented as a series of waypoints, the resulting trajectory is a smooth, continuous guiding curve.
+% It not only ensures compliance with road rules and safety constraints but also guarantees a fluid and comfortable motion that adapts to dynamic
+% obstacles, road curvature, and other real-time factors.
+
+% Another critical element in the motion planning pipeline is the vehicle model, which defines the position and orientation of the vehicle in the real
+% world and predicts how these states evolve over time.
+% The choice of model significantly impacts both the accuracy and computational complexity of the planning process.
+% While simpler models are computationally efficient, they may lack precision; conversely, more complex models provide higher fidelity at the cost of
+% increased computational resources.
+
+% Finally, the Local Feedback component executes the plan by generating precise control commands—steering, throttle, and brake inputs—based on
+% real-time vehicle and environmental feedback, ensuring that the trajectory is followed accurately.
+
+% The motion planning problem can be divided into four main components, each representing an essential aspect of the system.
+% Figure \ref{fig:motion_planning_overview} illustrates this decomposition, adapted from \cite{paden_survey_2016}, with an emphasis on the motion
+% planning layer, which is the focus of this work.
+
+% The process begins with the user providing a travel destination, which serves as the input to the Route Planning component.
+% This phase generates a sequence of waypoints through a predefined road network.
+% Next, the Behavioral Layer refines the waypoints by considering environmental factors such as other vehicles, obstacles, and road signs, ensuring the
+% vehicle adapts to dynamic traffic conditions.
+% Once a behavioral strategy is determined, the Motion Planning Layer generates a trajectory that satisfies physical and safety constraints, ensuring
+% feasibility and compliance with road rules.
+% Finally, the Local Feedback component executes the plan by generating precise control commands—steering, throttle, and brake inputs—based on
+% real-time vehicle and environmental feedback.
 
 Finding an exact solution to the motion planning problem is computationally intractable in most cases.
 As a result, numerical methods are commonly used to approximate solutions.
@@ -61,6 +122,14 @@ These approaches fall into three main categories:
 	      while respecting constraints.
 \end{enumerate}
 
-We focus on optimization-based motion planning, which offers a structured and efficient approach to trajectory generation.
-Our objective is to design a motion planner that consistently provides near real-time solutions.
-To achieve this, we leverage modern optimization solvers.
+We focus on optimization-based motion planning, which offers a structured and efficient approach to trajectory generation while ensuring collision
+avoidance and adherence to vehicle dynamics.
+Compared to graph-based or Incremental Tree approaches, optimization-based methods provide smoother and more dynamically feasible trajectories by
+directly incorporating vehicle dynamics constraints.
+Additionally, they offer deterministic performance with guaranteed feasibility, avoiding the sampling inconsistencies and discontinuities often found
+in tree-based methods.
+By leveraging convex optimization and constraint reformulation, this approach efficiently computes safe and feasible trajectories while maintaining
+real-time performance in dynamic environments.
+
+Building on these advantages, we review existing optimization-based motion planning approaches, highlighting key methodologies, challenges, and
+advancements in the field.

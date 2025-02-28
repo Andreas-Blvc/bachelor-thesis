@@ -1,16 +1,29 @@
 \chapter{\abstractname}
-Motion planning is an essential aspect of robotics and autonomous systems, requiring algorithms that efficiently generate safe and feasible
+Motion planning is a critical component of robotics and autonomous systems, requiring algorithms that efficiently generate safe and feasible
 trajectories.
-This thesis examines motion planning for autonomous vehicles by formulating it as an optimization problem that considers safety, efficiency, and
+This thesis investigates motion planning for autonomous vehicles by framing it as an optimization problem that balances safety, efficiency, and
 computational feasibility.
-A primary focus is on real- time planning in dynamic environments, where vehicles must navigate while accounting for constraints such as road
-boundaries, vehicle dynamics, and interactions with other agents.
+A central challenge in the optimal control of autonomous driving is the vehicle dynamics model, where a trade-off exists between model accuracy and
+computational speed.
+This trade-off becomes especially significant in real-time planning for dynamic environments, where vehicles must navigate while accounting for
+constraints such as road boundaries, vehicle dynamics, and interactions with other agents.
 
-To address this, we develop optimization-based motion planning approaches using both the point mass and bicycle models.
-The methodology transforms the motion planning problem into a convex optimization framework, facilitating the efficient computation of feasible
-trajectories.
-Techniques such as convex relaxation and quantifier elimination are employed to improve solution robustness and computational efficiency.
+To address these challenges, we develop optimization-based motion planning approaches using both the double integrator and bicycle models.
+Our methodology reformulates the motion planning problem within a convex optimization framework, enabling the efficient computation of feasible
+trajectories while preserving computational tractability.
+Initially, the approach employs a double integrator model augmented with additional constraints to capture vehicle dynamics without sacrificing
+convexity.
+By formulating the problem in the Frenet coordinate frame, we exploit a structured representation that simplifies trajectory generation.
+System linearization, constraint reformulation, and convex relaxation techniques are applied to manage nonlinearities, ensuring both solution
+robustness and computational efficiency.
+
+To enhance model fidelity while retaining computational efficiency, the methodology is further extended to incorporate a bicycle model.
+This extension allows for a more accurate representation of vehicle dynamics, particularly in scenarios demanding realistic steering and acceleration
+constraints.
+The bicycle model is approximated to maintain convexity, utilizing techniques such as bilinear term relaxation and auxiliary variables to manage
+nonconvex components.
 The proposed approach is evaluated through simulations to assess its performance.
 
-The results indicate that the framework can generate feasible and efficient trajectories while maintaining computational efficiency.
-The evaluation demonstrates its applicability across various planning scenarios, supporting its potential use in autonomous driving applications.
+The results demonstrate that the framework can generate feasible and efficient trajectories while maintaining computational efficiency.
+The evaluation confirms its applicability across a variety of planning scenarios, underscoring its potential for use in autonomous driving
+applications.
