@@ -5,10 +5,11 @@ the time points $\{t_i\}_{i=1,\dots,n}$.
 
 \subsection{Road Segments}
 
-For our double integrator model, we want to split up the road into segments, based on mainly their curvature.
-As already discussed this approach allows the model to have a larger search space during planning.
-The introduced kinematic single track model assumes the curvature to be linear, which is only practical for the road topology if we allow a piece
-wise linear curvature and select the current piece.
+For our double integrator model, we subdivide the road into segments primarily based on curvature.
+As discussed in \ref{subsubsec:limitations_on_qe} and \ref{subsec:approximation_of_model_dynamics}, this approach expands the model's search space
+during planning and facilitates the linearization of the dynamics.
+The introduced kinematic single track model assumes the curvature to be linear, which is only practical for the road topology if we allow a piecewise
+linear curvature and select the current piece.
 We can easily add other road topology constraints to be dependent by the current segment, such as the road width.
 
 Our planner operates on a time horizon, divided into discrete time steps $\{t_i\}_{i=1,\dots,n}$.
@@ -52,6 +53,7 @@ model in \eqref{eq:discrete_time_dynamics_di}, we define the system dynamics con
 \begin{equation}
 	x(t_i) = f_{d,di}(x(t_{i-1}), u(t_{i-1}), t_i - t_{i-1})
 \end{equation}
+
 \textbf{Bicycle Model:}
 Since the dynamics of the kinematic bicycle model include auxiliary variables, we apply forward Euler discretization to the continuous-time dynamics:
 \begin{equation}
@@ -64,9 +66,9 @@ the planner.
 
 Given the initial state $x_{initial}$, we model our initial condition with the constraint $x(t_0) = x_{initial}$.
 For our evaluation, we did not impose any additional constraints on the final state.
-Instead, we modeled our driving behavior through the objective function.
+Instead, we modeled the driving behavior through the objective function.
 
-We implemented our optimization problem using Python with the 'cvxpy' library and solved it using the 'MOSEK' solver.
+We implemented our optimization problem using Python with the 'cvxpy' library and solved it using the 'MOSEK' solver \cite{diamond2016cvxpy}.
 
 While our planner primarily relies on hard constraints to ensure feasibility and adherence to system dynamics, real-world scenarios often introduce
 uncertainties, disturbances, or conflicting objectives that make strict constraint satisfaction impractical.

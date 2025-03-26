@@ -1,7 +1,7 @@
 \section{Motion Planning Using the Double Integrator Model} \label{sec:motion_planning_using_point_mass}
 
 This section develops a motion planning framework using the double integrator model from \ref{subsec:point_mass_model}, transitioning from a global
-coordinate representation to a Frenet frame formulation.
+coordinate representation to a Frenet frame formulation, as introduced in \ref{subsec:curve_following_coordinate_system}.
 The Frenet frame provides a more structured approach for path tracking along a predefined road, accounting for curvature and alignment errors.
 Our formulation builds on the work of Eilbrecht et al.
 \cite{eilbrecht_challenges_2020} and systematically addresses motion dynamics, constraints, and control strategies.
@@ -19,7 +19,7 @@ influence its evolution in Frenet coordinates.
 Next, we formulate the \textbf{system dynamics} within the Frenet frame, defining the state vector and control inputs.
 By incorporating the effects of curvature and alignment error, we capture both longitudinal and lateral dynamics within our model.
 
-To address the nonlinearities introduced by the curvature terms, we employ \textbf{feedback linearization and system linearization}.
+To address the nonlinearities introduced by the curvature terms, we employ \textbf{feedback linearization}.
 This process involves assuming alignment to simplify the nonlinear dynamics, enabling the introduction of artificial control variables that linearize
 the system.
 
@@ -31,8 +31,8 @@ A key challenge in motion planning is the presence of \textbf{non-convexities} i
 To address this, we use \textbf{quantifier elimination} techniques to obtain convex inner approximations of the feasible set.
 We explore two approaches:
 \begin{itemize}
-	\item \textit{Interval Fitting}, which provides a computationally efficient, box-shaped approximation of the constraint set.
-	\item \textit{Cylindrical Algebraic Decomposition (CAD)}, a method from computer algebra that decomposes space into cylindrical cells to eliminate quantifiers while preserving logical equivalence.
+	\item Interval Fitting, which provides a computationally efficient, box-shaped approximation of the constraint set.
+	\item Cylindrical Algebraic Decomposition (CAD), a method from computer algebra that decomposes space into cylindrical cells to eliminate quantifiers while preserving logical equivalence.
 \end{itemize}
 
 Once an optimal trajectory is determined, we establish a \textbf{control transformation} that maps the optimized state and control variables to
@@ -41,57 +41,10 @@ This step derives the necessary steering angle and longitudinal acceleration, en
 
 Next, we provide the \textbf{exact discretization of the double integrator model}, ensuring an accurate transition from continuous to discrete-time
 dynamics.
-By leveraging matrix exponentials, this formulation preserves system behavior over discrete time steps and maintains numerical stability, which is
-crucial for real-time motion planning.
+By leveraging matrix exponentials, this formulation preserves system behavior over discrete time steps.
 
 Finally, we present the \textbf{complete motion planning model} as a formalized representation.
 This encapsulates the system's state-space dynamics, control inputs, constraints, and transformation mappings.
-% To effectively model and control vehicle motion, we follow a structured approach consisting of the following key components:
-
-% \begin{itemize}
-% 	\item \textbf{Coordinate Transformation and Kinematics:}
-% 	      We define the curvature \( C(s) \) of the reference path along with the alignment error \(\xi = \psi - \theta\).
-% 	      Using these definitions, we derive the first- and second-order kinematic equations that relate the vehicle's body-fixed velocity components to the
-% 	      changes in the Frenet coordinates.
-
-% 	\item \textbf{System Dynamics Formulation:}
-% 	      The state vector and control inputs are defined in the Frenet frame.
-% 	      We formulate the motion dynamics for the double integrator model, incorporating the influence of curvature and alignment error to capture both
-% 	      longitudinal and lateral dynamics along the road.
-
-% 	\item \textbf{Feedback Linearization and System Linearization:}
-% 	      To simplify the nonlinear dynamics induced by curvature terms, we introduce an alignment assumption and perform feedback linearization.
-% 	      This decouples the system inputs and transforms the model into an affine representation.
-
-% 	\item \textbf{Constraint Handling:}
-% 	      We detail the derivation of vehicle and road constraints by mapping bounds on velocity and acceleration from the body-fixed frame to the Frenet
-% 	      frame.
-% 	      This step is essential for ensuring that the planned trajectories adhere to physical and operational limits.
-
-% 	\item \textbf{Convex Approximation via Quantifier Elimination:}
-% 	      Since curvature-dependent constraints introduce non-convexities, we employ quantifier elimination techniques to derive convex inner approximations of
-% 	      the feasible set.
-% 	      Two methods are presented:
-% 	      \begin{itemize}
-% 		      \item \emph{Interval Fitting:}
-% 		            An approach that provides box-shaped approximations of the constraint set.
-% 		      \item \emph{Cylindrical Algebraic Decomposition (CAD):}
-% 		            Cylindrical Algebraic Decomposition (CAD) is a computational method used in computer algebra to decompose space into cylindrical cells, allowing for
-% 		            the elimination of quantifiers in polynomial constraints while preserving logical equivalence.
-% 	      \end{itemize}
-
-% 	\item \textbf{Control Inputs and Steering Angle Derivation:}
-% 	      We derive a transformation that maps the optimized state and control variables in the planning model to a steering angle and longitudinal
-% 	      acceleration, making the model applicable to standard vehicle control systems.
-
-% 	\item \textbf{Final Model Representation:}
-% 	      The complete motion planning model is summarized as a formal tuple that encapsulates the state-space representation, control inputs, system dynamics,
-% 	      the convex constraint polytope, and the control transformation.
-
-% \end{itemize}
-
-% With this structured approach, we ensure that motion planning within the Frenet frame is both theoretically sound and practically implementable.
-% The following sections present each of these components in detail.
 
 \subsection{Coordinate Transformation and Kinematics}
 
@@ -105,7 +58,7 @@ The curvature, \(C(s)\), quantifies the rate of change of this tangent angle wit
 \end{equation}
 
 Next, consider the vehicle's orientation, \(\psi\).
-To measure how much the vehicle deviates from following the road's direction, we define the \emph{alignment error} \(\xi\) as:
+To measure how much the vehicle deviates from following the road's direction, we define the alignment error \(\xi\) as:
 \begin{equation}
 	\xi := \psi - \theta.
 \end{equation}
@@ -131,12 +84,12 @@ Note that the term \(1 - n\,C(s)\) adjusts the longitudinal progress to account 
 
 \paragraph{Acceleration Dynamics}\label{par:acceleration_dynamics}
 To capture the dynamics of acceleration in the Frenet frame, we introduce transformed acceleration components \(a_{x,tn}\) and \(a_{y,tn}\).
-These are defined by:
+These dynamics are given by:
 \begin{align}
 	a_{x,tn} & = (a_x - v_y\,\dot{\psi})\cos{\xi} - (a_y + v_x\,\dot{\psi})\sin{\xi}, \label{eq:second_derivative_long} \\
 	a_{y,tn} & = (a_x - v_y\,\dot{\psi})\sin{\xi} + (a_y + v_x\,\dot{\psi})\cos{\xi}, \label{eq:second_derivative_lat}
 \end{align}
-with the following detailed definitions:
+with the following definitions:
 \begin{align}
 	a_{x,tn} & := \ddot{s}\,(1 - n\,C(s)) - 2\dot{n}\,C(s)\dot{s} - n\,C'(s)\dot{s}^2, \label{def:axtn} \\
 	a_{y,tn} & := \ddot{n} + C(s)\dot{s}^2\,(1 - n\,C(s)). \label{def:aytn}
@@ -197,10 +150,15 @@ It is important to note that the curvature terms \(C(s)\) and \(C'(s)\) introduc
 We address these challenges in subsequent sections through feedback linearization.
 
 \subsection{Linearization via Feedback Control} \label{subsec:constraints}
-
-In order to simplify the nonlinear dynamics introduced by the curvature terms, we first decouple the input by examining the dynamics in
-\eqref{eq:frenet_frame_pm_dynamics_0} (with the definitions in \eqref{def:axtn} and \eqref{def:aytn}).
-Notice that the last two entries contain both body-fixed control inputs \(a_x\) and \(a_y\).
+To simplify the nonlinear dynamics introduced by the curvature terms, we first decouple the body-fixed inputs in
+\eqref{eq:frenet_frame_pm_dynamics_0}.
+By substituting \eqref{eq:frenet_frame_pm_dynamics_0} the accelerations in the Frenet frame with their body-fixed relations from
+\eqref{eq:second_derivative_long} and \eqref{eq:second_derivative_lat} in \eqref{eq:frenet_frame_pm_dynamics_0}, we obtain:
+\begin{align}
+	\frac{(a_x - v_y\,\dot{\psi})\cos{\xi} - (a_y + v_x\,\dot{\psi})\sin{\xi} + 2\dot{n}\,C(s)\dot{s} + n\,C'(s)\dot{s}^2}{1 - n\,C(s)} \\
+	(a_x - v_y\,\dot{\psi})\sin{\xi} + (a_y + v_x\,\dot{\psi})\cos{\xi} - C(s)\dot{s}^2(1 - n\,C(s))
+\end{align}
+We observe that both entries contain the body-fixed control inputs \(a_x\) and \(a_y\).
 To simplify the model, we make the following key assumption.
 
 \subsubsection{Assumption: Alignment Error} \label{subsubsec:alignment_error}
@@ -245,8 +203,7 @@ Define the artificial control input vector \(\tilde{u}_{di}\) as:
 \end{equation}
 These artificial control inputs will be used to linearize the system dynamics, a process known as feedback linearization.
 This technique is thoroughly explained in \cite{khalil_nonlinear_2002}.
-In the following section, we will briefly introduce the concept of feedback linearization before delving into its application in our motion planning
-framework.
+In the following section, we will briefly introduce the concept of feedback linearization before applying it in our motion planning framework.
 
 \subsubsection{Supplementary Background: Feedback Linearization}
 
@@ -328,19 +285,20 @@ is the lateral speed.
 
 For acceleration constraints, we typically define two types:
 \begin{itemize}
-	\item A \emph{norm constraint} that limits the overall acceleration, ensuring that the combined longitudinal and lateral accelerations lie within a circle of radius \(c\):
+	\item A norm constraint that limits the overall acceleration, ensuring that the combined longitudinal and lateral accelerations lie within a circle of radius \(c\), similar to \eqref{eq:acceleration_constraint_preliminaries_di}:
 	      \begin{equation}
 		      a_x^2 + a_y^2 \leq c.
 	      \end{equation}
-	\item \emph{Individual bounds} on the longitudinal and lateral accelerations:
+	\item Individual bounds on the longitudinal and lateral accelerations:
 	      \begin{align}
 		      \underline{a_x} \leq a_x \leq \overline{a_x}, \\
 		      \underline{a_y} \leq a_y \leq \overline{a_y}.
 	      \end{align}
 \end{itemize}
 
-To map these acceleration constraints to the Frenet frame, we use the definition of our artificial variables \eqref{eq:artificial_controls} and the
-first implication $a_x=a_{x,tn}$ and $a_y=a_{y,tn}$ from our alignment error assumption \ref{subsubsec:alignment_error}.
+To map these acceleration constraints to the Frenet frame, we use the definition \eqref{eq:artificial_controls} of our artificial variables
+\eqref{eq:artificial_controls} and the first implication $a_x=a_{x,tn}$ and $a_y=a_{y,tn}$ from our alignment error assumption
+\ref{subsubsec:alignment_error}.
 These equations allow us to establish a mapping that relates the state variables and artificial control inputs \((\tilde{x}_{di}, \tilde{u}_{di})\)
 to the body-fixed accelerations by solving for $a_x$ and $a_y$.
 This mapping is defined as:
@@ -429,15 +387,17 @@ In the following section, we will demonstrate how to address this problem.
 \input{content/methodology/convex_apporximation_using_qe.tex}
 
 \subsection{Determining the Steering Angle} \label{subsec:determining_the_steering_angle}
-% \cite{Optimal trajectories for time-critical street scenarios using discretized terminal manifolds}
+
 Typically, a vehicle is controlled through throttle, brakes, and a steering angle.
 To incorporate these controls, we need to move away from visualizing our model as a box aligned with the road.
 Instead, we will treat the model as a point and define its orientation based on its velocity.
+We set $v_y = 0$ and $a_y=0$ to reflect that lateral motion arises solely from steering, thereby keeping the lateral velocity state zero and
+capturing lateral movement through changes in heading rather than a separate lateral speed.
 Using the equations \eqref{eq:first_derivative_long} and \eqref{eq:first_derivative_lat} with $v_y = 0$, we can solve for $v_x$.
 \begin{equation}
 	v := v_x = \sqrt{(1-nC(s))^2\dot{s}^2 + \dot{n}^2}
 \end{equation}
-Dividing $\dot{n}$ by $\dot{s}$ yields:
+Dividing $\dot{n}$ by $\dot{s}$ combined with  \eqref{eq:first_derivative_long} and \eqref{eq:first_derivative_lat} yields:
 \begin{equation}
 	\frac{\dot{n}}{\dot{s}} = (1-nC(s))\tan(\xi) = (1-nC(s))\tan(\psi - \theta)
 \end{equation}
@@ -455,7 +415,7 @@ Additionally, we assume $|\xi| \leq \frac{\pi}{2}$ to ensure that $\cos{\xi} \ne
 	\dot{\psi} = \frac{a_{y,tn} - \tan(\xi) a_{x,tn}}{v (\tan(\xi) \sin(\xi) + \cos(\xi))} \\
 	a := a_x = \frac{a_{x,tn} + v \dot{\psi} \sin(\xi)}{\cos{\xi}}
 \end{align}
-Our Bicycle models \eqref{eq:dpsi_steering_angle} enables us to calculate the steering angle.
+Our bicycle models \eqref{eq:dpsi_steering_angle} enables us to calculate the steering angle.
 \begin{equation}
 	\delta = \arctan(l_{wb}\frac{\dot{\psi}}{v})
 \end{equation}

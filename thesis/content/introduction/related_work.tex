@@ -2,11 +2,13 @@
 
 Several surveys have synthesized the state of the art in motion planning for autonomous driving.
 Claussmann et al.
-compare classical graph-search algorithms, sampling-based methods, and optimization-based planners, emphasizing the need for trajectories that respect vehicle dynamics and safety constraints, particularly in high-speed highway scenarios \cite{claussmann_review_2020}.
+compare classical graph-search algorithms, sampling-based methods, and optimization-based planners,
+emphasizing the need for trajectories that respect vehicle dynamics and safety constraints, particularly in high-speed highway scenarios \cite{claussmann_review_2020}.
 They highlight the role of Model Predictive Control (MPC) in generating feasible and efficient trajectories.
 
 For urban driving, Paden et al.
-categorize planning methods into variational, graph-based, and sampling-based approaches, stressing how model fidelity and computational constraints influence method selection \cite{paden_survey_2016}.
+categorize planning methods into variational, graph-based, and sampling-based approaches, stressing how model fidelity and computational constraints
+influence method selection \cite{paden_survey_2016}.
 They highlight the effectiveness of convex formulations, such as quadratic programming, in making trajectory optimization tractable while balancing
 accuracy and efficiency.
 
@@ -21,8 +23,8 @@ Convex optimization has become a crucial tool in achieving this balance, setting
 
 Early motion planning research focused on finding feasible paths in a geometric sense, often treating the vehicle as a point mass and ignoring
 detailed dynamics.
-Graph-based algorithms (e.g., A*, D*) discretize the state or configuration space into grids or lattices to search for collision-free paths, but they
-can become computationally intractable in high-dimensional spaces.
+Graph-based algorithms (e.g., A*, D* \cite{dolgov_path_2010}) discretize the state or configuration space into grids or lattices to search for
+collision-free paths, but they can become computationally intractable in high-dimensional spaces.
 Sampling-based planners, such as Probabilistic Roadmaps (PRM) and Rapidly-exploring Random Trees (RRT), offered a breakthrough in efficiency by
 randomly sampling the continuous configuration space \cite{orthey_sampling-based_2024}.
 PRM methods construct a graph of randomly-sampled collision-free configurations, while RRT incrementally grows a tree from the start state toward the
@@ -66,7 +68,8 @@ A rich body of work has explored strategies to cope with this non-convexity.
 One strategy is to exploit sequential convex optimization: the idea is to iteratively approximate the non-convex problem with a sequence of convex
 problems that are easier to solve.
 For instance, Schulman et al.
-(2014) present a trajectory optimizer that at each iteration linearizes or convexifies the collision avoidance constraints and solves a convex sub-problem; by gradually tightening the approximation, the method converges to a feasible local optimum \cite{schulman_finding_2013}.
+present a trajectory optimizer that at each iteration linearizes or convexifies the collision avoidance constraints and solves a convex sub-problem; by
+gradually tightening the approximation, the method converges to a feasible local optimum \cite{schulman_finding_2013}.
 Such sequential convex programming approaches (including algorithms like CHOMP and TrajOpt) have demonstrated fast convergence on complex motion
 planning tasks, effectively handling high-dimensional robots by solving a series of convex sub-problems.
 The key advantage is that each convexified problem can be solved to global optimality, providing a well-defined improvement at each iteration.
@@ -78,7 +81,7 @@ formulating as much as possible in convex terms (dynamics, cost, safe regions, e
 Another prominent trajectory optimization framework is Model Predictive Control (MPC) \cite{falcone_predictive_2007,gray_robust_2013}, which can be
 seen as a particular implementation of optimal control solved repeatedly in a receding horizon.
 In MPC, at each time step a finite-horizon optimal control problem is solved (often by direct transcription as above) to yield an optimal trajectory
-and control sequence, of which only the first control action is applied before the horizon slides forward.
+and control sequence, of which only the first few control actions are applied before the horizon slides forward.
 MPC has been widely adopted in vehicle trajectory planning and tracking due to its ability to handle multi-constraint, multi-variable control
 problems in real time.
 To ensure tractability, MPC formulations for vehicles often make simplifying assumptions on the vehicle model.
@@ -104,8 +107,7 @@ optimization.
 
 Linear integrator models (e.g. double or triple integrators for position, velocity, and acceleration) are popular in trajectory planning because they
 yield linear dynamics that make the optimization problem convex.
-With such models, vehicle dynamics are expressed as simple linear equations (position as a double-integrator of acceleration, etc.)
-.
+With such models, vehicle dynamics are expressed as simple linear equations (position as a double-integrator of acceleration, etc.).
 For instance, modeling motion with a triple integrator (including acceleration as a state and jerk as control) lets one impose acceleration limits as
 linear state constraints \cite{esterle_optimal_2020}.
 Esterle et al.
@@ -197,72 +199,6 @@ The cited works show how to avoid that: by integrating road geometry and vehicle
 steering limits that depend on speed) into the model, one can maintain a convex optimization formulation that is both computationally efficient and
 yields physically feasible trajectories \cite{polack_guaranteeing_2018,eilbrecht_challenges_2020}.
 
-% \subsubsection{Real-Time Feasibility and Efficiency}
-
-% A major motivation for using convex formulations (linear integrator or kinematic models) is the computational efficiency crucial for real-time
-% trajectory planning.
-% Solving a convex optimization (like a QP) is significantly faster and more reliable than solving a non-convex problem.
-% The literature supports this point: Kong et al.
-% note that the simpler kinematic model enabled longer discretization steps and avoided heavy tire-model computations, resulting in lower solver runtimes \cite{kong_kinematic_2015}.
-% In their experiments, even with a longer update interval, the kinematic model controller met tracking accuracy requirements with fewer computations,
-% whereas the dynamic model required a smaller step (more frequent solves) and still incurred a risk of solver issues at low speed
-% \cite{kong_kinematic_2015}.
-% This kind of result strengthens the case for formulating the planning problem as a convex program with a simplified model – it can reliably run at
-% the necessary frequency for online planning.
-
-% Even when more complex constraints are needed, researchers have shown that the problem can remain tractable.
-% For example, Esterle et al.
-% 's MIQP formulation (with a triple-integrator model and piecewise-linear orientation constraints) can be solved with modern optimizers fast enough for decision-level planning \cite{esterle_optimal_2020}.
-% They demonstrated its applicability in realistic scenarios, noting that the MIQP still achieves low runtimes and can handle intersection turning
-% scenarios that earlier straight-road QP formulations could not \cite{esterle_optimal_2020}.
-% In cases where integer decisions are introduced (e.g. to handle combinatorial aspects of road topology or mode switching), solutions can often be
-% found within milliseconds for moderately sized problems, leveraging improvements in MIQP solvers.
-% Meanwhile, purely continuous convex formulations (e.g. a QP based on a double integrator with convexified road constraints) are typically even
-% faster, often solvable in real-time at 10–50 Hz on automotive-grade hardware, as reported by various MPC-based planners in the literature
-% \cite{polack_guaranteeing_2018}.
-% Polack et al.
-% 's two-layer approach is one example, achieving a 10 Hz replan rate using convex MPC with the kinematic model \cite{polack_guaranteeing_2018}.
-% The key insight is that by limiting the scope of the vehicle model to a convex (or convexified) domain, one avoids the exponential complexity that
-% usually comes with non-convex dynamics and can meet real-time requirements for trajectory generation.
-
-% \subsection{Handling Road Constraints in a Convex Framework}
-
-% Handling road boundaries, lane geometry, and curvature constraints is critical in motion planning – and doing so within a convex formulation requires
-% careful constraint design.
-% Prior works indicate that a common strategy is to formulate road constraints in the path-relative frame (Frenet or body frame) so that they become
-% linear or convex.
-% For instance, many planning approaches constrain lateral deviation and heading relative to a reference path.
-% However, as Eilbrecht and Stursberg discuss, when using a Cartesian integrator model one must impose constraints like “do not leave the road” or
-% “follow the curvature of the lane”, which mathematically couple the lateral position with the heading or speed \cite{eilbrecht_challenges_2020}.
-% Without approximation, such constraints (e.g. $v^2/R$ limits for a turn of radius $R$) are non-convex.
-% One solution demonstrated is to approximate the road-region constraints with convex sets.
-% Eilbrecht et al.
-% construct inner polyhedral approximations of the admissible state-input space on curved roads, effectively simplifying the speed-curvature relationship into a set of linear inequalities \cite{eilbrecht_challenges_2020}.
-% This ensures the planned trajectory lies within the drivable corridor and respects curvature limits, all while the planner still solves a convex
-% problem.
-
-% Another approach is to delegate some road handling to higher-level logic (e.g. discrete decisions for lane changes or turn-taking) and keep the
-% trajectory optimizer's task local and convex.
-% Esterle et al.
-% 's formulation, for example, included the option to handle different road directions at an intersection via a mixed-integer choice, but once that choice is made, the physical constraints (like staying in a lane or turning within an intersection) were represented with linear constraints in their model \cite{esterle_optimal_2020}.
-% Polack et al.
-% 's method of limiting steering based on speed can also be seen as embedding a road topology constraint – essentially, it encodes the
-% maximum curvature of the road (or tire friction circle) as a simple speed-dependent steering bound \cite{polack_guaranteeing_2018}.
-% By doing so, the road curvature constraint (“don't take a turn too fast”) is satisfied implicitly.
-% All these techniques illustrate how road and environment constraints are managed within convex planners: either by direct linear constraints (when
-% possible) or by conservative approximations/relaxations that make inherently non-convex conditions convex.
-% The resulting trajectories are slightly suboptimal due to the conservatism, but they ensure safety (staying on the road and in-lane) and keep the
-% optimization problem solvable in real time \cite{eilbrecht_challenges_2020}.
-
-% Overall, these studies reinforce the methodology of our thesis: using a double integrator or kinematic bicycle model with appropriate convex
-% constraints can robustly handle vehicle dynamics and road geometry in a unified optimization framework.
-% The related work shows that by judiciously constraining the model (adaptive steering limits, acceleration bounds, etc.) and convexifying road
-% constraints, one can achieve a planner that is both computationally efficient and physically feasible.
-% This justifies our focus on a convex formulation for motion planning – it is grounded in prior successful approaches and addresses the coupling
-% between vehicle dynamics and road topology in a tractable manner \cite{eilbrecht_challenges_2020,polack_guaranteeing_2018}.
-% The insights from these works directly strengthen our problem formulation, providing evidence that the chosen models (double integrator and
-% constrained kinematic bicycle) can capture the necessary dynamics while keeping the trajectory optimization convex and real-time capable.
-
 \subsection{Summary}
 
 The reviewed literature highlights the critical trade-offs in motion planning: simplified models enable convex optimization and real-time
@@ -275,32 +211,3 @@ Building upon these insights, this thesis develops a motion planning framework t
 topology constraints.
 The next section formalizes this problem statement.
 
-% Existing motion planning methods demonstrate a spectrum of trade-offs between optimality, computational efficiency, and physical realism.
-% Classical planners (graph-based or sampling-based) excel at finding feasible paths but do not natively enforce vehicle dynamics, often requiring
-% additional smoothing or speed assignment steps.
-% Optimization-based planners can refine or directly generate trajectories that incorporate dynamics and optimality criteria, but they must contend
-% with non-convexity and computational complexity.
-% Current state-of-the-art approaches like MPC show that careful model simplifications (e.g. linearizations) enable real-time trajectory optimization
-% with some sacrifice in fidelity \cite{xia_survey_2024}.
-% Meanwhile, studies on vehicle modeling stress that high-performance maneuvers demand acknowledging full vehicle dynamics to avoid unsafe solutions
-% \cite{polack_kinematic_2017}.
-% This gap between computational tractability and model fidelity is a central challenge in motion planning: simpler models yield convex formulations
-% that are fast and reliable, whereas complex models capture real behavior but often lead to difficult non-convex problems.
-
-% Given these challenges, there is a clear motivation for a planning approach that harnesses convex optimization while still accounting for the key
-% aspects of vehicle dynamics.
-% The literature review above highlights that many methods either fall back to simplified models to gain convexity, or tackle the full dynamics with
-% heavy computation – leaving room for methods that can push the envelope of both.
-% In this thesis, we build upon these insights and propose a trajectory planning framework that bridges the gap.
-% The approach formulates the vehicle's trajectory planning problem in a discrete-time optimal control setting with appropriate modeling abstractions
-% so that the core problem can be cast (or relaxed) into a convex optimization form.
-% By doing so, we aim to inherit the benefits of convex solvers – deterministic convergence to a (globally) optimal solution and computational
-% efficiency – while mitigating the common drawbacks of simplified models through careful inclusion of critical dynamic constraints.
-
-% The following chapter formally defines the problem statement and the proposed solution approach.
-% We will detail how the vehicle model is chosen and formulated, what cost and constraints define the optimal trajectory, and how convexification
-% techniques are applied.
-% This formulation is directly informed by the gaps identified in existing work: it seeks to improve trajectory optimality and feasibility in scenarios
-% where classical planners struggle, and to reduce computational burden compared to brute-force nonlinear optimization.
-% In summary, by learning from the related work and leveraging convex optimization in a targeted way, the proposed method strives to advance motion
-% planning performance for autonomous vehicles, especially in challenging yet tractable domains that demand both efficiency and realism.

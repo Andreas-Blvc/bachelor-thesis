@@ -3,14 +3,14 @@
 Motion planning for autonomous vehicles must simultaneously address two fundamental challenges: ensuring collision-free trajectories and accurately
 capturing the vehicle's dynamic behavior.
 In this section, we introduce a discrete-time formulation of the trajectory planning problem and discuss its inherent computational complexity.
-This lays the groundwork for our convex optimization approach.
+This provides the groundwork for our convex optimization approach.
 
 \subsection{Computational Complexity} \label{subsec:complexity}
 
-Optimal trajectory planning is computationally intractable and classified as PSPACE-Hard \cite{reif_complexity_1979}, with resource requirements
+Optimal trajectory planning is computationally intractable and classified as PSPACE-hard \cite{reif_complexity_1979}, with resource requirements
 growing exponentially with problem size.
-This complexity arises from the continuous state space, non-convex vehicle dynamics constraints, and the need to enforce collision avoidance while
-satisfying dynamic constraints.
+This complexity arises from the continuous state space, the non-convex nature of vehicle dynamics, and the need to enforce collision avoidance while
+satisfying motion constraints.
 These challenges, akin to the classic Movers' Problem, are further complicated by time dependencies and evolving vehicle behavior.
 Exact solutions are impractical for real-time use, necessitating numerical optimization, heuristics, or approximate solvers for efficient
 near-optimal solutions.
@@ -36,7 +36,7 @@ the discrete-time optimal trajectory planning problem is defined as:
 	} \quad & x_1  = x_{\text{initial}} \label{eq:init}                                                                                                                 \\
 	        & x_m          \in X_{\text{goal}} \subseteq \mathcal{X} \label{eq:goal}                                                                                    \\
 	        & (x_i, u_i)   \in \mathcal{C} \subseteq \mathcal{X} \times \mathcal{U}          & \text{for all}\, i \in \{1, \dots, m-1\} \label{eq:coupling_constraints} \\
-	        & x_{i+1}      = x_i + \Delta t_i \, f(x_i, u_i)                                 & \text{for all}\, i \in \{1, \dots, m-1\} \label{eq:discrete_dynamics}
+	        & x_{i+1}      = f(x_i, u_i, \Delta t_i)                                         & \text{for all}\, i \in \{1, \dots, m-1\} \label{eq:discrete_dynamics}
 \end{align}
 where $\Delta t_i = t_{i+1} - t_i$, and $\mathcal{C}$ represents the set of coupling constraints that jointly enforce collision avoidance and the vehicle's dynamic limitations.
 The system dynamics are approximated using an integration scheme, as specified in \eqref{eq:discrete_dynamics}, which estimates the state at time
@@ -44,8 +44,9 @@ $t_{i+1}$ based on the state at time $t_i$ and the control input $u_i$.
 
 \subsubsection{Disciplined Convex Programming (DCP)}
 
-The DCP framework imposes specific rules on how optimization problems must be formulated, which helps in verifying the convexity of the problem and
-guarantees that the problem can be solved efficiently.
+The DCP framework imposes specific rules on how optimization problems must be formulated, which verifies that the resulting problem is convex.
+This allows the use of standard convex solvers, which often solve such problems relatively efficiently, though actual performance depends on problem
+size and numerical properties.
 The key principles of DCP are as follows:
 \begin{itemize}
 	\item The objective function must be convex over the feasible set if it is to be minimized, or concave if it is to

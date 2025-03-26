@@ -17,11 +17,9 @@ where $d_1(t_i)\in \mathbb{R}^{dim(u)}$ is an auxiliary variable constrained by:
 
 The tracking objective aims to minimize the deviation from the center of the road, represented by the cost function:
 \begin{equation}
-	J_{tracking} = \sum_{i=0}^{n} d_2(t_i)^2
-\end{equation}
-where $d_2(t_i)\in \mathbb{R}$ is an auxiliary variable constrained by: \[
-	0 \leq d_2(t_i) \leq \min \left\{ \overline{n}(s(t_i)) - n(t_i), n(t_i) - \underline{n}(s(t_i)) \right\}
-\]
+	J_{tracking} = \sum_{i=0}^{n} d_2(t_i)^2 \end{equation} where $d_2(t_i)\in \mathbb{R}$ is an auxiliary variable representing the negative distance to
+the closest boundary, constrained by: \[ \max \left\{ n(t_i)-\overline{n}(s(t_i)), \underline{n}(s(t_i)) - n(t_i) \right\} \leq d_2(t_i)\] By
+minimizing $J_{tracking}$, we maximize the distance to the road boundaries, which is optimal when the vehicle is centered on the road.
 
 The terminal state objective aims to minimize the deviation from a desired terminal state $x_{final}$ at the final time step $t_n$, represented by the cost function:
 \begin{equation}
@@ -50,12 +48,12 @@ The first formulation that may come to mind is: \[ \min g(x, u) + \left( n - \fr
 valid formulation, but it is not convex.
 Instead, we are using different approach to formulate the offset to the center of the road.
 \[
-	\min \left\{ \overline{n}(s) - n, n - \underline{n}(s) \right\}
+	\max \left\{ n - \overline{n}(s),  \underline{n}(s) - n \right\}
 \]
-which gives us the distance to the closer boundary of the road.
-This formulation is concave, if $\overline{n}(s)$ is concave and $\underline{n}(s)$ is convex.
-By introducing the auxiliary variable $d$ which is constrained by: \[ 0 \leq d \leq \min \left\{ \overline{n}(s) - n, n - \underline{n}(s) \right\}
-\] we can reformulate the objective as: \[ \min g(x, u) - d^2 \] This formulation is convex and can be solved efficiently.
+which gives us the negative distance to the closer boundary of the road.
+This formulation is convex, if $\overline{n}(s)$ is concave and $\underline{n}(s)$ is convex.
+By introducing the auxiliary variable $d$ which is constrained by: \[ \max \left\{ n - \overline{n}(s), \underline{n}(s) - n \right\} \leq d \] we
+can reformulate the objective as: \[ \min g(x, u) + d^2 \] This formulation is convex and can be solved efficiently.
 
 To visualize these formulations, we can plot them using a constant value for \(\overline{n}(s)\) and \(\underline{n}(s)\) in Figure
 \ref{fig:auxiliary_variables}.
@@ -74,12 +72,12 @@ Let's assume \(\overline{n}(s) = 5\) and \(\underline{n}(s) = 1\).
 					height=0.8\textwidth,
 					xmax=7,
 				]
-				\addplot[domain=1:5, samples=100, thick, blue] {5-x};
-				\addplot[domain=1:5, samples=100, thick, red] {x-1};
-				\legend{$5 - n$, $n - 1$}
+				\addplot[domain=1:5, samples=100, thick, blue] {x-5};
+				\addplot[domain=1:5, samples=100, thick, red] {1-x};
+				\legend{$n - 5$, $1-n$}
 			\end{axis}
 		\end{tikzpicture}
-		\caption{Distance to Road Boundaries}
+		\caption{Negative Distance to Road Boundaries}
 		\label{fig:road_boundaries}
 	\end{subfigure}
 	\hfill
@@ -93,8 +91,8 @@ Let's assume \(\overline{n}(s) = 5\) and \(\underline{n}(s) = 1\).
 					width=\textwidth,
 					height=0.8\textwidth
 				]
-				\addplot[domain=0:2, samples=100, thick, blue] {-x^2};
-				\legend{$-d^2$}
+				\addplot[domain=-2:0, samples=100, thick, blue] {x^2};
+				\legend{$d^2$}
 			\end{axis}
 		\end{tikzpicture}
 		\caption{Objective Function}
@@ -104,11 +102,11 @@ Let's assume \(\overline{n}(s) = 5\) and \(\underline{n}(s) = 1\).
 	\label{fig:auxiliary_variables}
 \end{figure}
 
-While \(-\min(5 - x, x - 1)\) is a convex function, it is piece wise linear, which can lead to difficulties in optimization.
-The benefit of using an auxiliary variable in this context is that it allows us to transform a piece wise linear and potentially non-differentiable
+While \(\max(x-5, 1-x)\) is a convex function, it is piecewise linear, which can lead to difficulties in optimization.
+The benefit of using an auxiliary variable in this context is that it allows us to transform a piecewise linear and potentially non-differentiable
 objective function into a smooth and differentiable convex function.
 This transformation simplifies the optimization process, making it more efficient and reliable.
-Specifically, by introducing the auxiliary variable \( d \) and reformulating the objective as \(\min g(x, u) - d^2\), we obtain a function that is
+Specifically, by introducing the auxiliary variable \( d \) and reformulating the objective as \(\min g(x, u) + d^2\), we obtain a function that is
 easier to handle with gradient-based optimization algorithms, which rely on smoothness and differentiability to find optimal solutions effectively.
 
 \subsection{Scenarios} \label{subsec:scenarios}
@@ -215,7 +213,7 @@ conditions.
 \subsection{Simulation Setup} \label{subsec:simulation}
 
 For the vehicle simulation, we employ a more sophisticated model from \cite{noauthor_dateien_2021} and discretize its dynamics using the Runge-Kutta
-method, which offers greater accuracy compared to the forward Euler method used for trajectory planning.
+method \cite{griffiths_rungekutta_2010}, which offers greater accuracy compared to the forward Euler method used for trajectory planning.
 To ensure reproducibility, we define the model using the following state variables and control inputs: \[ x = [p_x, p_y, \delta, v, \psi, \dot{\psi},
 	\beta]^T, u = [a_x, v_{\delta}]^T \] where $p_x$, $p_y$ represent the vehicle's position coordinates, $\delta$ is the steering angle, $v$ is the
 velocity, $\psi$ is the yaw angle, $\dot{\psi}$ is the yaw rate, $\beta$ is the slip angle, $a_x$ is the longitudinal acceleration, and $v_\delta$ is
@@ -313,8 +311,8 @@ The first configuration, $t_{\text{conf}}^{(1)}$, was set to a smaller time hori
 $t_{\text{conf}}^{(2)}$, used a larger time horizon with a coarser $\Delta t$ as well as a smaller slope for the time steps after the replanning
 interval, providing two distinct approaches for evaluating planning and control strategies.
 \begin{align*}
-	t_{\text{conf}}^{(1)} = (3s, 0.1s, 10ms, 40ms) \\
-	t_{\text{conf}}^{(2)} = (5s, 0.1s, 20ms, 20ms)
+	t_{\text{conf}}^{(1)} = (3\text{s}, 0.1\text{s}, 10\text{ms}, 40\text{ms}) \\
+	t_{\text{conf}}^{(2)} = (5\text{s}, 0.1\text{s}, 20\text{ms}, 20\text{ms})
 \end{align*}
 
 We used four objectives to evaluate performance: the control effort cost $J_{control}$, the trajectory tracking cost $J_{tracking}$, the terminal
@@ -355,14 +353,15 @@ Table \ref{tab:solver_performance} summarizes the average solver time and its de
 
 The double integrator model outperforms the bicycle model, achieving solver times of $3.9$ms and $3.8$ms across both configurations.
 In contrast, the bicycle model requires $9.5$ms and $9.4$ms, making it over twice as slow.
-Solver time deviations also differ significantly.
+Solver time deviations also differ significantly: the double integrator model exhibits deviations of $1.0$ms and $1.3$ms, while the bicycle model
+experiences deviations of $2.1$ms and $2.9$ms.
 
 This indicates that the double integrator model provides not only faster solutions but also more stable performance.
 
-\begin{figure}[h]
+\begin{figure}[h!]
 	\centering
 	\resizebox{\textwidth}{!}{
-		\begin{adjustbox}{clip, trim=0cm 0cm 0cm 10cm} % left, bottom, right, top
+		\begin{adjustbox}{clip, trim=0cm 0cm 0cm 9.8cm} % left, bottom, right, top
 			\input{../code/benchmark-results/slalom-PointMassModel-44e48f14-d19d-4b3f-b484-f84f67a1bcf5/solver_metrics.pgf}
 		\end{adjustbox}
 	}
@@ -370,7 +369,7 @@ This indicates that the double integrator model provides not only faster solutio
 	\label{fig:slalom_point_mass_model}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 	\centering
 	\resizebox{\textwidth}{!}{
 		\begin{adjustbox}{clip, trim=0cm 0cm 0cm 10cm} % left, bottom, right, top
@@ -426,7 +425,7 @@ velocity $v_{\text{low}}$.
 	\label{fig:failed_scenarios}
 \end{figure}
 
-The results indicate that higher speeds lead to higher failure rates, as expected.
+The results indicate that higher speeds lead to higher failure rates.
 However, an anomaly occurs in the Straight scenario, where the bicycle model has a higher failure rate at lower velocities.
 This issue arises when using the $J_{\text{terminal}}$ objective function, which prioritizes velocity maximization.
 This suggests a numerical instability that may be resolved using soft constraints.
@@ -446,7 +445,6 @@ This suggests a numerical instability that may be resolved using soft constraint
 				xlabel={Road Name},
 			]
 
-			% First plot: Point Mass Model
 			\nextgroupplot[
 				title={Double Integrator Model},
 				ybar stacked, % Stacked bars
@@ -480,7 +478,7 @@ This suggests a numerical instability that may be resolved using soft constraint
 The bicycle model completes more runs in the slalom scenario compared to the double integrator model.
 This is because the double integrator model considers the worst-case scenario and does not find a solution if it is infeasible to drive on the inner
 side of the curve, even though it might be feasible to drive on the outer line.
-For example driving at the highest speed $v_{max}$, the resulting polytope of the point mass model is empty.
+For example driving at the highest speed $v_{max}$, the resulting polytope of the double integrator model is empty.
 Limiting the vehicle options to the outer side and reduce the upper speed limit to $14.5$m/s results in a non-empty set.
 In fact, we can observe that the bicycle model completes the slalom always at the outer lines (see \ref{fig:slalom_bicycle_model_n}), while driving
 at around $14.5$m/s (see \ref{fig:slalom_bicycle_model_velocity}).
@@ -507,8 +505,8 @@ at around $14.5$m/s (see \ref{fig:slalom_bicycle_model_velocity}).
 	\label{fig:slalom_bicycle_model_velocity}
 \end{figure}
 
-Overall, the kinematic bicycle model exhibits a higher failure rate, particularly in the Elchtest and Lane Change scenarios at high speeds, where
-sharp turns are necessary.
+Overall, the kinematic bicycle model exhibits a higher failure rate, particularly in the Elchtest and Lane Change scenarios at high speeds (see
+Figure \ref{fig:failed_scenarios_stacked}), where sharp turns are necessary.
 This is primarily due to the limitations imposed by the friction circle approximation, which the model struggles to handle effectively.
 In contrast, the double integrator model performs better in these scenarios as it does not depend on the friction circle approximation.
 The double integrator model incorporates this constraint statically, whereas the dynamic approach of the bicycle model allows it to choose between
@@ -519,7 +517,7 @@ Further investigation into this behavior is warranted.
 We can calculate the constraints on the steering angle for $v_{high}$, resulting in a steering angle range of $\delta \in \emptyset$, while the exact
 range for the model is $\delta \in [-0.07, 0.07]$.
 For $v_{mid}$, the exact range is $\delta \in [-0.26, 0.26]$, whereas the approximated range is $\delta \in [-0.21, 0.21]$.
-Without considering the friction circle, the model completes all simulations but violates the friction circle constraints.
+Without considering the friction circle, the model completes more simulations but violates the friction circle constraints.
 This makes high-speed maneuvers infeasible for the bicycle model, as the friction circle approximation is too restrictive to accommodate the required
 steering angles.
 
@@ -530,9 +528,9 @@ In the left turn scenario, this results in a decreasing lateral offset.
 Combined with the small angle approximation inaccuracies and ignoring forces during planning, the vehicle ends up hitting the right boundary of the
 road.
 
-To address this, we introduce a default constraint with an additional auxiliary variable $v$: \[ \min \left\{ \overline{n}(s(t_i)) - n(t_i), n(t_i) -
-	\underline{n}(s(t_i)) \right\} \geq c - v \] where $c$ is a constant modeling the desired distance to the road boundary, and $v \geq 0$ converts the
-constraint into a soft constraint.
+To address this, we introduce a default constraint with an additional auxiliary variable $d_3$: \[ \min \left\{ \overline{n}(s(t_i)) - n(t_i), n(t_i)
+	- \underline{n}(s(t_i)) \right\} \geq c - d_3 \] where $c$ is a constant modeling the desired distance to the road boundary, and $d_3 \geq 0$
+converts the constraint into a soft constraint.
 This way, the model can still try to minimize the cost function but must pay a penalty for getting too close to the road boundary.
 \begin{figure}[h]
 	\centering
@@ -546,54 +544,9 @@ This way, the model can still try to minimize the cost function but must pay a p
 \end{figure}
 Figure \ref{fig:left_turn_bicycle_model} shows this behavior, where we added the soft constraint to the left turn scenario, with $c=0.5$.
 
-% \subsection*{Double Integrator Model}
-
-% \paragraph{Assumptions and Simplifications.
-% }
-% The double integrator model simplifies the vehicle to a single mass concentrated at a point.
-% It assumes that the path is primarily driven by the longitudinal and lateral accelerations as constrained by the road alignment.
-% Key kinematic effects such as tire slip angles, lateral load transfer, or steering geometry are either omitted or treated in a highly simplified
-% manner.
-% Furthermore, it often assumes that the orientation of the mass aligns with the road direction, so the model is well suited for higher-level path
-% planning over a known trajectory, where the exact wheel and steering configuration are less critical.
-
-% \paragraph{Performance Characteristics.}
-% Because of its simpler nature, the double integrator model generally offers:
-% \begin{itemize}
-% 	\item \textbf{Lower computational cost}, enabling faster simulations and
-% 	      easier real-time implementation for basic path tracking.
-% 	\item \textbf{Reduced parameter dependency}, as it needs fewer vehicle
-% 	      parameters (e.g., just mass and approximate friction limits).
-% 	\item \textbf{Reduced accuracy in nonlinear conditions}, because it neglects
-% 	      steering geometry, tire slip angles, and more nuanced lateral
-% 	      dynamics---making it less accurate at high lateral accelerations
-% 	      or large steering angles.
-% \end{itemize}
-
-% \subsection*{Kinematic Bicycle Model}
-
-% \paragraph{Assumptions and Structure.}
-% The kinematic bicycle model represents the vehicle by a single front tire and rear tire, capturing the geometric relationship among steering angle,
-% vehicle length, and lateral motion.
-% It models the steering input at the front axle while assuming no explicit slip at the tire contact patch (although slip angles may be implicitly
-% captured via kinematic relations).
-% Unlike a full dynamic model, it generally omits complex tire forces and weight transfer, but retains essential geometry required to describe the
-% vehicle's heading and turning radius accurately
-
-% \paragraph{Performance Characteristics.
-% }
-% Compared to the double integrator model, the kinematic bicycle model typically has:
-% \begin{itemize}
-% 	\item \textbf{Improved representation of vehicle posture}, because it
-% 	      tracks yaw angle and the relation between front and rear axle motions.
-% 	\item \textbf{Better handling of moderate steering maneuvers}, as it
-% 	      can capture how steering inputs alter the effective turning radius
-% 	      and orientation.
-% 	\item \textbf{Moderate computational complexity}, still significantly
-% 	      lighter than full dynamic models but more detailed than
-% 	      a double integrator model approach.
-% 	\item \textbf{Limitations at high speeds or extreme maneuvers}, as it
-% 	      ignores tire slip forces and load transfers, thus limiting
-% 	      predictive capability in aggressive cornering or low-adhesion
-% 	      conditions.
-% \end{itemize}
+In summary, our evaluation demonstrates that while the double integrator model consistently provides fast, stable solutions, the kinematic bicycle
+model—offering a more realistic depiction of vehicle dynamics—remains sensitive to challenging scenarios, particularly in sharp turns and high-speed
+maneuvers.
+These results reveal that improvements are still needed for the bicycle model, especially in terms of robust constraint handling and enhanced convex
+reformulations.
+Refining these aspects will be crucial for fully leveraging the higher fidelity of the bicycle model in real-world autonomous driving applications.

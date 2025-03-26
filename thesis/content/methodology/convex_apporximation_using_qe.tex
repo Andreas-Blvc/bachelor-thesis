@@ -38,6 +38,7 @@ We define the reduced constraint set, $\tilde{C}$, over the variables $\dot{s}$ 
 		\underline{\dot{n}}, \overline{\dot{n}}
 	\end{bmatrix}
 	\right\}.
+	\label{eq:c_tilde}
 \end{equation}
 
 To make $\tilde{C}$ practically useful, we aim to express it as a set of linear inequalities.
@@ -93,8 +94,8 @@ equivalent formula, and it may be necessary, as $\tilde{C}$ is not guaranteed to
 We propose two approaches to eliminate the quantifiers in $\phi$ and express $\tilde{C}$ as a set of linear inequalities.
 The first approach involves interval fitting for the state variables and control inputs, and we will present the results to facilitate replication.
 The second approach uses Cylindrical Algebraic Decomposition (CAD) to eliminate the quantifiers.
-Since CAD has multiple implementations and explaining this complex algorithm is beyond the scope of this work, we will only present the idea behind
-it by demonstrating the algorithm on an example.
+Since CAD has multiple implementations \cite{brown_qepcad_2003,chen_triangular_2013, Wolfram2023} and explaining this rather complex algorithm is
+beyond the scope of this work, so we will only present the idea behind it by demonstrating the algorithm on an example.
 Finally, we will compare the results of both approaches and discuss their advantages and disadvantages.
 
 Either approach will provide us with a polytope $\tilde{C}$, which we can use to define the solution to Problem:
@@ -214,7 +215,7 @@ Otherwise, $X$ is given by:
 If we end up with $x_{max} < x_{min}$, set $X=\emptyset$.
 
 All of this applies nicely to our scenario, as we can systematically apply these rules to each constraint step by step.
-The resulting polytope, based on the interval approach, is box-shaped.
+The resulting set, based on the interval approach, is box-shaped and convex.
 This shape further reduces our set of possible state variables and control inputs.
 
 \subsubsection{Approach 2: Cylindrical Algebraic Decomposition} \label{subsubsec:cad}
@@ -224,19 +225,19 @@ This method is computationally more expensive but provides a more accurate resul
 The idea is to find an equivalent formula without quantifiers for a given formula containing quantifiers.
 This can be done using CAD.
 
+We will illustrate how the algorithm works, but it is beyond the scope of this work to explain the implementations in detail.
+Instead, we provide a basic example to illustrate the algorithm without delving into the details.
+You can find more information in the literature \cite{caviness_quantifier_1998, england_cylindrical_2020}.
+
+\subsubsection{Example CAD}
+
 CAD is a method used in computer algebra for solving systems of polynomial equations and inequalities.
 Given a set of polynomial equations and inequalities, CAD decomposes the space into a finite number of cylindrical cells.
 Each cell is described by a sequence of polynomial inequalities and has a constant truth value over the input set of polynomial equations and
 inequalities.
 This way, one only needs to pick one point from each cell to check the truth value of the input set.
 The number of cells grows doubly exponentially with the number of variables in the input set.
-Several implementations of CAD exist.
 
-We will illustrate how the algorithm works, but it is beyond the scope of this work to explain the implementations in detail.
-Instead, we provide a basic example to illustrate the algorithm without delving into the details.
-You can find more information in the literature \cite{caviness_quantifier_1998, england_cylindrical_2020}.
-
-\subsubsection{Example CAD}
 To illustrate the process of eliminating $\forall$ quantifiers, consider the following problem:
 
 \[ \forall x, x^2 + bx + 1 \geq 0
@@ -246,8 +247,8 @@ Since quantifier elimination is typically performed on existential quantifiers, 
 
 \[ \exists x, x^2 + bx + 1 < 0 \]
 
-Once we have the solution for this problem, we can take the compliment over
-$\mathbb{R}$ to obtain the solution for the original problem.
+Once we have the solution for this problem, we can take the complement with
+respect to $\mathbb{R}$ to obtain the solution for the original problem.
 We start by applying CAD to the polynomial $x^2 + bx + 1$, which results in 7 cells, as illustrated in Figure \ref{fig:example_cells}.
 Most of the cells are open, and if the edge of the cell is part of it, it is depicted with the same color but dashed.
 
@@ -366,98 +367,69 @@ the complement of this set:
 Using this technique for
 eliminating quantifiers from formulas, we can apply it to find an inscribed polytope.
 
-\subsubsection{Comparison of Interval Fitting and CAD Approaches}
+\subsubsection{Comparison of Approach~1 and Approach~2}
+\label{subsubsec:comparison_approaches}
 
-In our benchmarks, the first approach, despite its simplicity, performed remarkably well.
-We used the following parameters for the benchmarks:
-\begin{itemize}
-	\item $C(s) \in \left[-\frac{1}{200}, 0\right]$, $s \in [0, 10]$, $n \in [0, 2]$
-	\item $v_x \in [0, 10]$, $v_y \in [-2, 2]$, $a_x \in [-3, 6]$, $a_y \in [-4, 4]$
-	\item $\dot{\psi} \in [-5, 5]$, $a_\psi \in [-2, 2]$
-\end{itemize}
+In this section, we compare our two methods for quantifier elimination interval-fitting approach (Section~\ref{subsubsec:interval_fitting}) and a
+CAD-based method (Section~\ref{subsubsec:cad}), highlighting their respective pros and cons.
 
-The results are shown in the following Figure \ref{fig:qe-comparison}.
+Interval fitting is conceptually straightforward and computationally efficient.
+In many real-time motion-planning applications, it provides a “good enough” inner approximation of the feasible set $\tilde{C}$ in \eqref{eq:c_tilde}
+without the overhead of more complex algebraic manipulations.
+It often yields results that closely track those achieved by CAD, as shown in a straightforward comparison in
+Figure~\ref{fig:qe-comparison-with-params}.
 
-\begin{figure}[h]
+By contrast, CAD can produce logical OR constraints (disjunctions) of polynomial inequalities, which are fundamentally non-convex.
+To integrate such constraints into a strictly convex optimization pipeline, we approximate the resulting set by sampling an inner polytope.
+Although this preserves feasibility, it can diminish the full benefits of CAD.
+
+Even when CAD yields a strictly convex set, the number of constraints is significant higher compared to Approach 1.
+This directly impacts solver times and may undermine CAD's theoretical advantages over interval fitting.
+
+\begin{figure}[ht]
 	\centering
-	% First image
 	\begin{subfigure}[b]{0.32\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/inner_polytope/region_x3u1_plot_gr1.eps}
-		\caption{Region $\dot{s}$ vs $u_t$}
+		\caption{Projection onto $\dot{s}$-$u_t$ plane}
 	\end{subfigure}
-	% Second image
 	\begin{subfigure}[b]{0.32\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{figures/inner_polytope/region_x3u2_plot_gr1.eps}
-		\caption{Region $\dot{s}$ vs $u_n$}
+		\caption{Projection onto $\dot{s}$-$u_n$ plane}
 	\end{subfigure}
-	% Third image
 	\begin{subfigure}[b]{0.32\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{figures/inner_polytope/plot_gr1.eps}
-		\caption{Region $u_t$ vs $u_n$}
+		\includegraphics[width=\textwidth]{figures/inner_polytope/region_u1u2_plot_gr1.eps}
+		\caption{Projection onto $u_t$-$u_n$ plane}
 	\end{subfigure}
 	\caption{In Green using Interval Fitting \ref{subsubsec:interval_fitting} and in Blue using CAD \ref{subsubsec:cad}.}
-	\label{fig:qe-comparison}
+	\textbf{Parameters:} $C(s) \in \left[-\tfrac{1}{200},\, 0\right],\; s \in [0,\,10],\; n \in [0,\,2],\;$ \newline $v_x \in [0,\,10],\; v_y \in [-2,\,2],\; a_x \in [-3,\,6],\; a_y \in [-4,\,4],\;$ \newline $\dot{\psi} \in [-5,\,5],\; a_{\psi} \in [-2,\,2].$
+	\label{fig:qe-comparison-with-params}
 \end{figure}
 
-In conclusion, eliminating the quantifiers with the first approach leads to a near-optimal result, comparable to the one achieved using the second
-approach with CAD.
-However, using CAD has a significant downside that we have not yet mentioned.
-It is not guaranteed that the resulting formula is convex.
-Typically, you will encounter disjunctions of polynomial inequalities, which cannot be handled by a convex solver without resorting to integer
-programming or an equivalent approach.
-It is also not guaranteed that each polynomial inequality follows the DCP rules, even if the set described by the resulting formula is convex.
-Additional techniques would be required to use the second approach for our planner.
+Overall, while CAD can capture a more comprehensive feasible region, interval fitting (Approach~1) offers a compelling balance of computational
+efficiency and practical accuracy, making it particularly well-suited for online or real-time motion planning.
 
-In cases where the resulting set is convex, we used a sampling approach to obtain an inner approximation described by half-spaces.
-This results in a sequence of linear constraints that all must be satisfied, thus losing a small proportion of the original set.
-Consequently, the difference between our first approach and the second approach becomes even smaller.
-Additionally, we end up with double or triple the number of constraints on each state variable and each control input, which may lead to slower
-solver times.
+\subsubsection{Limitations on Quantifier Elimination for Both Approaches}
+\label{subsubsec:limitations_on_qe}
 
-Overall, while the CAD approach provides a more accurate result, the first approach offers a good balance between computational efficiency and
-accuracy, making it a viable option for practical applications.
+The general method of determining an inscribed polytope for Problem \ref{problem:inscribed_polytope} through quantifier elimination occurring in the
+set \ref{eq:c_tilde} has certain limitations.
 
-\subsubsection{Limitations and Outlook}\label{subsubsec:limitations_and_outlook}
+The approach tends to be conservative because the universal quantifier requires that all possible combinations of state variables must be feasible.
+For instance, in a scenario with a long straight section immediately followed by a sharp left turn, the planner may enforce a single speed limit that
+is valid for both segments, reducing maximum speed on the straight.
+One way to mitigate this is by segmenting the road into smaller sections (e.g., splitting the straight from the turn) and defining distinct
+constraint sets.
+A higher-level switching mechanism can then determine when the vehicle transitions from one segment's constraints to the next.
 
-While the $\forall$-elimination approach provides a computationally efficient method to find intervals for the variables of interest, it can be quite restrictive for several reasons:
-
-\begin{itemize}
-	\item \textbf{Conservativeness:}
-	      The approach tends to be conservative because it ensures that the constraints hold for all possible values within the intervals.
-	      This often leads to smaller intervals, which may exclude feasible solutions that could be considered by less conservative methods.
-	\item \textbf{Dependence on Affine Functions:}
-	      The first method relies on the assumption that the function $f(x, y)$ is affine in $x$ and all variables in $y$ are bounded.
-	      If this assumption does not hold, the approach may not be applicable.
-\end{itemize}
-
-Overall, while the $\forall$-elimination approach is useful for its simplicity and computational efficiency, it may lead to overly restrictive
-solutions that do not fully exploit the feasible region.
-
-Consider a scenario with a tight turn followed by a long straight road.
-In such cases, the model will restrict $\dot{s}$ to an interval that is valid for both the tight turn and the straight road.
-Consequently, the model will find a solution, but it will not be able to drive fast on the straight road, even though it is possible to drive faster
-on the straight road than on the tight turn.
-
-To address this issue, we can introduce segments of the road, one for the straight road and one for the tight turn.
-We can independently construct the coupling constraints set for each segment.
-However, this introduces a new problem: how to switch between the segments.
-Our solution involves using the current vehicle velocity to predict when the vehicle will reach the end of the segment.
-Knowing the vehicle's current position, velocity, and the distance to the end of the segment, we can calculate the time it will take to reach the
-end.
-
-Further, both approaches do not consider the possibility of achieving a larger feasible set by restricting $\dot{n}$ to a smaller interval.
-The first approach handles the problem by using the bounds on $s$, $n$, and $\dot{n}$ to find the intervals for $\dot{s}$, which are then used for
-$u_t$ and finally for $u_n$.
-However, changing the order may lead to better results for desired driving behavior.
-
-Given the simplicity of the first approach, we implemented a non-linear program that defines the relationships between the intervals with variables
-as upper and lower bounds.
-By adding constraints, we can define an objective that models certain driving behaviors.
-For example, one might want to be able to slow down as quickly as possible or maximize the upper speed limit.
-The latter objective leads to the following intervals:
+Additionally, the initial intervals for $s$, $n$, and $\dot{n}$ in \eqref{eq:c_tilde} significantly impact the resulting feasible set.
+To expand this set, the initial intervals for variables such as $\dot{s}$ and $\dot{n}$ can be chosen more precisely to reduce conservativeness.
+We demonstrated this with a small nonlinear program (NLP) that treats the interval bounds as decision variables, guided by an objective function
+(e.g., maximizing speed on straight segments).
+As shown in Figure~\ref{fig:resulting_intervals_comparison}, a slight reduction in allowable longitudinal acceleration can result in a higher
+feasible speed range, thus better utilizing the available road geometry.
 
 \begin{figure}[h]
 	\centering
@@ -487,11 +459,12 @@ The latter objective leads to the following intervals:
 		\caption{Using Non-Linear Programming}
 	\end{subfigure}
 	\caption{Comparison of two sets of intervals for state variables and control inputs.}
+	\label{fig:resulting_intervals_comparison}
 \end{figure}
 
-As you can see, the intervals on the right are preferable, as they only slightly reduce longitudinal acceleration while allowing for higher speeds.
+Overall, while these methods are highly effective for systematically constructing a feasible region under complex constraints, it is crucial to
+mitigate over-conservativeness, particularly in dynamic driving scenarios where road geometry and speed limits vary significantly.
 
-In conclusion, we have successfully developed our first vehicle model for motion planning that can be solved using a convex solver.
 Next, we will introduce a transformation that maps the state variables and control inputs of the planning model to a steering angle, which can be
 used to control a vehicle based on the equations from \cite{eilbrecht_challenges_2020}.
 A similar approach is demonstrated in \cite{werling_optimal_2010}, which served as an additional inspiration.

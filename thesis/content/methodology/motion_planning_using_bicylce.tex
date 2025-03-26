@@ -1,6 +1,6 @@
 \section{Motion Planning using Bicycle Model} \label{sec:motion_planning_using_bicylce}
 Instead of using the double integrator model, we can employ the bicycle model to represent vehicle dynamics more accurately.
-We have already introduced the bicycle model with a steering angle and an orientation.
+We have already introduced the bicycle model with a steering angle and an orientation in Section~\ref{subsec:bicycle_model}.
 Now, we will combine this model with the concepts from the previous chapter.
 Our objective is to represent the state variables in the road-aligned frame.
 The state and control variables of the bicycle model, defined in the global coordinate system, are given in equations \eqref{eq:states_kst} and
@@ -13,7 +13,7 @@ In this section, we derive the state transition model in the Frenet frame.
 We begin by considering the dynamics of the bicycle model in the global coordinate system, which are described by
 \eqref{eq:kst_dpx}-\eqref{eq:dpsi_steering_angle}.
 
-To express vehicle motion in the Frenet frame, we define the deviation from the reference path using the lateral displacement $n$ and the orientation
+To express vehicle motion in the Frenet frame, we define the deviation from the reference path using the lateral displacement $n$ and the alignment
 error $\xi = \psi - \theta$, where $\theta$ is the heading of the reference path.
 The path curvature $C(s)$ relates to its arc length parameter $s$ as $\dot{\theta} = C(s) \dot{s}$.
 
@@ -35,7 +35,7 @@ The state variables and control inputs for the bicycle model in the Frenet frame
 	\label{def:kst_frenet_controls}
 \end{align}
 
-The dynamics of model are described by \eqref{eq:kst_frenet_dynamics}.
+The dynamics of the model are described by \eqref{eq:kst_frenet_dynamics}.
 
 \begin{equation}
 	f_{kst}(x_{kst}, u_{kst}) =
@@ -63,9 +63,9 @@ This is valid since $n$ represents the vehicle's lateral position relative to th
 which is typically small enough for this assumption to hold.
 We will analyze the terms that introduce nonlinearity into the model.
 
-\subsubsection{Non-Linear Terms}
+\subsubsection{Nonlinear Terms}
 
-The state transition model contains four non-linear terms.
+The state transition model contains four nonlinear terms.
 We will linearize these terms using appropriate approximations.
 \[
 	\frac{v \cos\xi}{1 - nC(s)} ,
@@ -105,19 +105,19 @@ By substituting these approximations into the state transition model, we obtain 
 	 & v (\sin(\xi_0) + \cos(\xi_0) (\xi - \xi_0))                         \\
 	 & v (\tan(\delta_0) + \frac{1}{\cos^2(\delta_0)} (\delta - \delta_0))
 \end{align*}
-Since our reference values $\xi_0$ and $\delta_0$ are treated as constants during planning, the only remaining non-linear terms are: $$v \xi, v
+Since our reference values $\xi_0$ and $\delta_0$ are treated as constants during planning, the only remaining nonlinear terms are: $$v \xi, v
 	\delta, C(s)\dot{s}$$
 
 These are known as bilinear terms, which occur when the product of two variables appears in the equations,
-rendering the system non-linear.
+rendering the system nonlinear.
 Since $C(s)$ is a function of $s$, we will introduce an additional assumption.
-As discussed in \nameref{subsubsec:limitations_and_outlook}, segmenting the road model helps reduce conservatism in coupling constraints, a technique
-we previously applied to the double integrator model.
-In this context, another advantage is that we can model the curvature as a piece-wise linear function, which will be beneficial in subsequent steps.
+As discussed in \nameref{subsubsec:limitations_on_qe}, segmenting the road model helps reduce conservatism in coupling constraints, a technique we
+previously applied to the double integrator model.
+In this context, another advantage is that we can model the curvature as a piecewise linear function, which will be beneficial in subsequent steps.
 
-\subsubsection{Assumption: Piece-Wise Linear Curvature}
+\subsubsection{Assumption: Piecewise Linear Curvature}
 
-We assume that the curvature can be approximated as a piece-wise linear function.
+We assume that the curvature can be approximated as a piecewise linear function.
 
 \[
 	C(s) = \begin{cases}
@@ -158,7 +158,7 @@ These constraints are derived from the bounds of the variables $v_1$, $v_2$, and
 \]
 The idea behind these constraints is to create a convex lower bound and a concave upper bound for the bilinear term $v_1v_2$.
 For example, the first bound is constructed as follows: \[ a = (v_1 - \underline{v_1}) \geq 0, b = (v_2 - \underline{v_2}) \geq 0 \] Since $a$ and
-$b$ are both non-negative, we can multiply them to get and obtain our first lower bound: \[ ab = v_1v_2 - \underline{v_1}v_2 - v_1\underline{v_2} +
+$b$ are both non-negative, we can multiply them to obtain our first lower bound: \[ ab = v_1v_2 - \underline{v_1}v_2 - v_1\underline{v_2} +
 	\underline{v_1}\underline{v_2} \geq 0 \iff v_1v_2 \geq \underline{v_1}v_2 + v_1\underline{v_2} - \underline{v_1}\underline{v_2} \]
 
 To derive all possible lower and upper bounds, we can apply this pattern to $a \in \{v_1 - \underline{v_1}, \overline{v_1} -
@@ -293,7 +293,7 @@ errors over time.
 
 \subsection{Final Model} \label{subsec:bicycle_resulting_model}
 
-The final approximated dynamics model in the Frenet frame, which integrates the linearized non-linear terms with the McCormick relaxation for the bilinear terms, is given by:
+The final approximated dynamics model in the Frenet frame, which integrates the linearized nonlinear terms with the McCormick relaxation for the bilinear terms, is given by:
 
 \begin{equation}
 	\label{eq:kst_final_dynamics}
@@ -308,7 +308,7 @@ The final approximated dynamics model in the Frenet frame, which integrates the 
 \end{equation}
 Here, the auxiliary variables $w_{v,\xi}$, $w_{v,\delta}$, and $w_{s,\dot{s}}$ are introduced via the McCormick relaxation to linearize the bilinear
 terms $v\xi$, $v\delta$, and $s\dot{s}$, respectively.
-The curvature is modeled as a piece wise linear function, where $a_{i(s)}$ and $b_{i(s)}$ denote the slope and intercept for the interval $[s_{i-1},
+The curvature is modeled as a piecewise linear function, where $a_{i(s)}$ and $b_{i(s)}$ denote the slope and intercept for the interval $[s_{i-1},
 			s_i]$, selected according to the current value of $s$.
 For planning purposes, the index $i(s)$ will be treated as a constant at each time step by predicting the relevant road segment.
 The following additional constraints enforce the McCormick relaxation:
@@ -445,57 +445,6 @@ To ensure convexity, we fit a function of the form:
 \end{equation}
 where \( c_1 = w(0) \) and \( c_2 = a_{max} + c_1^{-\frac{1}{2n}} \).
 This choice ensures that \( \tilde{w}(a) \) is a smooth, convex approximation of \( w(a) \), making it well-suited for convex optimization solvers.
-
-% Finally, we must consider the friction circle constraint.
-% \begin{equation}
-% 	\sqrt{a^2 + (\frac{v^2}{l_{wb}} \tan(\delta))^2} \leq a_{max}
-% 	\label{eq:friction_circle}
-% \end{equation}
-% We define $v^* := \max\{|\underline{v}|, |\overline{v}|\}$ and $\delta^* := \max\{|\underline{\delta}|, |\overline{\delta}|\}$.
-% Utilizing that $\tan(\delta) \leq \frac{\tan(\delta^*)}{\delta^*}\delta$ leads to a bit more conservative constraint.
-% \begin{equation}
-% 	a^2 + (\frac{1}{l_{wb}}\frac{\tan(\delta^*)}{\delta^*})^2 v^4 \delta^2 \leq a_{max}^2
-% 	\label{eq:friction_circle_stricter}
-% \end{equation}
-
-% Next, we derive an upper bound $w$ for the term $v^4 \delta^2$, which will be used to further simplify our friction circle constraints.
-
-% \subsubsection{Upper Bound for $v^4 \delta^2$}
-
-% We are applying a diamond shaped set, by introducing the hyperplanes:
-% \begin{align}
-% 	d_v  v + d_\delta  \delta \leq w \label{eq:first_hyperplane} \\
-% 	d_v  v - d_\delta  \delta \leq w                             \\
-% 	-d_v v + d_\delta \delta  \leq w                             \\
-% 	-d_v v - d_\delta \delta  \leq w \label{eq:last_hyperplane}
-% \end{align}
-% where $d_v = \frac{1}{v^*}$ and $d_\delta = \frac{1}{\delta^*}$.
-
-% To determine an appropriate value for $w$, we set \eqref{eq:friction_circle_stricter} as an equality and solve for $\delta$.
-% \begin{equation}
-% 	\delta = h(a) \frac{1}{v^2}
-% 	\label{eq:delta_v_relation}
-% \end{equation}
-% where \[h(a):=\frac{l_{wb} \delta^*}{\tan(\delta^*)}\sqrt{{a_{max}}^2 - a^2}\]
-% We want to push the hyperplane as close the bounds as possible, such that is tangent to the bounds, which lets us solve for $w$ by the deriving \eqref{eq:delta_v_relation} after $v$ and setting it equal to slope of the first hyperplane.
-% \begin{equation}
-% 	\frac{\partial\delta}{\partial v} = -2 h(a) \frac{1}{v^3} \overset{!}{=} -\frac{d_v}{d_\delta} \iff v = \sqrt[3]{2h(a)\frac{d_\delta}{d_v}}
-% \end{equation}
-% Substituting the value of $v$ into \eqref{eq:delta_v_relation}, we get:
-% \begin{equation}
-% 	\delta = h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}
-% \end{equation}
-% These values for $v$ and $\delta$ must lie on the first hyperplane, resulting in:
-% \begin{equation}
-% 	w = w(a) = d_v \sqrt[3]{2h(a)\frac{d_\delta}{d_v}} + d_\delta h(a) \left(2h(a)\frac{d_\delta}{d_v}\right)^{-\frac{2}{3}}
-% \end{equation}
-
-% To obtain a convex upper bound for $w$, we fit an irrational function of the form:
-% \begin{equation}
-% 	w(a) \approx \tilde{w}(a) := c_1 - \frac{1}{(|a| - c_2)^{2n}}
-% 	\label{eq:fitting_irrational}
-% \end{equation}
-% where $c_1 = w(0)$ and $c_2 = a_{max} + c_1^{-\frac{1}{2n}}$.
 
 Based the parameters $\delta^*=0.910$, $l_{wb}=2.4$, and $a_{max}=11.5$, we evaluated this heuristic approach on a velocity limit of $v^*=14$.
 Figure \ref{fig:w_vs_a} illustrates the function $w(a)$ and its approximation with $n=2$ as a function of the acceleration $a$.
@@ -700,14 +649,3 @@ the coupling constraints \eqref{eq:coupling_kst_0}, \eqref{eq:coupling_kst_1}, t
 hyperplanes \eqref{eq:first_hyperplane}-\eqref{eq:last_hyperplane}, and our approximated friction circle \eqref{eq:final_friction_circle} with
 \eqref{eq:final_friction_circle_bounds}.
 
-% \subsection{Linearize Quadratic Term}
-
-% In this section, we will linearize the quadratic term $s^2$ in the state transition model.
-% For quadratic terms, which occur in equality constraints, we can use the McCormick relaxation technique, which is typically used for bilinear terms,
-% but can also be applied to quadratic terms.
-% However, in the case of quadratic terms, we can achieve better bounds.
-% For the lower bound, which must be convex, we can simply use the term itself, as a quadratic term is always convex.
-% The best upper bound can be obtained by connecting the points defined by the bounds on $s$.
-% \[
-% 	s^2 \leq (\underline{s} + \overline{s})s - \underline{s}\overline{s}
-% \]

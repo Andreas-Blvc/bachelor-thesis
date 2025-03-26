@@ -46,7 +46,8 @@ The system follows the linear dynamics:
 Additionally, the control inputs are constrained by:
 
 \begin{equation}
-	\sqrt{u_1^2 + u_2^2} \leq a_{\max}
+	\label{eq:acceleration_constraint_preliminaries_di}
+	\sqrt{a_x^2 + a_y^2} \leq a_{\max}
 \end{equation}
 where $a_{max}$ limits the maximum allowable acceleration.
 Despite its simplicity, the double integrator model is widely used for trajectory planning due to its convex formulation and computational
@@ -132,7 +133,7 @@ The bicycle model is visualized in Figure \ref{fig:bicycle_model}.
 
 		% Displacement vector
 		\draw[dashed,thick,->] (0,0) -- (1.95,1.95)
-		node[midway, left, shift={(-0,+0.4)}] {$\begin{bmatrix}s_x \\ s_y \end{bmatrix}$};
+		node[midway, left, shift={(-0,+0.4)}] {$\begin{bmatrix}p_x \\ p_y \end{bmatrix}$};
 	\end{tikzpicture}
 	\caption{Bicycle model representation of a vehicle.}
 	\label{fig:bicycle_model}
@@ -143,7 +144,7 @@ A maximum acceleration
 constraint is imposed:
 \begin{equation}
 	\label{eq:friction_constraint}
-	\sqrt{a^2 + (v\dot{\psi}_5)^2} \leq a_{\max}
+	\sqrt{a^2 + (v\dot{\psi})^2} \leq a_{\max}
 \end{equation}
 
 For both models, the vehicle is additionally constrained by its velocity range, steering angle range, and the rate of change of the steering angle.
@@ -152,7 +153,7 @@ These constraints are natural and should not be overlooked.
 \section{Curve Following Coordinate System} \label{subsec:curve_following_coordinate_system}
 
 In addition to the global coordinate system, a curve-following coordinate system, commonly known as the Frenet frame, can be used to simplify the
-representation of vehicle motion along a predefined path.
+representation of vehicle motion along a predefined reference path.
 The Frenet frame consists of the arc-length coordinate s and the lateral offset n from the path, as shown in Figure \ref{fig:frenet_frame}.
 
 \begin{figure}[h]
