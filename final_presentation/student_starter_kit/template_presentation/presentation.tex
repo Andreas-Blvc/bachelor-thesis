@@ -115,16 +115,25 @@
     %\includegraphics[height=0.7cm]{./figures/TUM_Logo_weiss_e.eps} % for aspectratio=169
   \end{textblock*}}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}[plain]
   \titlepage
 \end{frame}
 
 \section{Introduction}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}
   Starting GIF
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Motivation \& Problem Statement}
   Given a 7-tuple
   $
@@ -141,18 +150,30 @@
   \end{align}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Convex vs Non-Convex}
   \inlineMovie{animations/cvx-vs-noncvx.mp4}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Solver Times}
   \pgfplot{figures/cvx-solver_metrics.pgf}{Convex}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Solver Times}
   \pgfplot{figures/noncvx-solver_metrics.pgf}{Non-Convex}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Convex Optimization in Motion Planning}
   \begin{itemize}
     \item Non-convex formulations often lack robust convergence criteria.
@@ -165,6 +186,9 @@
   \end{itemize}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Overview of the Methodology}
   \begin{center}
     \begin{tikzpicture}[node distance=1.5cm, auto]
@@ -199,6 +223,9 @@
 
 \section{Motion Planning Using the Double Integrator Model}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Vehicle Modeling: Double Integrator Model (DI)}
   \centering
   \begin{figure}[h]
@@ -231,6 +258,9 @@
   \end{itemize}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Coordinate Transformation: Frenet Frame}
   \begin{itemize}
     \item Transforms global coordinates into a path-following system.
@@ -269,6 +299,9 @@
   \end{equation}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Resulting Model \& Simplifications}
   \begin{equation}
     x_{di} = \begin{bmatrix}
@@ -321,6 +354,9 @@
   \end{columns}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Feedback Linearization Technique}
   \begin{itemize}
     \item Linearize the vehicle's nonlinear dynamics.
@@ -365,6 +401,9 @@
   \end{figure}  \blfootnote{\tiny Technique detailed in Section 3.1.4 of the thesis.}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Resulting Model}
   \begin{equation}
     \tilde{x}_{di} = \begin{bmatrix} s, & n, & \dot{s}, & \dot{n} \end{bmatrix}^T
@@ -385,6 +424,9 @@
   \end{equation}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Constraint Handling in the Framework}
   \begin{itemize}
     \item Feedback linearization leads to nonlinear physical constraints: acceleration, velocity, and road boundaries.
@@ -432,6 +474,9 @@
   % \blfootnote{\tiny Constraint formulations are discussed in Section 3.1.5.}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Interval Fitting Illustration}
   \centering
   \begin{minipage}{0.4\textwidth}
@@ -541,6 +586,9 @@
   \end{minipage}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Cylindrical Algebraic Decomposition}
   \begin{itemize}
     \item It is applied to polynomials and divides the space into cylindrical cells.
@@ -608,6 +656,9 @@
 
 \section{Motion Planning using Bicycle Model}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Vehicle Modeling: Kinematic Bicycle Model (KST)}
   \centering
   \begin{figure}
@@ -660,6 +711,9 @@
   \end{itemize}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{KST Dynamics}
   \begin{equation}
     x_{kst}  = \begin{bmatrix}
@@ -683,6 +737,9 @@
   \end{equation}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Small Angle Approximation}
   \begin{itemize}
     \item For small steering angles, trigonometric functions can be approximated.
@@ -700,6 +757,9 @@
 \end{frame}
 
 % Slide: McCormick Relaxation
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{McCormick Relaxation for Bilinear Terms}
   \begin{itemize}
     \item McCormick relaxation provides a convex envelope for bilinear terms such as $w = v_1v_2$.
@@ -714,6 +774,9 @@
   \end{itemize}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Example for Different Bounds}
   \begin{itemize}
     \item $ -2 \leq v_1 \leq 2 $ and $ 0 \leq v_2 \leq 50 $
@@ -734,6 +797,9 @@
 
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Example for Different Bounds}
   \begin{itemize}
     \item $ -2 \leq v_1 \leq 0 $ and $ 0 \leq v_2 \leq 50$
@@ -755,6 +821,9 @@
 
 \section{Evaluation}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Implementation Details and Evaluation Metrics}
   \begin{itemize}
     \item We define road segments, planner configurations, and soft constraints.
@@ -764,6 +833,9 @@
   \end{itemize}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Performance: Computational Efficiency}
   \begin{itemize}
     \item Solver times validate the framework's efficiency.
@@ -784,6 +856,9 @@
   \end{tabular}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Comparison: Double Integrator vs. Bicycle Model}
   \begin{itemize}
     \item Double integrator: Fast and efficient, less detailed.
@@ -822,6 +897,9 @@
   \end{figure}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Numerical Experiment: Lane Change}
   \begin{itemize}
     \item Scenario: Handling a sharp curve.
@@ -831,6 +909,9 @@
   \inlineMovie{animations/lane-change.mp4}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Numerical Experiment: Slalom}
   \begin{itemize}
     \item Scenario: Handling a sharp curve.
@@ -840,6 +921,9 @@
   \inlineMovie{animations/slalom.mp4}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Numerical Experiment: Left Curve}
   \begin{itemize}
     \item Scenario: Minimize control derivatives.
@@ -850,6 +934,9 @@
 
 \section{Conclusion}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Limitations and Challenges}
   \begin{itemize}
     \item Conservative approximations can limit feasibility.
@@ -861,7 +948,10 @@
 \end{frame}
 
 % Slide 20: Future Work
-% \begin{frame}{Future Work and Extensions}
+------------------------------------
+% NEW FRAME
+------------------------------------
+\begin{frame}{Future Work and Extensions}
 %   \begin{itemize}
 %     \item Incorporate full dynamic models for enhanced accuracy.
 %     \item Integrate with sensor data for real-world validation.
@@ -872,6 +962,9 @@
 %   \blfootnote{\tiny Future work is outlined in the thesis conclusion.}
 % \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Summary}
   \begin{itemize}
     \item Proposed a convex optimization framework for motion planning.
@@ -880,6 +973,9 @@
   \end{itemize}
 \end{frame}
 
+% ------------------------------------
+% NEW FRAME
+% ------------------------------------
 \begin{frame}{Future Work}
   \begin{itemize}
     \item Continue work on the KST model.
@@ -889,7 +985,10 @@
 \end{frame}
 
 % Slide 23: Discussion and Q\&A Preparation
-% \begin{frame}{Discussion and Q\&A Preparation}
+------------------------------------
+% NEW FRAME
+------------------------------------
+\begin{frame}{Discussion and Q\&A Preparation}
 %   \begin{itemize}
 %     \item How does convex approximation affect optimality?
 %     \item What are the trade-offs of using a double-integrator model?
@@ -901,7 +1000,10 @@
 % \end{frame}
 
 % Slide 24: Summary and Final Thoughts
-% \begin{frame}{Summary and Final Thoughts}
+------------------------------------
+% NEW FRAME
+------------------------------------
+\begin{frame}{Summary and Final Thoughts}
 %   \begin{itemize}
 %     \item Reviewed the modeling, optimization, and simulation of our framework.
 %     \item Highlighted benefits, limitations, and future research directions.
@@ -913,7 +1015,10 @@
 % \end{frame}
 
 % Slide 25: Conclusions
-% \begin{frame}{Conclusions}
+------------------------------------
+% NEW FRAME
+------------------------------------
+\begin{frame}{Conclusions}
 %   \begin{itemize}
 %     \item Presented a comprehensive, convex optimization framework for motion planning.
 %     \item Balanced computational efficiency with realistic vehicle dynamics.
