@@ -1,0 +1,129 @@
+\ProvidesPackage{pdfpcnotes}
+
+% Handling of kv parameters.
+% We have the following options, that all take time in the HH:MM format
+\RequirePackage{kvoptions}
+\SetupKeyvalOptions{
+  family=PDFPC,
+  prefix=PDFPC@
+}
+\DeclareStringOption{duration}
+\DeclareStringOption{starttime}
+\DeclareStringOption{endtime}
+\DeclareStringOption{lastminutes}
+\DeclareStringOption{fontsize}
+
+\ProcessKeyvalOptions*
+
+% Small macro to make inserting options easier.
+\newcommand\PDFPC@option[2]{
+  \ifx#2\@empty\else
+    \immediate\write\pdfpcnotesfile{[#1]}%
+    \immediate\write\pdfpcnotesfile{#2}%
+  \fi
+}
+
+% create a new file handle
+\newwrite\pdfpcnotesfile
+
+% open file on \begin{document}
+\AtBeginDocument{%
+	\immediate\openout\pdfpcnotesfile\jobname.pdfpc\relax
+ \PDFPC@option{duration}{\PDFPC@duration}
+ \PDFPC@option{start_time}{\PDFPC@starttime}
+ \PDFPC@option{end_time}{\PDFPC@endtime}
+ \PDFPC@option{last_minutes}{\PDFPC@lastminutes}
+ \PDFPC@option{font_size}{\PDFPC@fontsize}
+  \immediate\write\pdfpcnotesfile{[notes]}
+}
+% define a # http://tex.stackexchange.com/a/37757/10327
+\begingroup
+	\catcode`\#=12
+	\gdef\hashchar{#}%
+\endgroup
+
+\def\mathdefault#1{#1}
+\def\lastframenumber{0}
+
+% define command \pnote{} that works like note but
+% additionally writes notes to file in pdfpc readable format
+\newcommand{\pnote}[1]{%
+	% keep normal notes working
+	\note{#1}%
+
+	% if frame changed - write a new header
+	\ifdim\theframenumber pt>\lastframenumber pt
+		\let\lastframenumber\theframenumber
+		\begingroup
+			\let\#\hashchar
+			\immediate\write\pdfpcnotesfile{\#\#\# \theframenumber}%
+		\endgroup
+	\fi
+
+	% write note to file
+	\immediate\write\pdfpcnotesfile{\unexpanded{#1}}%
+}
+
+% inlineMovie
+%
+% Arguments:
+%
+%   [optional]: movie-options, seperated by &
+%       Supported options: loop, start=N, end=N, autostart
+%
+%   1. Movie file
+%   2. Poster image
+%   3. size command, such as width=\textwidth
+%
+% Example:
+%   \inlineMovie[loop&autostart&start=5&stop=12]{apollo17.avi}{apollo17.jpg}{height=0.7\textheight}
+%
+
+\newcommand{\inlineMovie}[2][]{%
+  \noindent % avoid center's added space
+  \href{run:#2?#1}{%
+    \begin{tikzpicture}
+      \useasboundingbox (0,0) rectangle (\linewidth,0.4*\linewidth); % precise bounding box
+      \draw[fill=gray!10, draw=black, rounded corners=2pt, line width=0.5pt]
+        (0,0) rectangle (\linewidth,0.4*\linewidth);
+      \path[fill=black]
+        (\linewidth/2 + 0.025*\linewidth, 0.2*\linewidth)
+        -- ++(-0.05*\linewidth, 0.035*\linewidth)
+        -- ++(0,-0.07*\linewidth)
+        -- cycle;
+    \end{tikzpicture}%
+  }
+}
+
+\newcommand{\pgfplot}[2]{
+	\begin{figure}[h!]
+		\centering
+		\resizebox{\textwidth}{!}{
+			\begin{adjustbox}{clip, trim=0cm 0cm 0cm 9.8cm} % left, bottom, right, top
+				\input{#1}
+			\end{adjustbox}
+		}
+		\caption{#2}
+	\end{figure}	
+}
+
+\newcommand{\embedVideo}[1]{%
+  \includemedia[
+    width=0.9\linewidth,
+    height=0.5\linewidth,
+    activate=onclick,
+    addresource={#1},
+    flashvars={
+      source=\detokenize{#1}
+      &autoPlay=false
+      &controlBarAutoHide=false
+      &controlBarPosition=bottom
+    }
+  ]{}{VPlayer.swf}%
+}
+
+% close file on \end{document}
+\AtEndDocument{%
+	\immediate\closeout\pdfpcnotesfile
+}
+

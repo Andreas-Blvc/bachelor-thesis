@@ -28,6 +28,15 @@
 }\part{title}
 \beamertemplatenavigationsymbolsempty
 
+\setbeamertemplate{section page}{
+  \centering
+  \vspace{2cm}
+  \begin{beamercolorbox}[sep=8pt,center,shadow=true,rounded=true]{title}
+    \usebeamerfont{section title}\insertsection\par
+  \end{beamercolorbox}
+}
+
+
 %color specification-----------------------------------------------------
 \definecolor{TUMblue}{RGB}{27, 94, 170}%{rgb}{0.00, 0.40, 0.74}
 \definecolor{TUMgray}{rgb}{0.85, 0.85, 0.86}
@@ -65,8 +74,23 @@
 %\usepackage{booktabs} % for rulers in tables
 \usepackage{units} % for units to values
 \usepackage{media9}
-%\usepackage{hyperref}
-%\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz} 
+\usepackage{adjustbox}   % For the adjustbox environment
+\usetikzlibrary{arrows.meta}     % For arrow styles like -Latex
+\usetikzlibrary{positioning}     % For positioning nodes like [right=of ...]
+\usetikzlibrary{shapes.misc}     % For styles like rounded corners
+\usetikzlibrary{backgrounds}
+\usetikzlibrary{intersections}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepgfplotslibrary{groupplots}
+\usepgfplotslibrary{dateplot}
+\usepgfplotslibrary{fillbetween}
+\usepackage{pdfpcnotes}
+\usepackage{xcolor} % For colored text
+\usepackage{graphicx}
+\usepackage{bookmark}
 
 %-----------------------------------------------------------------------
 \newcommand{\at}{\fontfamily{ptm}\selectfont @}
@@ -80,9 +104,9 @@
 }
 
 %-----------------------------------------------------------------------
-\title[Title]{Realistic Optimization-based Driving Using a Constrained Double-Integrator Model}
+\title[Optimization-based Driving]{Realistic Optimization-based Driving Using a Constrained Double-Integrator Model}
 
-\author[Name]{Andreas Belavic}
+\author[Andreas Belavic]{Andreas Belavic}
 \institute[TU M\"unchen]{Technical University of Munich}
 
 \date{March~31,~2025}
@@ -102,195 +126,671 @@
   \titlepage
 \end{frame}
 
-% Slide 2: Motivation & Problem Statement
+\section{Introduction}
+
+\begin{frame}
+  Starting GIF
+\end{frame}
+
 \begin{frame}{Motivation \& Problem Statement}
-  \begin{itemize}
-    \item Autonomous driving demands safe, real-time trajectory planning.
-    \item Balancing model accuracy with computational efficiency is critical.
-    \item Our approach uses convex optimization with a constrained double-integrator model.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Schematic diagram of motion planning challenges]}
-
-  \includemedia[
-    width=0.6\linewidth,
-    height=0.45\linewidth,
-    activate=pageopen,
-    addresource=/Users/andreasbelavic/bachelor-thesis/code/benchmark-results/elchtest_1-RoadAlignedModel-27-01-2025-13:31:15/animation.mp4,
-    flashvars={
-        source=/Users/andreasbelavic/bachelor-thesis/code/benchmark-results/elchtest_1-RoadAlignedModel-27-01-2025-13:31:15/animation.mp4  % path to the video file
-      }
-  ]{\includegraphics{video-thumbnail.png}}{VPlayer.swf}
-
-  \blfootnote{\tiny $[1]$ M.
-    Althoff and S.
-    Magdici, ``Set-based prediction of traffic participants on arbitrary road networks,'' IEEE Trans.
-    on Intelligent Vehicles, 2016.}
+  Given a 7-tuple
+  $
+    (\mathcal{X}, \mathcal{U}, x_{\text{initial}}, X_{\text{goal}}, f, J, \{t_i\}_{i=1,\dots ,m}),
+  $
+  the discrete-time optimal trajectory planning problem is defined as:
+  \begin{align}
+    u^*     & = \underset{u \in \mathcal{U}^{m-1}}{\operatorname{arg\,min}} \sum_{i=1}^{m-1}
+    J(x_{i+1}, u_{i}),                                                                                                                  \\ \text{s.t.
+    } \quad & x_1  = x_{\text{initial}}                                                                                                 \\
+            & x_m          \in X_{\text{goal}} \subseteq \mathcal{X}                                                                    \\
+            & (x_i, u_i)   \in \mathcal{C} \subseteq \mathcal{X} \times \mathcal{U}          & \text{for all}\, i \in \{1, \dots, m-1\} \\
+            & x_{i+1}      = f(x_i, u_i, \Delta t_i)                                         & \text{for all}\, i \in \{1, \dots, m-1\}
+  \end{align}
 \end{frame}
 
-% Slide 3: Overview of the Approach
-\begin{frame}{Overview of the Approach}
-  \begin{itemize}
-    \item Reformulates trajectory planning as a convex optimization problem.
-    \item Simplifies vehicle dynamics via the double-integrator model.
-    \item Applies feedback linearization and convex inner approximations.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Block diagram of the planning framework]}
-  \blfootnote{\tiny $[2]$ A.
-    Belavic, Bachelor’s Thesis, TUM, 2025.
-  }
+\begin{frame}{Convex vs Non-Convex}
+  \inlineMovie{animations/cvx-vs-noncvx.mp4}
 \end{frame}
 
-% Slide 4: Double Integrator Model
-\begin{frame}{Vehicle Modeling: Double Integrator Model}
-  \begin{itemize}
-    \item Simplified dynamics: considers only position and velocity.
-    \item Ignores orientation for computational efficiency.
-    \item Leads to a convex formulation ideal for real-time planning.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Diagram of double integrator dynamics]}
-  \blfootnote{\tiny See Chapter 2 of the thesis.}
+\begin{frame}{Solver Times}
+  \pgfplot{figures/cvx-solver_metrics.pgf}{Convex}
 \end{frame}
 
-% Slide 5: Kinematic Bicycle Model
-\begin{frame}{Vehicle Modeling: Kinematic Bicycle Model}
-  \begin{itemize}
-    \item Captures vehicle orientation and steering dynamics.
-    \item More realistic than the double integrator but computationally heavier.
-    \item Often used for validation against simplified models.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Diagram of the bicycle model representation]}
-  \blfootnote{\tiny Refer to Chapter 2 for model comparisons.}
+\begin{frame}{Solver Times}
+  \pgfplot{figures/noncvx-solver_metrics.pgf}{Non-Convex}
 \end{frame}
 
-% Slide 6: Coordinate Transformation: Frenet Frame
+\begin{frame}{Convex Optimization in Motion Planning}
+  \begin{itemize}
+    \item Non-convex formulations often lack robust convergence criteria.
+    \item Our approach transforms the problem into a convex formulation to ensure:
+          \begin{itemize}
+            \item Reliable convergence guarantees.
+            \item Predictable and efficient computation times.
+            \item Efficient checkability of the convexity.
+          \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Overview of the Methodology}
+  \begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+      % Define block and arrow styles
+      \tikzstyle{block} = [rectangle, draw, fill=blue!20,
+      text width=6.5em, text centered, rounded corners, minimum height=4em]
+      \tikzstyle{arrow} = [thick,->,>=stealth]
+
+      % DI
+      \node [block] (1-di) {Double Integrator};
+      \node [block, right of=1-di, xshift=1.5cm] (2-di) {Transform to Frenet Frame};
+      \node [block, right of=2-di, xshift=1.5cm] (3-di) {Feedback Linearization};
+      \node [block, right of=3-di, xshift=1.5cm] (4-di) {Convex Inner Approximation};
+      % Arrows connecting the nodes
+      \draw [arrow] (1-di) -- (2-di);
+      \draw [arrow] (2-di) -- (3-di);
+      \draw [arrow] (3-di) -- (4-di);
+
+      % bicycle
+      \node [block, below of=1-di, yshift=-1cm] (1-bicycle) {Bicycle};
+      \node [block, right of=1-bicycle, xshift=1.5cm] (2-bicycle) {Approximate Dynamics};
+      \node [block, right of=2-bicycle, xshift=1.5cm] (3-bicycle) {Convex Relaxation for Bilinear Terms};
+      \node [block, right of=3-bicycle, xshift=1.5cm] (4-bicycle) {Approximate Constraints};
+      % Arrows connecting the nodes
+      \draw [arrow] (1-bicycle) -- (2-bicycle);
+      \draw [arrow] (2-bicycle) -- (3-bicycle);
+      \draw [arrow] (3-bicycle) -- (4-bicycle);
+
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\section{Motion Planning Using the Double Integrator Model}
+
+\begin{frame}{Vehicle Modeling: Double Integrator Model (DI)}
+  \centering
+  \begin{figure}[h]
+    \centering
+    \scalebox{0.8}{
+      \begin{tikzpicture}
+        % Axes
+        \draw[->] (0,0) -- (2,0) node[right] {$x$};
+        \draw[->] (0,0) -- (0,2) node[above] {$y$};
+
+        % Rear Wheel
+        \fill (2,2) circle (2pt); % Draws a small point at (2,2)
+
+        % Velocity vector
+        \draw[->] (2,2) -- (4,2) node[midway,below] {$v_x$};
+        \draw[->] (2,2) -- (2,3) node[midway,left] {$v_y$};
+        \draw[->] (2,2) -- (4,3) node[midway,right, yshift=-0.1cm] {$\psi$};
+
+        % Displacement vector
+        \draw[dashed,thick,->] (0,0) -- (1.95,1.95)
+        node[midway, left, shift={(-0,+0.4)}] {$\begin{bmatrix}p_x \\ p_y \end{bmatrix}$};
+      \end{tikzpicture}
+    }
+    \caption{Double Integrator Model}
+  \end{figure}
+  \begin{itemize}
+    \item Transform to Frenet Frame, introduce Assumption $\xi = 0$.
+    \item Feedback Linearization.
+    \item Convex Inner Approximation.
+  \end{itemize}
+\end{frame}
+
 \begin{frame}{Coordinate Transformation: Frenet Frame}
   \begin{itemize}
     \item Transforms global coordinates into a path-following system.
     \item Simplifies handling of road curvature and lateral deviations.
+    \item This transformation introduces nonlinear vehicle dynamics.
   \end{itemize}
   \centering
-  \textbf{[Placeholder: Illustration of the Frenet frame]}
-  \blfootnote{\tiny Adapted from the thesis discussion in Section 2.3.}
+  \begin{figure}[h]
+    \centering
+    \begin{tikzpicture}
+      % Draw the reference path (curved)
+      \draw[thick, ->] plot [smooth, tension=1] coordinates {(-3,-1) (-2,0) (0,-0.5) (2,1) (3,0.5)}  node[right] {\large $\hat{s}$};
+
+      % Vehicle position
+      \filldraw [black] (0,-0.5) circle (2pt);
+      % \node[below left] at (0,-0.5) {\textbf{Vehicle}};
+
+      % Tangent vector (s direction)
+      % \draw[->, thick] (0,-0.5) -- (1,0.8);
+      % \node[right] at (1,0.8) {\large $\hat{s}$};
+
+      % Normal vector (n direction)
+      \draw[->, thick] (0,-0.5) -- (-0.25,0.5);
+      \node[above] at (-0.25,0.5) {\large $\hat{n}$};
+
+      % Dashed line for local reference
+      \draw[dashed] (-1,-0.7) -- (1,-0.3);
+    \end{tikzpicture}
+    \caption{Frenet Frame Representation}
+  \end{figure}
+  \begin{equation}
+    \xi = \psi - \theta \text{, where $\theta$ is the angle of the reference path.}
+  \end{equation}
+  \begin{equation}
+    C(s)=\frac{d\theta}{ds}
+  \end{equation}
 \end{frame}
 
-% Slide 7: Framework Architecture
-\begin{frame}{Motion Planning Framework Architecture}
-  \begin{itemize}
-    \item Multi-layered approach: global route, behavioral layer, local trajectory optimization.
-    \item Our focus: the local planner using convex optimization.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Block diagram of planning layers]}
-  \blfootnote{\tiny Inspired by early work on motion planning architectures [1].}
+\begin{frame}{Resulting Model \& Simplifications}
+  \begin{equation}
+    x_{di} = \begin{bmatrix}
+      s       &
+      n       &
+      \xi     &
+      \dot{s} &
+      \dot{n} &
+      \dot{\psi}
+    \end{bmatrix}^T
+  \end{equation}
+  \begin{equation}
+    u_{di} = \begin{bmatrix}
+      a_x &
+      a_y &
+      a_\psi
+    \end{bmatrix}^T
+  \end{equation}
+  \begin{columns}[c]
+    \column{0.45\textwidth}
+    % Left equation
+    \[
+      \overbrace{
+        \begin{bmatrix}
+          \dot{s}                                                                                \\
+          \dot{n}                                                                                \\
+          \dot{\psi} - C(s)\dot{s}                                                               \\
+          \displaystyle \frac{a_{x,tn} + 2\dot{n}\,C(s)\dot{s} + n\,C'(s)\dot{s}^2}{1 - n\,C(s)} \\
+          a_{y,tn} - C(s)\dot{s}^2(1 - n\,C(s))                                                  \\
+          a_\psi
+        \end{bmatrix}}^{\dot{x}_{di} =}
+    \]
+    \column{0.1\textwidth}
+    % Center arrow
+    \centering
+    % Text above the arrow
+    $\xi = 0$\\[0.3cm]
+    $\Longrightarrow$
+    \column{0.45\textwidth}
+    \[
+      \begin{bmatrix}
+        \dot{s}                                                                                            \\
+        \dot{n}                                                                                            \\
+        \textcolor{red}{0}                                                                                 \\
+        \displaystyle \frac{\textcolor{red}{a_x} + 2\dot{n}\,C(s)\dot{s} + n\,C'(s)\dot{s}^2}{1 - n\,C(s)} \\
+        \textcolor{red}{a_y} - C(s)\dot{s}^2(1 - n\,C(s))                                                  \\
+        \textcolor{red}{\ddot{\theta}}
+      \end{bmatrix}
+    \]
+  \end{columns}
 \end{frame}
 
-% Slide 8: Convex Optimization in Planning
-\begin{frame}{Convex Optimization in Motion Planning}
-  \begin{itemize}
-    \item Ensures smooth and dynamically feasible trajectories.
-    \item Allows efficient solution of sub-problems to global optimality.
-    \item Supports real-time implementation.
-  \end{itemize}
-  \blfootnote{\tiny See related discussions in Chapters 3 and 4.}
-\end{frame}
-
-% Slide 9: Feedback Linearization
 \begin{frame}{Feedback Linearization Technique}
   \begin{itemize}
-    \item Linearizes nonlinear vehicle dynamics via state feedback.
-    \item Decouples acceleration and steering commands.
-    \item Simplifies controller design.
+    \item Linearize the vehicle's nonlinear dynamics.
   \end{itemize}
   \centering
-  \textbf{[Placeholder: Schematic showing feedback linearization]}
-  \blfootnote{\tiny Technique detailed in Section 3.1.4 of the thesis.}
+  \begin{figure}[h]
+    \centering
+    \scalebox{0.8}{
+      \begin{tikzpicture}[
+          block/.style={draw, fill=gray!10, thick, minimum width=3.5cm, minimum height=2cm, align=center},
+          smallblock/.style={draw, fill=gray!10, thick, minimum width=1cm, minimum height=1cm},
+          node distance=1.2cm and 1cm,
+          >=Latex
+        ]
+
+        % Nodes
+        \node[block, text width=3.5cm] (control) {\textbf{Control mapping}\\[0.2em] $u = a(x) + b(x)\tilde{u}$};
+        \node[block, right=of control, text width=3.5cm] (plant) {\textbf{Nonlinear plant}\\[0.2em] $\dot{x} = f(x) + g(x)u$};
+        \node[smallblock, below=1.5cm of plant] (integrator) {$\frac{1}{s}$};
+
+        % Input and Output
+        \node[left=1cm of control] (input) {};
+        \node[right=1cm of plant] (output) {};
+        \node[below=0.8cm of integrator] (feedbackpoint) {};
+
+        % Arrows
+        \draw[->] (input) -- node[above] {$\tilde{u}$} (control);
+        \draw[->] (control) -- node[above] {$u$} (plant);
+        \draw[->] (plant) -- node[above] {$x$} (output);
+        \draw[<-] (plant.south) -- node[right] {$\dot{x}$} (integrator.north);
+        \draw[<-] (integrator.west) -| node[below left] {$x$} (control.south);
+        % Outer box
+        \begin{scope}[on background layer]
+          \draw[fill=gray!30, thick] ([xshift=-0.8cm,yshift=0.5cm]control.north west)
+          rectangle
+          ([xshift=2.1cm,yshift=-0.5cm]integrator.south east);
+        \end{scope}
+
+      \end{tikzpicture}
+    }
+    \caption{Feedback control structure for a nonlinear system.}
+  \end{figure}  \blfootnote{\tiny Technique detailed in Section 3.1.4 of the thesis.}
 \end{frame}
 
-% Slide 10: Constraint Handling
+\begin{frame}{Resulting Model}
+  \begin{equation}
+    \tilde{x}_{di} = \begin{bmatrix} s, & n, & \dot{s}, & \dot{n} \end{bmatrix}^T
+  \end{equation}
+  \begin{equation}
+    \tilde{u}_{di} := \begin{bmatrix}
+      u_t &
+      u_n
+    \end{bmatrix}^T
+  \end{equation}
+  \begin{equation}
+    \frac{d\tilde{x}_{di}}{dt} = \begin{bmatrix}
+      \dot{s} \\
+      \dot{n} \\
+      u_t     \\
+      u_n
+    \end{bmatrix}
+  \end{equation}
+\end{frame}
+
 \begin{frame}{Constraint Handling in the Framework}
   \begin{itemize}
-    \item Incorporates physical limits: acceleration, velocity, and road boundaries.
-    \item Uses convex inner approximations for non-convex constraints.
-    \item Maintains safety and feasibility.
+    \item Feedback linearization leads to nonlinear physical constraints: acceleration, velocity, and road boundaries.
+    \item Using convex inner approximations for non-convex constraints.
+          \begin{equation}
+            \hat{C} = \left\{ \begin{bmatrix}
+              \tilde{x}_{di} \\[2mm] \tilde{u}_{di}
+            \end{bmatrix} \; \middle|\;
+            N \begin{bmatrix}
+              \tilde{x}_{di} \\[2mm] \tilde{u}_{di}
+            \end{bmatrix} \leq b
+            \right\} \subseteq \mathcal{C},
+          \end{equation}
+    \item We apply quantifier elimination, using two approaches: \begin{itemize}
+            \item Interval Fitting and
+            \item Cylindrical Algebraic Decomposition (CAD).
+          \end{itemize}
   \end{itemize}
-  \centering
-  \textbf{[Placeholder: Diagram of constraint mapping]}
-  \blfootnote{\tiny Constraint formulations are discussed in Section 3.1.5.}
+  \begin{equation}
+    \tilde{C} =
+    \left\{ \;
+    \begin{bmatrix}
+      \dot{s} \\
+      u_t     \\
+      u_n
+    \end{bmatrix}
+    \; \middle|\;
+    \begin{bmatrix}
+      \tilde{x}_{di} \\ \tilde{u}_{di}
+    \end{bmatrix} \in \mathcal{C}, \quad \forall
+    \begin{bmatrix}
+      s \\
+      n \\
+      \dot{n}
+    \end{bmatrix} \in
+    \begin{bmatrix}
+      \underline{s}, \overline{s} \\
+      \underline{n}, \overline{n} \\
+      \underline{\dot{n}}, \overline{\dot{n}}
+    \end{bmatrix}
+    \right\}.
+  \end{equation}
+  % \centering
+  % \textbf{[Placeholder: Diagram of constraint mapping]}
+  % \blfootnote{\tiny Constraint formulations are discussed in Section 3.1.5.}
 \end{frame}
 
-% Slide 11: Quantifier Elimination & Convex Approximation
-\begin{frame}{Quantifier Elimination \& Convex Approximations}
-  \begin{itemize}
-    \item Two approaches: interval fitting and Cylindrical Algebraic Decomposition (CAD).
-    \item Derives an inscribed polytope for the feasible set.
-    \item Balances computational efficiency with accuracy.
-  \end{itemize}
+\begin{frame}{Interval Fitting Illustration}
   \centering
-  \textbf{[Placeholder: Graphical comparison of interval fitting and CAD]}
-  \blfootnote{\tiny For details, see Sections 3.1.6 of the thesis.}
+  \begin{minipage}{0.4\textwidth}
+    \centering
+    % Left TikZ plot
+    \begin{tikzpicture}
+      \begin{axis}[
+          width=4.5cm, height=4.5cm,
+          xlabel={$x$}, ylabel={$y$},
+          xmin=-4, xmax=4,
+          ymin=-3, ymax=3,
+          axis on top,
+          grid=both,
+          title={$xy\leq4, |y|\leq2$},
+        ]
+
+        \addplot [
+          domain=0.1:4,
+          samples=200,
+          name path=upper1,
+          % draw=none,
+        ] {min(2, 4/x)};
+
+        \addplot [
+          domain=-4:0.1,
+          samples=200,
+          name path=upper2,
+          % draw=none,
+        ] {2};
+
+        \addplot [
+          domain=-4:-0.1,
+          samples=200,
+          name path=lower1,
+          % draw=none,
+        ] {max(-2, 4/x};
+
+        \addplot [
+          domain=-0.1:4,
+          samples=200,
+          name path=lower2,
+          % draw=none,
+        ] {-2};
+
+        \addplot [
+          fill=blue!20,
+          opacity=0.6
+        ] fill between[
+            of=upper1 and lower2,
+            soft clip={domain=-4:4},
+          ];
+
+        \addplot [
+          fill=blue!20,
+          opacity=0.6
+        ] fill between[
+            of=upper2 and lower1,
+            soft clip={domain=-4:4},
+          ];
+
+      \end{axis}
+    \end{tikzpicture}
+  \end{minipage}
+  \hspace{0.01\textwidth}
+  \begin{minipage}{0.1\textwidth}
+    \centering
+    $\Longrightarrow$\\
+    \textbf{\small Interval Fitting}
+  \end{minipage}
+  \hspace{0.01\textwidth}
+  \begin{minipage}{0.4\textwidth}
+    \centering
+    % Right TikZ plot (placeholder)
+    \begin{tikzpicture}
+      \begin{axis}[
+          width=4.5cm, height=4.5cm,
+          xlabel={$x$}, ylabel={$y$},
+          xmin=-4, xmax=4,
+          ymin=-3, ymax=3,
+          axis on top,
+          grid=both,
+          title={$|x|\leq2, |y|\leq2$},
+        ]
+        \addplot [
+          domain=-2:2,
+          samples=2,
+          name path=top,
+          draw=none,
+        ] {2};
+
+        \addplot [
+          domain=-2:2,
+          samples=2,
+          name path=bottom,
+          draw=none,
+        ] {-2};
+
+        \addplot [
+          fill=orange!50,
+          opacity=0.6
+        ] fill between[
+            of=top and bottom,
+            soft clip={domain=-2:2},
+          ];
+      \end{axis}
+    \end{tikzpicture}
+  \end{minipage}
 \end{frame}
 
-% Slide 12: Simulation Setup
-\begin{frame}{Simulation Setup: Implementation Details}
+\begin{frame}{Cylindrical Algebraic Decomposition}
   \begin{itemize}
-    \item Road segments, planner configurations, and soft constraints are defined.
+    \item It is applied to polynomials and divides the space into cylindrical cells.
+    \item Example for $x^2 + bx + 1$.
+  \end{itemize}
+  \centering
+  \begin{figure}[h]
+    \centering
+    \definecolor{redviolet}{rgb}{0.78, 0.08, 0.52}
+    \scalebox{0.8}{
+      \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={$b$},
+            ylabel={$x$},
+            axis lines=middle,
+            enlargelimits=true,
+            legend pos=north west,
+          ]
+
+          % Define the boundaries as paths
+          \addplot [name path=RightUpper, domain=2:5, samples=100, thick, redviolet!30, dashed] {-(x/2) + 1/2 * sqrt(-4 + x^2)};
+          \addplot [name path=RightLower, domain=2:5, samples=100, thick, teal!30, dashed] {-(x/2) - 1/2 * sqrt(-4 + x^2)};
+          \addplot [name path=LeftUpper, domain=-5:-2, samples=100, thick,blue!30, dashed] {-(x/2) + 1/2 * sqrt(-4 + x^2)};
+          \addplot [name path=LeftLower, domain=-5:-2, samples=100, thick,cyan!30, dashed] {-(x/2) - 1/2 * sqrt(-4 + x^2)};
+
+          % Define vertical lines as paths but make them invisible
+          \addplot [name path=lineInnerRight,dashed, thick,  red!30] coordinates {(2,-5) (2,5)};
+          \addplot [name path=lineInnerLeft, dashed, thick, red!30] coordinates {(-2,-5) (-2,5)};
+
+          % Define horizontal boundaries as paths but make them invisible
+          \addplot [name path=lineUpperLeft, draw=none] coordinates {(-5,5) (-2,5)};
+          \addplot [name path=lineUpperRight, draw=none] coordinates {(2,5) (5,5)};
+          \addplot [name path=lineLowerLeft, draw=none] coordinates {(-5,-5) (-2,-5)};
+          \addplot [name path=lineLowerRight, draw=none] coordinates {(2,-5) (5,-5)};
+
+          % Region 1: b>2, x >= -(b/2) + 1/2 sqrt(-4 + b^2)
+          \addplot [fill=redviolet!30, opacity=0.5] fill between[of=RightUpper and lineUpperRight];
+
+          % % Region 2: b>2, x <= -(b/2) - 1/2 sqrt(-4 + b^2)
+          \addplot [fill=teal!30, opacity=0.5] fill between[of=RightLower and lineLowerRight];
+
+          % % Region 3: b<-2, x >= -(b/2) + 1/2 sqrt(-4 + b^2)
+          \addplot [fill=blue!30, opacity=0.5] fill between[of=LeftUpper and lineUpperLeft];
+
+          % % Region 4: b<-2, x <= -(b/2) - 1/2 sqrt(-4 + b^2)
+          \addplot [fill=cyan!30, opacity=0.5] fill between[of=LeftLower and lineLowerLeft];
+
+          % % Region 5: -2 ≤ b ≤ 2 (rectangle covering all x values)
+          \addplot [fill=red!30, opacity=0.5] fill between[of=lineInnerLeft and lineInnerRight];
+
+          % % Region 6: b>2, x > -(b/2) - 1/2 Sqrt[-4+b^2], x < -(b/2) + 1/2 Sqrt[-4+b^2]
+          \addplot [fill=cyan!30, opacity=0.3] fill between[of=RightUpper and RightLower];
+
+          % % Region 7: b<-2, x > -(b/2) - 1/2 Sqrt[-4+b^2], x < -(b/2) + 1/2 Sqrt[-4+b^2]
+          \addplot [fill=gray!30, opacity=0.3] fill between[of=LeftUpper and LeftLower];
+
+        \end{axis}
+      \end{tikzpicture}
+    }
+    \caption{Illustrating the cells with shaded regions.}
+  \end{figure}
+  % \textbf{[Placeholder: Diagram of constraint mapping]}
+  % \blfootnote{\tiny Constraint formulations are discussed in Section 3.1.5.}
+\end{frame}
+
+\section{Motion Planning using Bicycle Model}
+
+\begin{frame}{Vehicle Modeling: Kinematic Bicycle Model (KST)}
+  \centering
+  \begin{figure}
+    \centering
+    \scalebox{0.8}{
+      \begin{tikzpicture}
+        % Axes
+        \draw[->] (0,0) -- (2,0) node[right] {$x$};
+        \draw[->] (0,0) -- (0,2) node[above] {$y$};
+
+        % Rear Wheel
+        \fill (2,2) circle (2pt); % Draws a small point at (2,2)
+
+        % Vehicle body
+        \draw[thick,rotate around={11.536959-90:(2,2)}] (1.8,1.3) rectangle (2.2,2.7);
+        \draw[thick,rotate around={26.536959-90:(7,3)}] (6.8,2.3) rectangle (7.2,3.7);
+
+        % Wheelbase
+        \draw[-] (2,2) -- (7,3);
+        \draw[dashed] (2,2) -- (1.7,3.5);
+        \draw[dashed] (7,3) -- (6.7,4.5);
+        \draw[dashed, <->] (1.8,3) -- (6.8,4) node[midway,above] {$l_{wb}$};
+
+        % Velocity vector
+        \draw[->] (2,2.1) -- (4,2.5) node[midway,above] {$v$};
+
+        % Heading angle
+        \draw[dashed] (3.25,2.25) -- (6,2.25);
+        \draw[->] (6,2.25) arc (0:11.536959:2.75);
+        \node at (5.7,2.5) {$\psi$};
+
+        % Steering angle
+        \draw[dashed] (7,3) -- (8.5,3.3);
+        \draw[dashed] (7,3) -- ++(26.536959:1.5);
+        \draw[->] (8.5,3.3) arc (11.536959:26.536959:1.5);
+        \node at (8.2,3.43) {$\delta$};
+
+        % Displacement vector
+        \draw[dashed,thick,->] (0,0) -- (1.95,1.95)
+        node[midway, left, shift={(-0,+0.4)}] {$\begin{bmatrix}p_x \\ p_y \end{bmatrix}$};
+      \end{tikzpicture}
+    }
+    \caption{Bicycle model representation of a vehicle.}
+  \end{figure}
+  \begin{itemize}
+    \item Transform to Frenet Frame.
+    \item Approximate Dynamics.
+    \item Convex Relaxation for Bilinear Terms.
+    \item Approximate Constraints.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{KST Dynamics}
+  \begin{equation}
+    x_{kst}  = \begin{bmatrix}
+      s & n & \xi & v & \delta
+    \end{bmatrix}^T
+  \end{equation}
+  \begin{equation}
+    u_{kst}  = \begin{bmatrix}
+      a & v_\delta
+    \end{bmatrix}^T
+  \end{equation}
+  \begin{equation}
+    \dot{x}_{kst} =
+    \begin{bmatrix}
+      \frac{v \cos\xi}{1 - nC(s)}                \\[8pt]
+      v \sin\xi                                  \\[8pt]
+      \frac{1}{l_{wb}}v \tan\delta - C(s)\dot{s} \\[8pt]
+      a                                          \\[8pt]
+      v_\delta
+    \end{bmatrix}
+  \end{equation}
+\end{frame}
+
+\begin{frame}{Small Angle Approximation}
+  \begin{itemize}
+    \item For small steering angles, trigonometric functions can be approximated.
+    \item This simplifies the nonlinear equations in the bicycle model.
+  \end{itemize}
+  \begin{equation}
+    \begin{bmatrix}
+      \frac{v \textcolor{red}{\cos\xi}}{1 - nC(s)}                \\[8pt]
+      v \textcolor{red}{\sin\xi}                                  \\[8pt]
+      \frac{1}{l_{wb}}v \textcolor{red}{\tan\delta} - C(s)\dot{s} \\[8pt]
+      a                                                           \\[8pt]
+      v_\delta
+    \end{bmatrix}
+  \end{equation}
+\end{frame}
+
+% Slide: McCormick Relaxation
+\begin{frame}{McCormick Relaxation for Bilinear Terms}
+  \begin{itemize}
+    \item McCormick relaxation provides a convex envelope for bilinear terms such as $w = v_1v_2$.
+    \item Given $v_1\in[\underline{v_1}, \overline{v_1}]$ and $v_2\in[\underline{v_2}, \overline{v_2}]$, the McCormick envelopes are:
+          \begin{align*}
+            w & \geq \underline{v_1} v_2 + \underline{v_2} v_1 - \underline{v_1} \underline{v_2}, \\
+            w & \geq \overline{v_1} v_2 + \overline{v_2} v_1 - \overline{v_1} \overline{v_2},     \\
+            w & \leq \overline{v_1} v_2 + \underline{v_2} v_1 - \overline{v_1} \underline{v_2},   \\
+            w & \leq \underline{v_1} v_2 + \overline{v_2} v_1 - \underline{v_1} \overline{v_2}.
+          \end{align*}
+    \item This relaxation transforms the nonconvex bilinear constraint into linear inequalities.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Example for Different Bounds}
+  \begin{itemize}
+    \item $ -2 \leq v_1 \leq 2 $ and $ 0 \leq v_2 \leq 50 $
+  \end{itemize}
+
+  \centering
+  \begin{minipage}[b]{0.45\textwidth}
+    \centering
+    \resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-0-upper.pgf}}\\
+    \small (a) Difference to the upper bound
+  \end{minipage}
+  \hfill
+  \begin{minipage}[b]{0.45\textwidth}
+    \centering
+    \resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-0-lower.pgf}}\\
+    \small (b) Difference to the lower bound
+  \end{minipage}
+
+\end{frame}
+
+\begin{frame}{Example for Different Bounds}
+  \begin{itemize}
+    \item $ -2 \leq v_1 \leq 0 $ and $ 0 \leq v_2 \leq 50$
+  \end{itemize}
+  \centering
+  \begin{minipage}[b]{0.45\textwidth}
+    \centering
+    \resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-1-upper.pgf}}\\
+    \small (c) Tighter upper bound on $w$
+  \end{minipage}
+  \hfill
+  \begin{minipage}[b]{0.45\textwidth}
+    \centering
+    \resizebox{\textwidth}{!}{\input{figures/mccormick/mccormick-bounds-1-lower.pgf}}\\
+    \small (d) Tighter lower bound on $w$
+  \end{minipage}
+
+\end{frame}
+
+\section{Evaluation}
+
+\begin{frame}{Implementation Details and Evaluation Metrics}
+  \begin{itemize}
+    \item We define road segments, planner configurations, and soft constraints.
     \item Simulation scenarios mimic realistic driving conditions.
-    \item Ensures the evaluation is comprehensive.
+    \item Multiple scenarios: straight roads, curved segments.
+    \item Metrics: trajectory feasibility, computational time, road completion, and objective values.
   \end{itemize}
-  \centering
-  \textbf{[Placeholder: Table summarizing simulation parameters]}
-  \blfootnote{\tiny Implementation details from Section 4.1.}
 \end{frame}
 
-% Slide 13: Evaluation Metrics and Scenarios
-\begin{frame}{Evaluation Metrics and Scenarios}
-  \begin{itemize}
-    \item Metrics: trajectory feasibility, computational time, and safety margins.
-    \item Multiple scenarios: straight roads, curved segments, and dynamic obstacles.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Diagram or chart of evaluation metrics]}
-  \blfootnote{\tiny Refer to Section 4.2 of the thesis.}
-\end{frame}
-
-% Slide 14: Numerical Experiment: Scenario 1
-\begin{frame}{Numerical Experiment: Scenario 1}
-  \begin{itemize}
-    \item Scenario: Moderate-speed driving on a straight road.
-    \item Result: Smooth trajectory with rapid solver convergence.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Simulation snapshot of Scenario 1]}
-  \blfootnote{\tiny Simulation results are detailed in Chapter 4.}
-\end{frame}
-
-% Slide 15: Numerical Experiment: Scenario 2
-\begin{frame}{Numerical Experiment: Scenario 2}
-  \begin{itemize}
-    \item Scenario: Handling a sharp curve.
-    \item Result: Effective management of lateral deviations.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Simulation snapshot of Scenario 2]}
-  \blfootnote{\tiny See performance analysis in Chapter 4.}
-\end{frame}
-
-% Slide 16: Computational Efficiency
 \begin{frame}{Performance: Computational Efficiency}
   \begin{itemize}
-    \item Optimization runs in real time under dynamic conditions.
     \item Solver times validate the framework's efficiency.
+    \item $t_{\text{conf}}^{(1)} = (3\text{s}, 0.1\text{s}, 10\text{ms}, 40\text{ms})$
+    \item $t_{\text{conf}}^{(2)} = (5\text{s}, 0.1\text{s}, 20\text{ms}, 20\text{ms})$
   \end{itemize}
+
   \centering
-  \textbf{[Placeholder: Plot of solver runtime vs. scenario complexity]}
-  \blfootnote{\tiny Performance evaluation from Section 4.2.}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Model} & \textbf{Config}         & \textbf{Avg Time} & \textbf{Time Deviation} \\
+    \midrule
+    DI             & $t_{\text{conf}}^{(1)}$ & 3.9ms             & 1.0ms                   \\
+    DI             & $t_{\text{conf}}^{(2)}$ & 3.8ms             & 1.3ms                   \\
+    Bicycle        & $t_{\text{conf}}^{(1)}$ & 9.5ms             & 2.1ms                   \\
+    Bicycle        & $t_{\text{conf}}^{(2)}$ & 9.4ms             & 2.9ms                   \\
+    \bottomrule
+  \end{tabular}
 \end{frame}
 
-% Slide 17: Model Comparison
 \begin{frame}{Comparison: Double Integrator vs. Bicycle Model}
   \begin{itemize}
     \item Double integrator: Fast and efficient, less detailed.
@@ -298,98 +798,137 @@
     \item Trade-offs guide model selection based on application needs.
   \end{itemize}
   \centering
-  \textbf{[Placeholder: Comparative table/graph]}
-  \blfootnote{\tiny Comparison drawn from Chapter 2 and related literature.}
+  \begin{figure}[h]
+    \centering
+    \scalebox{0.75}{
+      \begin{tikzpicture}
+        \begin{axis}[
+            ybar,
+            bar width=15pt, % Increase bar width
+            width=0.9\textwidth, % Increase overall figure width
+            height=7cm,
+            enlarge x limits=0.2, % Add some space on both sides
+            symbolic x coords={Elchtest, Feasible Curve, Infeasible Curve, Lane Change, Left Turn, Slalom, Straight}, % Replace with actual road names
+            xtick=data,
+            xticklabel style={rotate=-25, anchor=west}, % Rotate labels for readability
+            ymin=0,
+            ylabel={Number of Failures},
+            xlabel={Road Name},
+            legend pos=north east,
+            nodes near coords
+          ]
+          % Replace the values below with actual failure counts
+          \addplot coordinates {(Elchtest,4) (Feasible Curve,22) (Infeasible Curve,24) (Lane Change,7) (Left Turn,0) (Slalom,16) (Straight,0)};
+          \addlegendentry{Double Integrator Model}
+
+          \addplot coordinates {(Elchtest,16) (Feasible Curve,22) (Infeasible Curve,24) (Lane Change,15) (Left Turn,11) (Slalom,13) (Straight,5)};
+          \addlegendentry{Bicycle}
+        \end{axis}
+      \end{tikzpicture}
+    }
+  \end{figure}
 \end{frame}
 
-% Slide 18: Advantages of the Framework
-\begin{frame}{Advantages of the Proposed Framework}
+\begin{frame}{Numerical Experiment: Lane Change}
   \begin{itemize}
-    \item Convex formulation ensures global optimality within sub-problems.
-    \item Robust to dynamic environmental changes.
-    \item Provides a foundation for scalable autonomous driving solutions.
+    \item Scenario: Handling a sharp curve.
+    \item Result: Both models perform well on moderate and slower velocities.
+    \item Difference: DI accounts for lateral acceleration from the initial point onward.
   \end{itemize}
-  \blfootnote{\tiny Advantages summarized in the thesis conclusion.}
+  \inlineMovie{animations/lane-change.mp4}
 \end{frame}
 
-% Slide 19: Limitations and Challenges
+\begin{frame}{Numerical Experiment: Slalom}
+  \begin{itemize}
+    \item Scenario: Handling a sharp curve.
+    \item Result: KST performs better.
+    \item Inscribed polytope too conservative.
+  \end{itemize}
+  \inlineMovie{animations/slalom.mp4}
+\end{frame}
+
+\begin{frame}{Numerical Experiment: Left Curve}
+  \begin{itemize}
+    \item Scenario: Minimize control derivatives.
+    \item Result: Approximation errors noticeable for KST.
+  \end{itemize}
+  \inlineMovie{animations/left-turn.mp4}
+\end{frame}
+
+\section{Conclusion}
+
 \begin{frame}{Limitations and Challenges}
   \begin{itemize}
-    \item Trade-off: Simplified models may sacrifice some accuracy.
-    \item Conservative approximations can limit optimality.
-    \item Extension to highly dynamic scenarios remains challenging.
+    \item Conservative approximations can limit feasibility.
+    \item KST performs worse in high speed scenarios, due to restricted friction circle.
   \end{itemize}
-  \centering
-  \textbf{[Placeholder: Diagram illustrating limitations]}
-  \blfootnote{\tiny Challenges discussed in Chapter 5.}
+  \begin{equation}
+    \sqrt{a^2 + \left(v\dot{\psi}\right)^2} = \sqrt{a^2 + \left(\frac{v^2}{l_{wb}} \tan(\delta)\right)^2} \leq a_{max}
+  \end{equation}
 \end{frame}
 
 % Slide 20: Future Work
-\begin{frame}{Future Work and Extensions}
-  \begin{itemize}
-    \item Incorporate full dynamic models for enhanced accuracy.
-    \item Integrate with sensor data for real-world validation.
-    \item Develop adaptive control strategies to improve performance.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Flowchart of future research directions]}
-  \blfootnote{\tiny Future work is outlined in the thesis conclusion.}
-\end{frame}
+% \begin{frame}{Future Work and Extensions}
+%   \begin{itemize}
+%     \item Incorporate full dynamic models for enhanced accuracy.
+%     \item Integrate with sensor data for real-world validation.
+%     \item Develop adaptive control strategies to improve performance.
+%   \end{itemize}
+%   \centering
+%   \textbf{[Placeholder: Flowchart of future research directions]}
+%   \blfootnote{\tiny Future work is outlined in the thesis conclusion.}
+% \end{frame}
 
-% Slide 21: Key Findings
-\begin{frame}{Key Findings and Contributions}
+\begin{frame}{Summary}
   \begin{itemize}
     \item Proposed a convex optimization framework for motion planning.
-    \item Demonstrated realistic, safe trajectories with a constrained double-integrator.
+    \item Demonstrated realistic, safe trajectories with a constrained double-integrator and kinematic bicycle model.
     \item Validated through extensive simulations and performance evaluations.
   \end{itemize}
-  \blfootnote{\tiny Key contributions summarized in Chapter 5.}
 \end{frame}
 
-% Slide 22: Impact on Autonomous Driving
-\begin{frame}{Impact on Autonomous Driving}
+\begin{frame}{Future Work}
   \begin{itemize}
-    \item Enhances real-time trajectory planning capabilities.
-    \item Improves safety and efficiency in autonomous vehicle operations.
-    \item Lays groundwork for further advancements in motion planning.
+    \item Continue work on the KST model.
+    \item Open Work on the inscribed polytope, i.e. restrict $n\in[0,\overline{n}]$ in right curves.
+    \item Implement the Problem without the need of constraints compilation during runtime.
   \end{itemize}
-  \blfootnote{\tiny Impact discussed in the thesis discussion section.}
 \end{frame}
 
 % Slide 23: Discussion and Q\&A Preparation
-\begin{frame}{Discussion and Q\&A Preparation}
-  \begin{itemize}
-    \item How does convex approximation affect optimality?
-    \item What are the trade-offs of using a double-integrator model?
-    \item How scalable is the approach for complex, dynamic scenarios?
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: List of potential discussion questions]}
-  \blfootnote{\tiny Questions based on open issues in Chapters 4 and 5.}
-\end{frame}
+% \begin{frame}{Discussion and Q\&A Preparation}
+%   \begin{itemize}
+%     \item How does convex approximation affect optimality?
+%     \item What are the trade-offs of using a double-integrator model?
+%     \item How scalable is the approach for complex, dynamic scenarios?
+%   \end{itemize}
+%   \centering
+%   \textbf{[Placeholder: List of potential discussion questions]}
+%   \blfootnote{\tiny Questions based on open issues in Chapters 4 and 5.}
+% \end{frame}
 
 % Slide 24: Summary and Final Thoughts
-\begin{frame}{Summary and Final Thoughts}
-  \begin{itemize}
-    \item Reviewed the modeling, optimization, and simulation of our framework.
-    \item Highlighted benefits, limitations, and future research directions.
-    \item Emphasized the importance of real-time feasibility and safety.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Summary diagram of the presentation]}
-  \blfootnote{\tiny Summary adapted from the thesis conclusion.}
-\end{frame}
+% \begin{frame}{Summary and Final Thoughts}
+%   \begin{itemize}
+%     \item Reviewed the modeling, optimization, and simulation of our framework.
+%     \item Highlighted benefits, limitations, and future research directions.
+%     \item Emphasized the importance of real-time feasibility and safety.
+%   \end{itemize}
+%   \centering
+%   \textbf{[Placeholder: Summary diagram of the presentation]}
+%   \blfootnote{\tiny Summary adapted from the thesis conclusion.}
+% \end{frame}
 
 % Slide 25: Conclusions
-\begin{frame}{Conclusions}
-  \begin{itemize}
-    \item Presented a comprehensive, convex optimization framework for motion planning.
-    \item Balanced computational efficiency with realistic vehicle dynamics.
-    \item Contributed to advancing motion planning in autonomous driving.
-  \end{itemize}
-  \centering
-  \textbf{[Placeholder: Final summary graphic]}
-  \blfootnote{\tiny Conclusions drawn from the overall thesis work.}
-\end{frame}
+% \begin{frame}{Conclusions}
+%   \begin{itemize}
+%     \item Presented a comprehensive, convex optimization framework for motion planning.
+%     \item Balanced computational efficiency with realistic vehicle dynamics.
+%     \item Contributed to advancing motion planning in autonomous driving.
+%   \end{itemize}
+%   \centering
+%   \textbf{[Placeholder: Final summary graphic]}
+%   \blfootnote{\tiny Conclusions drawn from the overall thesis work.}
+% \end{frame}
 
 \end{document}
