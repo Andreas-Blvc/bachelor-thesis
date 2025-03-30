@@ -41,6 +41,7 @@ class Road(Enum):
     Feasible_Curve = './data/feasible_curve.pkl'
     Infeasible_Curve = './data/infeasible_curve.pkl'
     Random = './data/random.pkl'
+    Nice = './data/nice.pkl'
     # PmFeasibleCurve = './data/pm_feasible_curve.pkl'
 
 

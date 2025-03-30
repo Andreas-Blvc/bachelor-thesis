@@ -169,12 +169,16 @@ class BicycleModel(AbstractVehicleModel):
 
         constraints += [
             0 <= s, s <= self.road.length,
-            n_min(s) <= n, n <= n_max(s),  # depends on current road segment
             self.v_min <= v, v <= self.v_max,
             self.steering_angle_min <= delta, delta <= self.steering_angle_max,
             self.steering_velocity_min <= v_delta, v_delta <= self.steering_velocity_max,
             self.a_min <= a_x_b, a_x_b <= self.a_max,
         ]
+
+        try:
+            constraints += [n_min <= n, n <= n_max]
+        except TypeError:
+            constraints += [n_min(s) <= n, n <= n_max(s)]
 
         return next_state, constraints, objective
 
@@ -362,13 +366,22 @@ class BicycleModel(AbstractVehicleModel):
     def convert_vec_to_state(self, vec, road_segment_idx=None) -> State:
         # vec: s, n, xi, v, delta
         self._validate__state_dimension(vec)
+        def get_negative_distance_to_closest_border():
+            try:
+                return cp.maximum(
+                (vec[1] - self.road.n_max(vec[0], road_segment_idx)),
+                (self.road.n_min(vec[0], road_segment_idx) - vec[1])
+            )
+            except RuntimeError:
+                variables = self.road.get_segment_dependent_variables(vec[0], self.solver_type == 'casadi')
+                n_min = variables.n_min
+                n_max = variables.n_max
+                return ca.fmax(vec[1] - n_max, n_min - vec[1])
+
         return State(
             vec=vec,
             get_velocity=lambda: vec[3],
-            get_negative_distance_to_closest_border=lambda: cp.maximum(
-                (vec[1] - self.road.n_max(vec[0], road_segment_idx)),
-                (self.road.n_min(vec[0], road_segment_idx) - vec[1])
-            ),
+            get_negative_distance_to_closest_border=get_negative_distance_to_closest_border,
             get_remaining_distance=lambda: self.road.length - vec[0],
             get_traveled_distance=lambda: vec[0],
             get_distance_between=lambda other_state: self._norm_squared(vec[:2] - other_state.as_vector()[:2]),

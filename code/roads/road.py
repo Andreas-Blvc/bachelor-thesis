@@ -2,6 +2,8 @@ import casadi as ca
 import numpy as np
 from typing import List, Tuple, Callable, Any, Protocol
 
+from polars.polars import reduce
+
 from utils import is_float_in_range
 from .interface import AbstractRoad, SegmentDependentVariables
 

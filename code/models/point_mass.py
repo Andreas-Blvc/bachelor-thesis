@@ -79,6 +79,9 @@ class PointMassModel(AbstractVehicleModel):
             curvature_derivative=0  # constant for all s
         )
 
+        if ranges.u_t == (0,0):
+            ranges.u_t = (0, -1)
+
         optimal_range = optimal_range_bound(
             road_width_range=(n_min, n_max),
             v_x_range=self.v_x_range,

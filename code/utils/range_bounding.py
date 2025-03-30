@@ -29,7 +29,7 @@ def affine_range_bounding(slope_range, intercept_range, lower_bound, upper_bound
 
     if slope_min <= 0 <= slope_max:
         if intercept_min < lower_bound or intercept_max > upper_bound:
-            return 0, 0
+            return 0, -1
 
     # Case Distinction:
     #  slope_min = slope_max:
@@ -47,7 +47,7 @@ def affine_range_bounding(slope_range, intercept_range, lower_bound, upper_bound
     if slope_min == slope_max == 0:
         # lower_bound <= b <= upper_bound -> either for all x (no range) or for no x ([0, 0])
         if intercept_min < lower_bound or intercept_max > upper_bound:
-            return 0, 0
+            return 0, -1
         else:
             return None
 
@@ -55,13 +55,13 @@ def affine_range_bounding(slope_range, intercept_range, lower_bound, upper_bound
     if slope_min == slope_max < 0:
         x_lb = (upper_bound - intercept_max) / slope_max
         x_ub = (lower_bound - intercept_min) / slope_max
-        return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
+        return (x_lb, x_ub) if x_lb <= x_ub else (0, -1)
 
     # 3.
     if slope_min == slope_max > 0:
         x_lb = (lower_bound - intercept_min) / slope_max
         x_ub = (upper_bound - intercept_max) / slope_max
-        return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
+        return (x_lb, x_ub) if x_lb <= x_ub else (0, -1)
 
     # 4.
     if slope_max < 0:
@@ -73,7 +73,7 @@ def affine_range_bounding(slope_range, intercept_range, lower_bound, upper_bound
             x_ub = (lower_bound - intercept_min) / slope_max
         else:
             x_ub = (lower_bound - intercept_min) / slope_min
-        return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
+        return (x_lb, x_ub) if x_lb <= x_ub else (0, -1)
 
     # 5.
     if 0 < slope_min:
@@ -85,8 +85,7 @@ def affine_range_bounding(slope_range, intercept_range, lower_bound, upper_bound
             x_ub = (upper_bound - intercept_max) / slope_max
         else:
             x_ub = (upper_bound - intercept_max) / slope_min
-        return (x_lb, x_ub) if x_lb <= x_ub else (0, 0)
-
+        return (x_lb, x_ub) if x_lb <= x_ub else (0, -1)
     #  6. 7. 8.
     # lower_bound < intercept_min and intercept_max < upper_bound:
     if intercept_min < lower_bound or intercept_max > upper_bound:

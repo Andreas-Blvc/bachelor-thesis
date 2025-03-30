@@ -1,3 +1,0 @@
-https://syncandshare.lrz.de/dl/fiWmuvvAdKEcJgEPKWDkkjdt/.zip
-
-Development is in svn. Then, update the version in Sync&Share to provide the content to students.

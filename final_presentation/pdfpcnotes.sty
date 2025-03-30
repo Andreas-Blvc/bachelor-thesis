@@ -78,6 +78,22 @@
 % Example:
 %   \inlineMovie[loop&autostart&start=5&stop=12]{apollo17.avi}{apollo17.jpg}{height=0.7\textheight}
 %
+\newcommand{\inlineSingleMovie}[2][]{%
+  \centering
+  \href{run:#2?#1}{%
+    \begin{tikzpicture}
+      \useasboundingbox (0,0) rectangle (0.5*\linewidth,0.4*\linewidth); % precise bounding box
+      \draw[fill=gray!10, draw=black, rounded corners=2pt, line width=0.5pt]
+        (0,0) rectangle (0.5*\linewidth,0.4*\linewidth);
+      \path[fill=black]
+        (\linewidth/4 + 0.0125*\linewidth, 0.2*\linewidth)
+        -- ++(-0.025*\linewidth, 0.0175*\linewidth)
+        -- ++(0,-0.035*\linewidth)
+        -- cycle;
+    \end{tikzpicture}%
+  }
+}
+
 
 \newcommand{\inlineMovie}[2][]{%
   \noindent % avoid center's added space

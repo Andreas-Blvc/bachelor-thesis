@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>Presentation</title>
+
+	<!-- Reveal.js core CSS -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.css">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/theme/black.css" id="theme">
+
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 0;
+			background-color: #f4f4f4;
+		}
+
+		.reveal {
+			width: 100%;
+			height: 100%;
+			padding: 0;
+		}
+
+		.slides {
+			width: 100%;
+			margin: 0;
+			padding: 0;
+		}
+
+		textarea {
+			width: 100%;
+			height: 300px;
+			font-family: monospace;
+			padding: 10px;
+			margin-top: 20px;
+		}
+
+		.mermaid {
+			background-color: white;
+			border-radius: 8px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+			width: 100%;
+			height: 100%;
+			margin: 0;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="reveal">
+		<div class="slides">
+			<section data-markdown="" data-separator="^\n---\n$" data-separator-vertical="^\n----\n$"
+				data-separator-notes="^Note:" data-charset="utf-8">
+			</section>
+
+			<section id="gantt-section">
+				<h2 id="gantt-title"></h2>
+				<div class="mermaid" id="gantt-container"></div>
+			</section>
+		</div>
+	</div>
+
+	<!-- Reveal.js dependencies -->
+	<script src="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/reveal.js@4/plugin/markdown/markdown.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/reveal.js@4/plugin/highlight/highlight.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/reveal.js-mermaid-plugin@2.3.0/plugin/mermaid/mermaid.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/mermaid@9.2.2/dist/mermaid.min.js"></script>
+
+	<script>
+		// Function to get the week from the URL
+		function getWeekFromURL() {
+			const params = new URLSearchParams(window.location.search);
+			return params.get('week');
+		}
+
+		// Function to load Gantt data from the external MD file
+		async function loadGanttData(week) {
+			try {
+				const response = await fetch(`${week}/gantt.md`);
+				const data = await response.text();
+				const weekNumber = week.replace('week', '');
+
+				const ganntHeader = document.getElementById('gantt-title');
+				ganntHeader.textContent = `Gantt Chart Woche ${weekNumber}`
+
+				const ganttContainer = document.getElementById('gantt-container');
+				ganttContainer.textContent = `
+%%{init: {'gantt': {'leftPadding': 100, 'rightPadding': 20}}}%%
+gantt
+	title Woche ${weekNumber} Project Timeline
+	dateFormat  DD.MM.YYYY
+	axisFormat  %d.%m.%Y
+	` + data.replaceAll('\n', '\n	');
+
+				// Render the Gantt chart using Mermaid
+				mermaid.initialize({ startOnLoad: false });
+				mermaid.contentLoaded();
+				mermaid.init(undefined, ganttContainer); // Initialize Mermaid to render
+				mermaid.ganttConfig = {
+					leftPadding: 200,
+					useMaxWidth: true,
+				};
+			} catch (error) {
+				console.error('Error loading Gantt data:', error);
+			}
+		}
+
+		// Initialize the presentation and load Gantt data
+		window.onload = async function () {
+			const week = getWeekFromURL();
+			if (week) {
+				// Load the Markdown presentation for the week
+				const markdownSection = document.querySelector('section[data-markdown]');
+				markdownSection.setAttribute('data-markdown', `${week}/presentation.md`);
+
+				// Load Gantt data for the specific week
+				await loadGanttData(week);
+			}
+
+			// Initialize Reveal.js with the Mermaid plugin
+			Reveal.initialize({
+				plugins: [RevealMarkdown, RevealHighlight, RevealMermaid],
+				width: '100%',
+				margin: 0,
+				disableLayout: false,
+			});
+		};
+	</script>
+
+</body>
+
+</html>

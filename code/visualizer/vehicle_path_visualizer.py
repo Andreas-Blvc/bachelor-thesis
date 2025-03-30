@@ -5,6 +5,7 @@ from datetime import datetime
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from IPython.display import HTML
 
+from path_planner import Objectives
 from self_driving_cars import AbstractSelfDrivingCar
 from utils.constants import PATH_PLANNER_HEIGHT as HEIGHT, PATH_PLANNER_WIDTH as WIDTH
 
@@ -48,7 +49,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
     ax.grid(True)
     ax.set_xlabel("X Position")
     ax.set_ylabel("Y Position")
-    ax.set_title(f"Vehicle Path Visualization - {title}")
+    ax.set_title(f"Vehicle Path Visualization - {car.predictive_model.get_name()}")
 
     # initialize car dependent variables
     start: np.ndarray = car.get_start()
@@ -105,11 +106,40 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
 
     # Info box
     info_box = ax.text(
-        0.02, 0.98, "", transform=ax.transAxes, fontsize=10, va="top", ha="left",
+        0.02, 0.23, "", transform=ax.transAxes, fontsize=10, va="top", ha="left",
         bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white")
     )
 
     dt = car.planner.dt
+
+    # x frames per second
+    discretization_step = dt(0)  # assuming constant here!
+    fps = 20
+    N = max(int(1/fps / discretization_step), 1)
+    frames = list(car.drive())[::N]  # Convert to list to prevent exhaustion
+
+    old_max = Objectives.max
+    old_sum_squares = Objectives.sum_squares
+    old_create_var = Objectives.create_var
+    old_zero = Objectives.Zero
+    Objectives.max = max
+    Objectives.sum_squares = lambda vec: sum(x ** 2 for x in vec)
+    Objectives.create_var = None
+    Objectives.Zero = 0
+    objective_val, objective_type, _, objective_name = car.planner.get_objective(
+        [car.convert_vec_to_state(vec) for vec, _ in car.car_states],
+        [car.convert_vec_to_control_input(vec) for vec, _ in car.executed_controls],
+    )
+    Objectives.max = old_max
+    Objectives.sum_squares = old_sum_squares
+    Objectives.create_var = old_create_var
+    Objectives.Zero = old_zero
+
+    print(objective_val)
+    if objective_type == Objectives.Type.MINIMIZE:
+        objective_text = f"Objective (MIN): {objective_val:.2f}\n"
+    else:
+        objective_text = f"Objective (MAX): {objective_val:.2f}\n"
 
     def update_frame(args):
         car_state, planned_path = args
@@ -140,6 +170,7 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
 
         # Update info box text
         info_box.set_text(
+            objective_text +
             f"Position: ({car_position[0]:.2f}, {car_position[1]:.2f})\n"
             f"Orientation: {np.degrees(car_orientation):.2f}°\n"
             f"Steering Angle: {np.degrees(car_steering_angle):.2f}°\n"
@@ -149,13 +180,6 @@ def animate(car: AbstractSelfDrivingCar, interactive: bool, title: str='', save_
         ax.set_xlim(center_x - zoom_width / 2, center_x + zoom_width / 2)
         ax.set_ylim(center_y - zoom_height / 2, center_y + zoom_height / 2)
         return car_patch, car_path_line, current_planned_path_line, info_box
-
-
-    # x frames per second
-    discretization_step = dt(0)  # assuming constant here!
-    fps = 25
-    N = max(int(1/fps / discretization_step), 1)
-    frames = list(car.drive())[::N]  # Convert to list to prevent exhaustion
 
     anim: FuncAnimation = FuncAnimation(
         fig,

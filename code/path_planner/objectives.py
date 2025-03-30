@@ -130,7 +130,10 @@ class Objectives:
         constraints = []
         if len(control_inputs) == 0:
             return Objectives.Zero, Objectives.Type.MINIMIZE, constraints, 'minimize_control_derivatives'
-        dim_controls = control_inputs[0].as_vector().size
+        try:
+            dim_controls = control_inputs[0].as_vector().size()[0]
+        except TypeError:
+            dim_controls = control_inputs[0].as_vector().size
         N = len(control_inputs)
         for i in range(N-1):
             if Objectives.create_var is not None:
@@ -156,6 +159,17 @@ class Objectives:
             objective_1 - 1e4 * objective_2 + 1e3 * objective_3,
             Objectives.Type.MINIMIZE,
             constraints_1 + constraints_2 + constraints_3,
+            'minimize_control_derivatives_offset_maximize_distance'
+        )
+
+    @staticmethod
+    def minimize_offset_maximize_distance(states: List[State], control_inputs: List[ControlInput]):
+        objective_2, _, constraints_2, _ = Objectives.maximize_distance(states, control_inputs)
+        objective_3, _, constraints_3, _ = Objectives.minimize_offset_from_reference_path(states, control_inputs)
+        return (
+            - 1e4 * objective_2 + 1e3 * objective_3,
+            Objectives.Type.MINIMIZE,
+            constraints_2 + constraints_3,
             'minimize_control_derivatives_offset_maximize_distance'
         )
 

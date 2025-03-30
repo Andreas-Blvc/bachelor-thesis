@@ -114,7 +114,7 @@ class ConvexPathPlanner(AbstractPathPlanner):
         state_transitions_on_segment = [0] * len(segments)
         for i, segment in enumerate(segments):
             if prev_segments_length <= traveled_distance <= prev_segments_length + segment.length:
-                distance_til_next_segment = prev_segments_length + segment.length - traveled_distance - (0 if i < len(segments) - 1 else max(self.model.road.length * .04, 3))
+                distance_til_next_segment = prev_segments_length + segment.length - traveled_distance - (0 if i < len(segments) - 1 else max(self.model.road.length * .01, 3))
                 estimated_time_to_reach_next_segment = distance_til_next_segment / ref_velocity
                 state_transitions = min(max_state_transitions,  self.get_state_transitions(estimated_time_to_reach_next_segment, sum(state_transitions_on_segment)))
                 state_transitions_on_segment[i] = state_transitions

@@ -1,0 +1,2 @@
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qfootline author in head/foottitle in head/foot / 0pttitle.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QCambridgeUS\\E$"}
