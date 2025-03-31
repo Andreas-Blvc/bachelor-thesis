@@ -828,7 +828,7 @@
     \item We define road segments, planner configurations, and soft constraints.
     \item Simulation scenarios mimic realistic driving conditions.
     \item Multiple scenarios: straight roads, curved segments.
-    \item Metrics: trajectory feasibility, computational time, road completion, and objective values.
+    \item Metrics: computational time, road completion, and objective values.
   \end{itemize}
 \end{frame}
 
@@ -860,9 +860,9 @@
 % ------------------------------------
 \begin{frame}{Comparison: Double Integrator vs. Bicycle Model}
   \begin{itemize}
-    \item Double integrator: Fast and efficient, less detailed.
-    \item Bicycle model: Higher fidelity but increased computational load.
-    \item Trade-offs guide model selection based on application needs.
+    \item Double integrator: Elchtest, Lane Change, and Left Turn.
+    \item Bicycle model: Slalom.
+    \item Straight road: Solver reliability check.
   \end{itemize}
   \centering
   \begin{figure}[h]
@@ -939,7 +939,8 @@
 \begin{frame}{Limitations and Challenges}
   \begin{itemize}
     \item Conservative approximations can limit feasibility.
-    \item KST performs worse in high speed scenarios, due to restricted friction circle.
+    \item KST performs worse in curves, due to approximations.
+    \item KST fails Elchtest, due to restrictive friction approximation.
   \end{itemize}
   \begin{equation}
     \sqrt{a^2 + \left(v\dot{\psi}\right)^2} = \sqrt{a^2 + \left(\frac{v^2}{l_{wb}} \tan(\delta)\right)^2} \leq a_{max}
