@@ -1,16 +1,6 @@
-### Jupytur 
+## How to reproduce
 
-Run in docker container:
-
-```bash
-python -c "import secrets; print(secrets.token_hex(32))" > jupyter_token.txt
-docker build -t my-jupyter-notebook .
-docker run -d -p 8888:8888 my-jupyter-notebook
-```
-
-Sync project with docker container:
-
-- run `docker ps` to get the container id
-- `./sync_project_to_container_rsync.sh <container_id>`
-
-
+- install requirements from requirements.txt
+- the preview notebook provides an example of simulation parameters and how to execute the planner.
+- you can build your own scenarios with the editor, launched with the launch_editor.py script.
+- 

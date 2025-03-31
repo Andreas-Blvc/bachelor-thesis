@@ -12,7 +12,6 @@ def visualize_mccormick(x_bounds, y_bounds, resolution=50):
     - y_bounds: tuple (y_L, y_U), bounds for y.
     - resolution: int, number of points for x and y grids.
     """
-    return _visualize_mccormick_export_latex(x_bounds, y_bounds, resolution)
     x_L, x_U = x_bounds
     y_L, y_U = y_bounds
 

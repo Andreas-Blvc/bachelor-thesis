@@ -1,6 +1,5 @@
 from typing import List, Tuple, Callable
 
-from hypothesis.reporting import current_reporter
 from scipy.integrate import solve_ivp
 import time
 import math
